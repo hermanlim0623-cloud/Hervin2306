@@ -2,7 +2,6 @@ name: Telegram Command Handler
 
 on:
   schedule:
-    # Every 5 minutes — process /scan /short /top commands
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
