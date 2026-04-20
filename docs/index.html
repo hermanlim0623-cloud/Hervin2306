@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HERVIN SCANNER — ULTIMATE PRO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #050810;
+    --bg2:      #080d1a;
+    --panel:    #0c1225;
+    --border:   #1a2540;
+    --green:    #00ff88;
+    --red:      #ff3355;
+    --yellow:   #ffcc00;
+    --blue:     #00aaff;
+    --dim:      #3a4a6a;
+    --text:     #c8d8f0;
+    --mono:     'Share Tech Mono', monospace;
+    --cond:     'Barlow Condensed', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,170,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,170,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* SCANLINE */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(transparent, rgba(0,255,136,0.15), transparent);
+    animation: scanline 6s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+  @keyframes scanline { to { top: 200%; } }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: rgba(5,8,16,0.9);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    font-family: var(--cond);
+    font-weight: 900;
+    font-size: clamp(20px, 5vw, 32px);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(0,255,136,0.5);
+  }
+
+  .logo span { color: var(--blue); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .last-update {
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 6px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover {
+    background: rgba(0,255,136,0.1);
+    box-shadow: 0 0 12px rgba(0,255,136,0.3);
+  }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* TABS */
+  .tabs {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    gap: 0;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,8,16,0.8);
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 12px 20px;
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 5;
+    padding: 20px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.red::before   { background: var(--red); }
+  .stat-card.blue::before  { background: var(--blue); }
+  .stat-card.yellow::before{ background: var(--yellow); }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--cond);
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-value.green  { color: var(--green); }
+  .stat-value.red    { color: var(--red); }
+  .stat-value.blue   { color: var(--blue); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  /* GRID 2 COL */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  /* PANEL */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+
+  .panel-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    background: rgba(0,170,255,0.1);
+    border: 1px solid rgba(0,170,255,0.3);
+    color: var(--blue);
+    letter-spacing: 1px;
+  }
+
+  .panel-body { padding: 0; }
+
+  /* COIN ROW */
+  .coin-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(26,37,64,0.5);
+    gap: 12px;
+    transition: background 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  .coin-row:hover { background: rgba(0,170,255,0.05); }
+  .coin-row:last-child { border-bottom: none; }
+
+  .coin-rank {
+    font-size: 10px;
+    color: var(--dim);
+    width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .coin-symbol {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1px;
+    width: 70px;
+    flex-shrink: 0;
+  }
+
+  .coin-price {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .coin-change {
+    font-family: var(--cond);
+    font-weight: 600;
+    font-size: 15px;
+    width: 70px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .coin-change.up   { color: var(--green); }
+  .coin-change.down { color: var(--red); }
+
+  .coin-vol {
+    font-size: 10px;
+    color: var(--dim);
+    width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .coin-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .tag-fut  { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+  .tag-pump { background: rgba(255,204,0,0.1);  border: 1px solid rgba(255,204,0,0.3);  color: var(--yellow); }
+  .tag-short{ background: rgba(255,51,85,0.1);  border: 1px solid rgba(255,51,85,0.3);  color: var(--red); }
+
+  /* SIGNAL CARD */
+  .signal-card {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(26,37,64,0.5);
+  }
+  .signal-card:last-child { border-bottom: none; }
+
+  .signal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .signal-name {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+
+  .signal-score {
+    font-size: 11px;
+    padding: 3px 10px;
+    letter-spacing: 1px;
+  }
+  .score-high   { background: rgba(255,51,85,0.15); border: 1px solid rgba(255,51,85,0.4); color: var(--red); }
+  .score-medium { background: rgba(255,204,0,0.15); border: 1px solid rgba(255,204,0,0.4); color: var(--yellow); }
+  .score-low    { background: rgba(0,170,255,0.1);  border: 1px solid rgba(0,170,255,0.3); color: var(--blue); }
+
+  .signal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+  }
+
+  .signal-item {
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .signal-item span { color: var(--text); }
+  .signal-item .up   { color: var(--green); }
+  .signal-item .down { color: var(--red); }
+  .signal-item .warn { color: var(--yellow); }
+
+  /* ATR PANEL */
+  .atr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .atr-card {
+    background: rgba(8,13,26,0.8);
+    border: 1px solid var(--border);
+    padding: 14px;
+  }
+
+  .atr-symbol {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--blue);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+
+  .atr-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(26,37,64,0.4);
+  }
+  .atr-row:last-child { border-bottom: none; }
+  .atr-row .label { color: var(--dim); }
+  .atr-row .val-green { color: var(--green); font-weight: 600; }
+  .atr-row .val-red   { color: var(--red);   font-weight: 600; }
+  .atr-row .val-blue  { color: var(--blue);  font-weight: 600; }
+
+  /* SEARCH */
+  .search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .search-input:focus { border-color: var(--blue); }
+  .search-input::placeholder { color: var(--dim); text-transform: none; }
+
+  .search-btn {
+    background: var(--blue);
+    border: none;
+    color: var(--bg);
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: opacity 0.2s;
+  }
+  .search-btn:hover { opacity: 0.8; }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--dim);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .loading::after {
+    content: '...';
+    animation: dots 1.5s infinite;
+  }
+  @keyframes dots {
+    0%   { content: '.'; }
+    33%  { content: '..'; }
+    66%  { content: '...'; }
+  }
+
+  /* EMPTY */
+  .empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* SCAN RESULT */
+  .scan-result {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-top: 16px;
+  }
+
+  .scan-result-title {
+    font-family: var(--cond);
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    color: var(--blue);
+  }
+
+  .scan-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .metric {
+    background: rgba(8,13,26,0.8);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+  .metric-label { font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-bottom: 4px; }
+  .metric-value { font-family: var(--cond); font-size: 20px; font-weight: 700; }
+
+  .mtf-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .mtf-card {
+    background: rgba(8,13,26,0.8);
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: center;
+  }
+  .mtf-tf { font-size: 11px; color: var(--dim); letter-spacing: 2px; margin-bottom: 6px; }
+  .mtf-trend { font-family: var(--cond); font-size: 16px; font-weight: 700; }
+  .mtf-rsi { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .bullish { color: var(--green); }
+  .bearish { color: var(--red); }
+
+  /* VERDICT */
+  .verdict {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-left: 4px solid;
+    font-family: var(--cond);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .verdict.good   { border-color: var(--green); background: rgba(0,255,136,0.05); color: var(--green); }
+  .verdict.warn   { border-color: var(--yellow); background: rgba(255,204,0,0.05); color: var(--yellow); }
+  .verdict.danger { border-color: var(--red); background: rgba(255,51,85,0.05); color: var(--red); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--dim); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    main { padding: 12px 12px; }
+    header { padding: 14px 12px; }
+    .tabs { padding: 0 12px; }
+    .tab { padding: 10px 14px; font-size: 11px; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .mtf-grid { grid-template-columns: repeat(3, 1fr); }
+    .coin-vol { display: none; }
+  }
+
+  /* TICKER TAPE */
+  .ticker-wrap {
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,13,26,0.6);
+    padding: 6px 0;
+    position: relative;
+    z-index: 10;
+  }
+  .ticker {
+    display: flex;
+    gap: 40px;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+    width: max-content;
+  }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-item { font-size: 11px; color: var(--dim); }
+  .ticker-item .sym { color: var(--text); font-weight: 600; margin-right: 4px; }
+  .ticker-item .up  { color: var(--green); }
+  .ticker-item .dn  { color: var(--red); }
+
+  /* ALERT HISTORY */
+  .alert-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(26,37,64,0.4);
+    gap: 10px;
+    font-size: 11px;
+  }
+  .alert-row:last-child { border-bottom: none; }
+  .alert-time { color: var(--dim); width: 50px; flex-shrink: 0; }
+  .alert-sym  { font-family: var(--cond); font-weight: 700; font-size: 14px; width: 60px; }
+  .alert-type { width: 70px; flex-shrink: 0; }
+  .alert-gain { color: var(--green); flex: 1; }
+  .alert-price{ color: var(--dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">HERVIN <span>SCANNER</span> <span style="font-size:14px;color:var(--dim)">v6 ULTIMATE</span></div>
+  <div class="header-right">
+    <div class="status-dot"><div class="dot"></div> LIVE</div>
+    <div class="last-update" id="lastUpdate">—</div>
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">⟳ REFRESH</button>
+  </div>
+</header>
+
+<!-- TICKER TAPE -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker">
+    <span class="ticker-item">Loading market data...</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('top')">📈 TOP GAINERS</div>
+  <div class="tab" onclick="showTab('signals')">🚨 SIGNALS</div>
+  <div class="tab" onclick="showTab('short')">🔻 SHORT WATCH</div>
+  <div class="tab" onclick="showTab('atr')">📐 ATR / SL / TP</div>
+  <div class="tab" onclick="showTab('scan')">🔍 SCAN COIN</div>
+  <div class="tab" onclick="showTab('history')">📋 HISTORY</div>
+</div>
+
+<main>
+
+  <!-- TOP GAINERS -->
+  <div class="section active" id="sec-top">
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card green"><div class="stat-label">Total Coins</div><div class="stat-value green" id="statTotal">—</div></div>
+      <div class="stat-card yellow"><div class="stat-label">Top Gainer 24h</div><div class="stat-value yellow" id="statTopGain">—</div></div>
+      <div class="stat-card blue"><div class="stat-label">Avg Volume</div><div class="stat-value blue" id="statAvgVol">—</div></div>
+      <div class="stat-card red"><div class="stat-label">On Futures</div><div class="stat-value red" id="statFutures">—</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🔥 Top Gainers 24h</div>
+          <div class="panel-badge">COINGECKO</div>
+        </div>
+        <div class="panel-body" id="topGainers"><div class="loading">Loading</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📉 Top Losers 24h</div>
+          <div class="panel-badge">COINGECKO</div>
+        </div>
+        <div class="panel-body" id="topLosers"><div class="loading">Loading</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNALS -->
+  <div class="section" id="sec-signals">
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🚀 Pump Candidates</div>
+          <div class="panel-badge" id="pumpCount">0 found</div>
+        </div>
+        <div class="panel-body" id="pumpSignals"><div class="loading">Analyzing</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">⚡ Intraday Pumping NOW</div>
+          <div class="panel-badge" id="intradayCount">0 found</div>
+        </div>
+        <div class="panel-body" id="intradaySignals"><div class="loading">Analyzing</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHORT WATCH -->
+  <div class="section" id="sec-short">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🔻 Short Candidates</div>
+        <div class="panel-badge" id="shortCount">0 found</div>
+      </div>
+      <div class="panel-body" id="shortSignals"><div class="loading">Analyzing</div></div>
+    </div>
+  </div>
+
+  <!-- ATR -->
+  <div class="section" id="sec-atr">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header">
+        <div class="panel-title">📐 ATR Stop Loss / Take Profit</div>
+        <div class="panel-badge">BINANCE FUTURES</div>
+      </div>
+      <div class="atr-grid" id="atrGrid"><div class="loading">Loading ATR data</div></div>
+    </div>
+  </div>
+
+  <!-- SCAN COIN -->
+  <div class="section" id="sec-scan">
+    <div class="search-bar">
+      <input class="search-input" id="scanInput" placeholder="Enter symbol (e.g. BTC, ETH, PIEVERSE)" maxlength="20">
+      <button class="search-btn" onclick="scanCoin()">SCAN</button>
+    </div>
+    <div id="scanResult"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section" id="sec-history">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📋 Recent Signals (Local)</div>
+        <div class="panel-badge" id="historyCount">0 records</div>
+      </div>
+      <div class="panel-body" id="historyList"><div class="empty">No history yet. Signals will appear here after scanning.</div></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const CG_BASE      = 'https://api.coingecko.com/api/v3';
+const FAPI_BASE    = 'https://fapi.binance.com/fapi/v1';
+const MIN_VOL      = 500_000;
+const PUMP_5D      = 300;
+const SHORT_5D     = 500;
+const REVERSAL_PCT = 8;
+
+let futuresSymbols = new Set();
+let marketData     = [];
+let signalHistory  = JSON.parse(localStorage.getItem('signalHistory') || '[]');
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`sec-${name}`).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ═══════════════════════════════════════════════════════
+// FETCH HELPERS
+// ═══════════════════════════════════════════════════════
+async function fetchJSON(url, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(url + (qs ? '?' + qs : ''));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════════
+// LOAD FUTURES SYMBOLS
+// ═══════════════════════════════════════════════════════
+async function loadFuturesSymbols() {
+  try {
+    const data = await fetchJSON(`${FAPI_BASE}/exchangeInfo`);
+    futuresSymbols = new Set(
+      data.symbols
+        .filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT')
+        .map(s => s.baseAsset.toUpperCase())
+    );
+  } catch(e) {
+    console.warn('Futures symbols failed:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// LOAD MARKET DATA (CoinGecko)
+// ═══════════════════════════════════════════════════════
+async function loadMarketData() {
+  const pages = await Promise.all([1,2,3].map(page =>
+    fetchJSON(`${CG_BASE}/coins/markets`, {
+      vs_currency: 'usd',
+      order: 'market_cap_desc',
+      per_page: 100,
+      page,
+      sparkline: false,
+      price_change_percentage: '24h,7d'
+    }).catch(() => [])
+  ));
+  marketData = pages.flat().filter(c =>
+    (c.total_volume || 0) > MIN_VOL &&
+    !['usdt','usdc','busd','dai','tusd','fdusd'].includes(c.symbol)
+  );
+  return marketData;
+}
+
+// ═══════════════════════════════════════════════════════
+// FORMAT HELPERS
+// ═══════════════════════════════════════════════════════
+const fmt = {
+  price:  v => v >= 1 ? `$${v.toLocaleString(undefined,{maximumFractionDigits:2})}` : `$${v.toFixed(6)}`,
+  pct:    v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%',
+  vol:    v => v >= 1e9 ? `$${(v/1e9).toFixed(1)}B` : `$${(v/1e6).toFixed(1)}M`,
+  mcap:   v => v >= 1e9 ? `$${(v/1e9).toFixed(2)}B` : `$${(v/1e6).toFixed(1)}M`,
+};
+
+function scoreClass(s, max) {
+  const r = s / max;
+  return r >= 0.6 ? 'score-high' : r >= 0.4 ? 'score-medium' : 'score-low';
+}
+
+function chartUrl(sym) {
+  return `https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER TOP GAINERS / LOSERS
+// ═══════════════════════════════════════════════════════
+function renderTopMovers(data) {
+  const sorted = [...data].sort((a,b) =>
+    (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0)
+  );
+  const gainers = sorted.slice(0, 15);
+  const losers  = sorted.slice(-10).reverse();
+
+  // Stats
+  document.getElementById('statTotal').textContent   = data.length;
+  document.getElementById('statTopGain').textContent = fmt.pct(gainers[0]?.price_change_percentage_24h||0);
+  const avgVol = data.reduce((a,c) => a+(c.total_volume||0),0) / data.length;
+  document.getElementById('statAvgVol').textContent  = fmt.vol(avgVol);
+  document.getElementById('statFutures').textContent = data.filter(c => futuresSymbols.has(c.symbol.toUpperCase())).length;
+
+  // Ticker
+  const tickerItems = sorted.slice(0,20).map(c => {
+    const g = c.price_change_percentage_24h||0;
+    return `<span class="ticker-item"><span class="sym">${c.symbol.toUpperCase()}</span><span class="${g>=0?'up':'dn'}">${fmt.pct(g)}</span></span>`;
+  }).join('');
+  document.getElementById('ticker').innerHTML = tickerItems + tickerItems; // double for seamless loop
+
+  // Gainers list
+  document.getElementById('topGainers').innerHTML = gainers.map((c,i) => {
+    const sym  = c.symbol.toUpperCase();
+    const g    = c.price_change_percentage_24h||0;
+    const onF  = futuresSymbols.has(sym);
+    return `<a class="coin-row" href="${chartUrl(sym)}" target="_blank">
+      <span class="coin-rank">${i+1}</span>
+      <span class="coin-symbol" style="color:var(--green)">${sym}</span>
+      <span class="coin-price">${fmt.price(c.current_price||0)}</span>
+      <span class="coin-change up">${fmt.pct(g)}</span>
+      <span class="coin-vol">${fmt.vol(c.total_volume||0)}</span>
+      ${onF ? '<span class="coin-tag tag-fut">FUT</span>' : ''}
+    </a>`;
+  }).join('');
+
+  // Losers list
+  document.getElementById('topLosers').innerHTML = losers.map((c,i) => {
+    const sym = c.symbol.toUpperCase();
+    const g   = c.price_change_percentage_24h||0;
+    return `<a class="coin-row" href="${chartUrl(sym)}" target="_blank">
+      <span class="coin-rank">${i+1}</span>
+      <span class="coin-symbol" style="color:var(--red)">${sym}</span>
+      <span class="coin-price">${fmt.price(c.current_price||0)}</span>
+      <span class="coin-change down">${fmt.pct(g)}</span>
+      <span class="coin-vol">${fmt.vol(c.total_volume||0)}</span>
+    </a>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER SIGNALS
+// ═══════════════════════════════════════════════════════
+function renderSignals(data) {
+  // 7-day pump candidates
+  const pumps = data.filter(c => {
+    const g7 = c.price_change_percentage_7d_in_currency||0;
+    return g7 >= PUMP_5D && (c.market_cap||0) >= 10_000_000;
+  }).sort((a,b) => (b.price_change_percentage_7d_in_currency||0) - (a.price_change_percentage_7d_in_currency||0))
+    .slice(0,10);
+
+  document.getElementById('pumpCount').textContent = `${pumps.length} found`;
+
+  if (!pumps.length) {
+    document.getElementById('pumpSignals').innerHTML = '<div class="empty">No pump signals — market normal</div>';
+  } else {
+    document.getElementById('pumpSignals').innerHTML = pumps.map(c => {
+      const sym  = c.symbol.toUpperCase();
+      const g7   = c.price_change_percentage_7d_in_currency||0;
+      const g24  = c.price_change_percentage_24h||0;
+      const onF  = futuresSymbols.has(sym);
+      const circ = c.circulating_supply||0;
+      const max  = c.max_supply||c.total_supply||0;
+      const supplyRatio = max > 0 ? (circ/max*100) : null;
+      let score = 0;
+      if (g7 >= PUMP_5D) score++;
+      if (supplyRatio && supplyRatio < 30) score++;
+      if (onF) score++;
+
+      saveSignal(sym, 'PUMP', g7, c.current_price||0);
+      return `<div class="signal-card">
+        <div class="signal-header">
+          <div class="signal-name">
+            <a href="${chartUrl(sym)}" target="_blank" style="color:var(--yellow);text-decoration:none">${sym}</a>
+            ${onF ? '<span class="coin-tag tag-fut" style="margin-left:6px">FUT</span>' : ''}
+          </div>
+          <div class="signal-score ${scoreClass(score,3)}">SCORE ${score}/3</div>
+        </div>
+        <div class="signal-grid">
+          <div class="signal-item">7D GAIN <span class="up">+${g7.toFixed(1)}%</span></div>
+          <div class="signal-item">24H <span class="${g24>=0?'up':'down'}">${fmt.pct(g24)}</span></div>
+          <div class="signal-item">PRICE <span>${fmt.price(c.current_price||0)}</span></div>
+          <div class="signal-item">MCAP <span>${fmt.mcap(c.market_cap||0)}</span></div>
+          ${supplyRatio ? `<div class="signal-item">SUPPLY <span class="${supplyRatio<30?'warn':''}">${supplyRatio.toFixed(1)}%</span></div>` : ''}
+          <div class="signal-item">FUTURES <span class="${onF?'up':'down'}">${onF?'YES':'NO'}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Intraday pumping NOW (24h gain > 20% + on futures)
+  const intraday = data.filter(c => {
+    const g = c.price_change_percentage_24h||0;
+    return g >= 20 && futuresSymbols.has(c.symbol.toUpperCase()) && (c.market_cap||0) >= 10_000_000;
+  }).sort((a,b) => (b.price_change_percentage_24h||0) - (a.price_change_percentage_24h||0))
+    .slice(0,8);
+
+  document.getElementById('intradayCount').textContent = `${intraday.length} found`;
+
+  if (!intraday.length) {
+    document.getElementById('intradaySignals').innerHTML = '<div class="empty">No intraday signals right now</div>';
+  } else {
+    document.getElementById('intradaySignals').innerHTML = intraday.map(c => {
+      const sym = c.symbol.toUpperCase();
+      const g   = c.price_change_percentage_24h||0;
+      return `<div class="signal-card">
+        <div class="signal-header">
+          <div class="signal-name" style="color:var(--green)">
+            <a href="${chartUrl(sym)}" target="_blank" style="color:var(--green);text-decoration:none">⚡ ${sym}</a>
+          </div>
+          <span class="coin-tag tag-pump">PUMPING</span>
+        </div>
+        <div class="signal-grid">
+          <div class="signal-item">24H GAIN <span class="up">+${g.toFixed(1)}%</span></div>
+          <div class="signal-item">PRICE <span>${fmt.price(c.current_price||0)}</span></div>
+          <div class="signal-item">VOL <span>${fmt.vol(c.total_volume||0)}</span></div>
+          <div class="signal-item">MCAP <span>${fmt.mcap(c.market_cap||0)}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER SHORT WATCH
+// ═══════════════════════════════════════════════════════
+function renderShortWatch(data) {
+  const shorts = data.filter(c => {
+    const g7  = c.price_change_percentage_7d_in_currency||0;
+    const sym = c.symbol.toUpperCase();
+    return g7 >= SHORT_5D &&
+           futuresSymbols.has(sym) &&
+           (c.market_cap||0) >= 50_000_000;
+  }).sort((a,b) => (b.price_change_percentage_7d_in_currency||0) - (a.price_change_percentage_7d_in_currency||0))
+    .slice(0,10);
+
+  document.getElementById('shortCount').textContent = `${shorts.length} found`;
+
+  if (!shorts.length) {
+    document.getElementById('shortSignals').innerHTML = '<div class="empty">No short candidates — no extreme pumps detected</div>';
+    return;
+  }
+
+  document.getElementById('shortSignals').innerHTML = shorts.map(c => {
+    const sym  = c.symbol.toUpperCase();
+    const g7   = c.price_change_percentage_7d_in_currency||0;
+    const g24  = c.price_change_percentage_24h||0;
+    const circ = c.circulating_supply||0;
+    const max  = c.max_supply||c.total_supply||0;
+    const supplyRatio = max > 0 ? (circ/max*100) : null;
+    let score = 0;
+    if (g7 >= SHORT_5D) score++;
+    if (supplyRatio && supplyRatio < 30) score++;
+    if (g24 < -5) score++; // already reversing
+
+    saveSignal(sym, 'SHORT', g7, c.current_price||0);
+    return `<div class="signal-card">
+      <div class="signal-header">
+        <div class="signal-name">
+          <a href="${chartUrl(sym)}" target="_blank" style="color:var(--red);text-decoration:none">⚠️ ${sym}</a>
+          <span class="coin-tag tag-short" style="margin-left:6px">SHORT</span>
+        </div>
+        <div class="signal-score ${scoreClass(score,3)}">SCORE ${score}/3</div>
+      </div>
+      <div class="signal-grid">
+        <div class="signal-item">7D PUMP <span class="up">+${g7.toFixed(1)}%</span></div>
+        <div class="signal-item">24H NOW <span class="${g24>=0?'up':'down'}">${fmt.pct(g24)}</span></div>
+        <div class="signal-item">PRICE <span>${fmt.price(c.current_price||0)}</span></div>
+        <div class="signal-item">MCAP <span>${fmt.mcap(c.market_cap||0)}</span></div>
+        ${supplyRatio ? `<div class="signal-item">SUPPLY <span class="${supplyRatio<30?'warn':''}">${supplyRatio.toFixed(1)}%</span></div>` : ''}
+        <div class="signal-item">STATUS <span class="${g24<-5?'down warn':'dim'}">${g24<-5?'⚠️ REVERSING':'Watching'}</span></div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--dim)">
+        💡 SS ke Hervin Scanner sebelum entry · $5 x3 akumulasi
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// ATR CALCULATION
+// ═══════════════════════════════════════════════════════
+async function loadATRData() {
+  const candidates = marketData.filter(c =>
+    futuresSymbols.has(c.symbol.toUpperCase()) &&
+    Math.abs(c.price_change_percentage_7d_in_currency||0) >= 100
+  ).slice(0,8);
+
+  if (!candidates.length) {
+    document.getElementById('atrGrid').innerHTML = '<div class="loading">No volatile futures coins found</div>';
+    return;
+  }
+
+  document.getElementById('atrGrid').innerHTML = '<div class="loading">Calculating ATR</div>';
+
+  const results = await Promise.all(candidates.map(async c => {
+    const sym = c.symbol.toUpperCase();
+    try {
+      const klines = await fetchJSON(`${FAPI_BASE}/klines`, {
+        symbol: `${sym}USDT`, interval: '4h', limit: 20
+      });
+      if (!klines || klines.length < 15) return null;
+
+      const trs = [];
+      for (let i = 1; i < klines.length; i++) {
+        const h  = parseFloat(klines[i][2]);
+        const l  = parseFloat(klines[i][3]);
+        const pc = parseFloat(klines[i-1][4]);
+        trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+      }
+      const atr     = trs.slice(-14).reduce((a,b)=>a+b,0) / 14;
+      const price   = parseFloat(klines[klines.length-1][4]);
+      const atrPct  = (atr/price*100);
+      const sl      = price + atr * 1.5;
+      const tp1     = price - atr * 1.5;
+      const tp2     = price - atr * 3.0;
+      return { sym, price, atr, atrPct, sl, tp1, tp2 };
+    } catch(e) { return null; }
+  }));
+
+  const valid = results.filter(Boolean);
+  if (!valid.length) {
+    document.getElementById('atrGrid').innerHTML = '<div class="empty">Could not calculate ATR</div>';
+    return;
+  }
+
+  document.getElementById('atrGrid').innerHTML = valid.map(d => `
+    <div class="atr-card">
+      <div class="atr-symbol"><a href="${chartUrl(d.sym)}" target="_blank" style="color:var(--blue);text-decoration:none">${d.sym}</a></div>
+      <div class="atr-row"><span class="label">PRICE</span><span class="val-blue">${fmt.price(d.price)}</span></div>
+      <div class="atr-row"><span class="label">ATR (4h)</span><span class="val-blue">${fmt.price(d.atr)} <span style="color:var(--dim);font-size:10px">(${d.atrPct.toFixed(2)}%)</span></span></div>
+      <div class="atr-row"><span class="label">STOP LOSS ↑</span><span class="val-red">${fmt.price(d.sl)}</span></div>
+      <div class="atr-row"><span class="label">TP1 (1.5x)</span><span class="val-green">${fmt.price(d.tp1)}</span></div>
+      <div class="atr-row"><span class="label">TP2 (3.0x)</span><span class="val-green">${fmt.price(d.tp2)}</span></div>
+      <div class="atr-row"><span class="label">R:R RATIO</span><span class="val-blue">1:2.0</span></div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// SCAN SINGLE COIN
+// ═══════════════════════════════════════════════════════
+async function scanCoin() {
+  const input = document.getElementById('scanInput').value.trim().toUpperCase();
+  if (!input) return;
+  const sym   = input.replace('USDT','').replace('/','');
+  const el    = document.getElementById('scanResult');
+  el.innerHTML = `<div class="scan-result"><div class="loading">Scanning ${sym}</div></div>`;
+
+  try {
+    const onFut = futuresSymbols.has(sym);
+
+    // Get 24h ticker from Futures
+    let price = 0, gain24 = 0, high24 = 0, low24 = 0;
+    if (onFut) {
+      const ticker = await fetchJSON(`${FAPI_BASE}/ticker/24hr`, { symbol: `${sym}USDT` }).catch(()=>null);
+      if (ticker) {
+        price  = parseFloat(ticker.lastPrice||0);
+        gain24 = parseFloat(ticker.priceChangePercent||0);
+        high24 = parseFloat(ticker.highPrice||0);
+        low24  = parseFloat(ticker.lowPrice||0);
+      }
+    }
+
+    // From CoinGecko market data
+    const cgData = marketData.find(c => c.symbol.toUpperCase() === sym);
+    if (cgData && !price) price = cgData.current_price||0;
+
+    // ATR from 4h klines
+    let atrData = null;
+    if (onFut) {
+      try {
+        const klines = await fetchJSON(`${FAPI_BASE}/klines`, { symbol:`${sym}USDT`, interval:'4h', limit:20 });
+        if (klines && klines.length >= 15) {
+          const trs = [];
+          for (let i=1;i<klines.length;i++) {
+            const h=parseFloat(klines[i][2]),l=parseFloat(klines[i][3]),pc=parseFloat(klines[i-1][4]);
+            trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
+          }
+          const atr = trs.slice(-14).reduce((a,b)=>a+b,0)/14;
+          atrData = { atr, sl: price+atr*1.5, tp1: price-atr*1.5, tp2: price-atr*3, atrPct: atr/price*100 };
+        }
+      } catch(e){}
+    }
+
+    // Funding rate
+    let funding = null;
+    if (onFut) {
+      try {
+        const fr = await fetchJSON(`${FAPI_BASE}/premiumIndex`, { symbol:`${sym}USDT` });
+        funding = parseFloat(fr.lastFundingRate||0)*100;
+      } catch(e){}
+    }
+
+    // MTF analysis (simplified from klines)
+    const mtfResults = {};
+    if (onFut) {
+      for (const tf of ['1h','4h','1d']) {
+        try {
+          const k = await fetchJSON(`${FAPI_BASE}/klines`, {symbol:`${sym}USDT`,interval:tf,limit:25});
+          if (k && k.length >= 20) {
+            const closes = k.map(c=>parseFloat(c[4]));
+            const ma20   = closes.slice(-20).reduce((a,b)=>a+b,0)/20;
+            const rsi    = calcRSI(closes);
+            mtfResults[tf] = { trend: closes[closes.length-1]>ma20?'bullish':'bearish', rsi };
+          }
+        } catch(e){}
+      }
+    }
+
+    // Score
+    const g7   = cgData?.price_change_percentage_7d_in_currency||0;
+    const g24c  = cgData?.price_change_percentage_24h||gain24;
+    const drop  = high24 > 0 ? (high24-price)/high24*100 : 0;
+    let shortScore = 0;
+    if (g7 >= 100 || gain24 >= 30) shortScore++;
+    if (drop >= 8) shortScore++;
+    if (funding !== null && funding > 0.05) shortScore++;
+    if (Object.values(mtfResults).filter(m=>m.trend==='bearish').length >= 2) shortScore++;
+    if (Object.values(mtfResults).filter(m=>m.rsi>70).length >= 1) shortScore++;
+
+    const verdict = shortScore >= 4 ? ['good','🟢 LAYAK SHORT — Akumulasi $5 x3'] :
+                    shortScore >= 2 ? ['warn','🟡 TUNGGU — Butuh lebih banyak konfirmasi'] :
+                                      ['danger','🔴 SKIP — Belum ada signal yang kuat'];
+
+    el.innerHTML = `
+      <div class="scan-result">
+        <div class="scan-result-title">${sym}/USDT ${onFut?'<span style="font-size:14px;color:var(--green)">✅ FUTURES</span>':'<span style="font-size:14px;color:var(--red)">❌ NO FUTURES</span>'}</div>
+        <div class="scan-metrics">
+          <div class="metric"><div class="metric-label">PRICE</div><div class="metric-value" style="color:var(--blue)">${fmt.price(price)}</div></div>
+          <div class="metric"><div class="metric-label">24H CHANGE</div><div class="metric-value" style="color:${gain24>=0?'var(--green)':'var(--red)'}">${fmt.pct(gain24||g24c)}</div></div>
+          <div class="metric"><div class="metric-label">7D CHANGE</div><div class="metric-value" style="color:${g7>=0?'var(--green)':'var(--red)'}">${fmt.pct(g7)}</div></div>
+          <div class="metric"><div class="metric-label">HIGH 24H</div><div class="metric-value" style="color:var(--yellow)">${fmt.price(high24)}</div></div>
+          <div class="metric"><div class="metric-label">DROP FROM HIGH</div><div class="metric-value" style="color:${drop>=8?'var(--red)':'var(--dim)'}">${drop.toFixed(1)}%</div></div>
+          ${funding!==null?`<div class="metric"><div class="metric-label">FUNDING RATE</div><div class="metric-value" style="color:${funding>0?'var(--green)':'var(--red)'}">${funding.toFixed(4)}%</div></div>`:''}
+          ${atrData?`
+          <div class="metric"><div class="metric-label">ATR STOP LOSS</div><div class="metric-value" style="color:var(--red)">${fmt.price(atrData.sl)}</div></div>
+          <div class="metric"><div class="metric-label">ATR TARGET</div><div class="metric-value" style="color:var(--green)">${fmt.price(atrData.tp2)}</div></div>
+          `:''}
+        </div>
+        ${Object.keys(mtfResults).length ? `
+        <div style="font-size:11px;color:var(--dim);letter-spacing:2px;margin-bottom:8px">MULTI-TIMEFRAME</div>
+        <div class="mtf-grid">
+          ${Object.entries(mtfResults).map(([tf,d])=>`
+          <div class="mtf-card">
+            <div class="mtf-tf">${tf}</div>
+            <div class="mtf-trend ${d.trend}">${d.trend.toUpperCase()}</div>
+            <div class="mtf-rsi">RSI ${d.rsi.toFixed(0)} ${d.rsi>70?'🔥OB':d.rsi<30?'🧊OS':''}</div>
+          </div>`).join('')}
+        </div>` : ''}
+        <div class="verdict ${verdict[0]}">SHORT SCORE: ${shortScore}/5 — ${verdict[1]}</div>
+        <div style="margin-top:12px;font-size:11px;color:var(--dim)">
+          <a href="${chartUrl(sym)}" target="_blank" style="color:var(--blue)">📉 Open TradingView Chart →</a>
+        </div>
+      </div>`;
+
+    saveSignal(sym, 'SCAN', g7, price);
+  } catch(e) {
+    el.innerHTML = `<div class="scan-result"><div class="empty">❌ Error: ${e.message}</div></div>`;
+  }
+}
+
+// RSI calculation
+function calcRSI(closes, period=14) {
+  if (closes.length < period+1) return 50;
+  let gains=0, losses=0;
+  for (let i=closes.length-period; i<closes.length; i++) {
+    const d = closes[i]-closes[i-1];
+    if (d>0) gains+=d; else losses-=d;
+  }
+  const rs = gains/period / (losses/period||0.001);
+  return 100-(100/(1+rs));
+}
+
+// ═══════════════════════════════════════════════════════
+// SIGNAL HISTORY
+// ═══════════════════════════════════════════════════════
+function saveSignal(sym, type, gain, price) {
+  const entry = { sym, type, gain, price, time: new Date().toLocaleTimeString() };
+  signalHistory.unshift(entry);
+  if (signalHistory.length > 50) signalHistory.length = 50;
+  localStorage.setItem('signalHistory', JSON.stringify(signalHistory));
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  document.getElementById('historyCount').textContent = `${signalHistory.length} records`;
+  if (!signalHistory.length) {
+    el.innerHTML = '<div class="empty">No history yet</div>';
+    return;
+  }
+  el.innerHTML = signalHistory.map(h => `
+    <div class="alert-row">
+      <span class="alert-time">${h.time}</span>
+      <span class="alert-sym" style="color:${h.type==='SHORT'?'var(--red)':h.type==='PUMP'?'var(--yellow)':'var(--blue)'}">${h.sym}</span>
+      <span class="alert-type"><span class="coin-tag ${h.type==='SHORT'?'tag-short':h.type==='PUMP'?'tag-pump':'tag-fut'}">${h.type}</span></span>
+      <span class="alert-gain">${h.gain>=0?'+':''}${h.gain.toFixed(1)}% (7d)</span>
+      <span class="alert-price">${fmt.price(h.price)}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// REFRESH ALL
+// ═══════════════════════════════════════════════════════
+async function refreshAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ LOADING...';
+
+  try {
+    await loadFuturesSymbols();
+    const data = await loadMarketData();
+    renderTopMovers(data);
+    renderSignals(data);
+    renderShortWatch(data);
+    await loadATRData();
+    document.getElementById('lastUpdate').textContent =
+      'Updated: ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('Refresh error:', e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⟳ REFRESH';
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+document.getElementById('scanInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') scanCoin();
+});
+
+refreshAll();
+// Auto refresh every 5 minutes
+setInterval(refreshAll, 5 * 60 * 1000);
+</script>
+</body>
+</html>
