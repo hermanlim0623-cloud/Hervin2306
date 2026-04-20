@@ -156,26 +156,47 @@ def send_telegram(text: str, chat_id: str = None):
     r.raise_for_status()
 
 def get_telegram_updates() -> list:
+    """Get only NEW updates using offset=-1 to get latest, then mark as read"""
     try:
+        # First get all updates
         r = requests.get(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates",
-            params={"timeout": 5}, timeout=10
+            params={"timeout": 5, "limit": 10}, timeout=10
         )
-        if r.status_code == 200:
-            return r.json().get("result", [])
+        if r.status_code != 200:
+            return []
+        updates = r.json().get("result", [])
+        if not updates:
+            return []
+        # Mark all as read by calling with offset = last_update_id + 1
+        last_id = updates[-1]["update_id"]
+        requests.get(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates",
+            params={"offset": last_id + 1, "timeout": 1}, timeout=5
+        )
+        # Only return updates from last 5 minutes
+        now = int(time.time())
+        fresh = [u for u in updates
+                 if now - u.get("message", {}).get("date", 0) <= 300]
+        log.info(f"Updates: {len(updates)} total, {len(fresh)} fresh (last 5min)")
+        return fresh
     except Exception as e:
         log.warning(f"Telegram poll: {e}")
     return []
 
 def handle_telegram_commands():
     updates = get_telegram_updates()
+    if not updates:
+        log.info("No new commands")
+        return
     for update in updates:
         msg  = update.get("message", {})
         text = msg.get("text", "").strip()
-        chat = str(msg.get("chat", {}).get("id", ""))
+        # Use chat ID from message, fallback to configured chat ID
+        chat = str(msg.get("chat", {}).get("id", "")) or TELEGRAM_CHAT_ID
         if not text.startswith("/"): continue
         parts = text.split(); cmd = parts[0].lower(); args = parts[1:]
-        log.info(f"CMD: {text}")
+        log.info(f"CMD: {text} from chat={chat}")
 
         if cmd == "/help":
             send_telegram("""🤖 <b>Scanner v6 ULTIMATE — Commands</b>
