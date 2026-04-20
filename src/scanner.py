@@ -797,20 +797,53 @@ def check_short_viability(symbol: str) -> str:
 
 
 def get_top_gainers_summary() -> str:
+    """Get top gainers from CoinGecko (no geo-block)"""
     try:
         fut = get_binance_futures_symbols() or set()
-        top = [t for t in get_binance_top_movers() if t["symbol"].replace("USDT","") in fut][:5]
-        if not top: return "❌ Tidak ada data."
-        lines = [f"📈 <b>Top 5 — {datetime.now(timezone.utc).strftime('%H:%M')} UTC</b>\n"]
-        for i, t in enumerate(top, 1):
-            sym = t["symbol"].replace("USDT","")
-            g   = float(t.get("priceChangePercent",0))
-            p   = float(t.get("lastPrice",0))
-            v   = float(t.get("quoteVolume",0))
-            lines.append(f"{i}. <a href='{get_chart_url(sym)}'><b>{sym}</b></a> {g:+.1f}% | ${p:,.6g} | Vol ${v/1e6:.1f}M")
-        lines.append("\n💡 /short &lt;SYMBOL&gt; untuk cek kelayakan")
+        # Use CoinGecko which is not geo-blocked
+        r = requests.get(f"{COINGECKO_BASE}/coins/markets", params={
+            "vs_currency": "usd",
+            "order": "percent_change_24h_desc",
+            "per_page": 30,
+            "page": 1,
+            "sparkline": "false",
+            "price_change_percentage": "24h"
+        }, timeout=20)
+        if r.status_code != 200:
+            return f"❌ CoinGecko error: {r.status_code}"
+        coins = r.json()
+        # Filter: on Binance Futures + meaningful gain + min volume
+        top = []
+        for c in coins:
+            sym = c.get("symbol","").upper()
+            gain = c.get("price_change_percentage_24h_in_currency") or c.get("price_change_percentage_24h") or 0
+            vol = c.get("total_volume") or 0
+            if sym in fut and gain > 0 and vol > 1_000_000:
+                top.append(c)
+            if len(top) >= 5:
+                break
+
+        if not top:
+            # Fallback: just show top 5 by 24h gain regardless of futures
+            top = sorted([c for c in coins if (c.get("price_change_percentage_24h") or 0) > 0], 
+                        key=lambda x: x.get("price_change_percentage_24h") or 0, 
+                        reverse=True)[:5]
+
+        lines = [f"📈 <b>Top 5 Gainers — {datetime.now(timezone.utc).strftime('%H:%M')} UTC</b>\n"]
+        for i, c in enumerate(top, 1):
+            sym   = c.get("symbol","").upper()
+            gain  = c.get("price_change_percentage_24h_in_currency") or c.get("price_change_percentage_24h") or 0
+            price = c.get("current_price") or 0
+            vol   = c.get("total_volume") or 0
+            mcap  = c.get("market_cap") or 0
+            on_fut = "✅" if sym in fut else "❌"
+            chart = get_chart_url(sym)
+            lines.append(f"{i}. <a href=\'{chart}\'><b>{sym}</b></a> {gain:+.1f}% | ${price:,.6g} | Vol ${vol/1e6:.1f}M | {on_fut}Fut")
+        lines.append("\n💡 /short &lt;SYMBOL&gt; untuk cek kelayakan short")
         return "\n".join(lines)
-    except Exception as e: return f"❌ Error: {e}"
+    except Exception as e:
+        log.error(f"get_top_gainers_summary: {e}")
+        return f"❌ Error: {e}"
 
 
 # ═══════════════════════════════════════════════════════════
