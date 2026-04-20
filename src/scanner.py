@@ -260,7 +260,7 @@ def get_klines(symbol: str, interval: str, limit: int = 50) -> list:
 
 @retry(max_attempts=2, delay=3)
 def get_binance_top_movers() -> list:
-    data = _binance_get("ticker/24hr")
+    data = _binance_get("ticker/24hr", fapi=True)
     if not data: return []
     usdt = [t for t in data if t["symbol"].endswith("USDT")
             and float(t.get("quoteVolume",0)) > MIN_VOLUME_USD
