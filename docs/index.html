@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PAWBY PRO v2 - Smart Money Scanner</title>
+  <title>PAWBY - V01</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Geist+Mono:wght@300;400;500&display=swap"
@@ -887,8 +887,8 @@
   <header class="hdr">
     <div class="hdr-l">
       <div class="live-dot" id="liveDot"></div>
-      <span class="hdr-title">PAWBY <span style="color:var(--a)">PRO</span> v2</span>
-      <span class="hdr-badge">SMART MONEY</span>
+      <span class="hdr-title">PAWBY <span style="color:var(--a)"></span> v2</span>
+      <span class="hdr-badge"></span>
     </div>
     <div class="hdr-r">
       <span class="clock" id="clock">--:-- UTC</span>
@@ -897,7 +897,8 @@
   <div class="wrap">
     <div class="scan-bar">
       <span class="scan-label">Quick Scan</span>
-      <input class="sym-input" id="symInput" placeholder="e.g. SOL" onkeydown="if(event.key===\'Enter\') runQuickScan()">
+      <input class="sym-input" id="symInput" placeholder="e.g. SOL"
+        onkeydown="if(event.key===\'Enter\') runQuickScan()">
       <button class="btn primary" onclick="runQuickScan()">Scan</button>
       <div class="scan-divider"></div>
       <button class="btn" onclick="runShortCheck()">Short Check</button>
@@ -920,7 +921,8 @@
         Smart Accumulation Scan</button>
       <button class="mode-btn" id="btnPumpScan" onclick="runMarketScan(\'pump\')"><span class="mode-icon">▲</span> Pump
         Scan (5D)</button>
-      <button class="mode-btn" id="btnShortScan" onclick="runMarketScan(\'short\')"><span class="mode-icon">▼</span> Short
+      <button class="mode-btn" id="btnShortScan" onclick="runMarketScan(\'short\')"><span class="mode-icon">▼</span>
+        Short
         Scan</button>
       <button class="mode-btn" id="btnTopScan" onclick="runMarketScan(\'top\')"><span class="mode-icon">⚡</span> Top
         Movers</button>
