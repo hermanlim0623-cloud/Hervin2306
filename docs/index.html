@@ -1489,9 +1489,22 @@ function detectPumpExhaustion(d, klines4h, klines1d) {
 // FIX: klines fetched ONCE here and returned with result
 //      callers use this data directly — no second fetch
 // ═══════════════════════════════════════════════════════════════════
-async function analyzeCoin(symbol) {
-  const cached = Cache.get(symbol, 'analysis');
-  if (cached) return cached;
+async function analyzeCoin(symbol, force = false) {
+  if (!force) {
+    const cached = Cache.get(symbol, 'analysis');
+    if (cached) return cached;
+  } else {
+    // Force refresh: wipe all cached data for this symbol
+    // analysis cache
+    try { localStorage.removeItem(Cache._key(symbol, 'analysis')); } catch {}
+    // OI cache
+    try { localStorage.removeItem(Cache._key(symbol, 'oi')); } catch {}
+    // klines cache — key format: "${symbol}_${interval}_${limit}"
+    [['4h',60], ['1d',30], ['1h',48]].forEach(([interval, limit]) => {
+      const k = `${symbol}_${interval}_${limit}`;
+      try { localStorage.removeItem(Cache._key(k, 'klines')); } catch {}
+    });
+  }
 
   const sym = symbol.toUpperCase();
 
@@ -2623,7 +2636,7 @@ async function pfScanAll(mode = 'accum') {
 
   const btn = document.getElementById('pfScanBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Scanning...';
+  btn.textContent = '⏳ Fetching fresh data...';
 
   const wrap  = document.getElementById('pfResultsWrap');
   const grid  = document.getElementById('pfCards');
@@ -2636,6 +2649,8 @@ async function pfScanAll(mode = 'accum') {
 
   setDot('loading');
   let done = 0;
+  logMsg(`🔄 Portfolio scan — force refresh ${coins.length} coins`, 'info');
+  showLog();
 
   for (const c of coins) {
     const existCard = document.getElementById(`pf-card-${c.sym}`);
@@ -2654,7 +2669,7 @@ async function pfScanAll(mode = 'accum') {
     grid.appendChild(placeholder);
 
     try {
-      const d = await analyzeCoin(c.sym);
+      const d = await analyzeCoin(c.sym, true); // force=true: always fresh data
       const s = mode === 'short' ? scoreShort(d) : scoreAccum(d);
       const signals = mode === 'short'
         ? detectPumpExhaustion(d, d.klines4h, d.klines1d).signals
@@ -2723,7 +2738,8 @@ async function pfScanAll(mode = 'accum') {
   btn.disabled = false;
   btn.textContent = '⚡ Scan All Positions';
   setDot('active');
-  showToast(`✅ Portfolio scan selesai — ${done} coins`, 'success');
+  logMsg(`✅ Portfolio scan selesai — data fresh semua`, 'ok');
+  showToast(`✅ Fresh scan selesai — ${done} coins updated`, 'success');
 }
 
 // Show full detail panel for a portfolio coin
