@@ -1172,7 +1172,7 @@
       if (volTrend > 0.3 && Math.abs(priceTrend) < 0.1) { score += 2; signals.push({ type: 'vol_price_div', strength: 'strong', text: '📊 Volume ↑, harga flat = akumulasi smart money' }); }
       const obvDiv = detectOBVDivergence(d.closes4h, vols4h); if (obvDiv === 'bullish') { score += 2; signals.push({ type: 'obv_bull', strength: 'strong', text: '📈 OBV bullish divergence = buying pressure tersembunyi' }); }
       const wyckoff = detectWyckoffPhase(d.closes1d, vols4h); if (wyckoff === 'accumulation') { score += 2; signals.push({ type: 'wyckoff_accum', strength: 'strong', text: '🔄 Pattern Wyckoff Accumulation terdeteksi' }); }
-      if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG && d.oiChange > 5) { score += 1; signals.push({ type: 'short_squeeze', strength: 'medium', text: '💥 Funding negatif + OI ↑ = potensi short squeeze' }); }
+      if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG && d.oiData && d.oiData.change24h > 5) { score += 1; signals.push({ type: 'short_squeeze', strength: 'medium', text: '💥 Funding negatif + OI ↑ = potensi short squeeze' }); }
       const support = detectSupportCluster(klines4h, d.price); if (support >= 3) { score += 1; signals.push({ type: 'support_cluster', strength: 'medium', text: `🧱 ${support} level support terkonfirmasi` }); }
 
       // NEW: Open Interest (OI) based accumulation
@@ -1204,7 +1204,7 @@
       const vols = klines4h.map(k => parseFloat(k[5])), avgVol = vols.slice(-20, -5).reduce((a, b) => a + b, 0) / 15, recentVol = vols.slice(-5).reduce((a, b) => a + b, 0) / 5, priceStall = Math.abs(d.closes4h.slice(-5).reduce((a, b) => a + b, 0) / 5 - d.price) / (d.price || 1) < 0.02;
       if (recentVol > avgVol * 2 && priceStall && d.gain24h > 30) { score += 2; signals.push({ type: 'volume_climax', strength: 'strong', text: '💥 Volume climax + harga stagnan = distribusi' }); }
       if (detectBearishDivergence(klines4h)) { score += 1; signals.push({ type: 'rsi_div', strength: 'medium', text: '📉 Bearish divergence RSI (4H)' }); }
-      if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS && d.oiChange < -5) { score += 2; signals.push({ type: 'long_exit', strength: 'strong', text: '🔻 Funding tinggi + OI ↓ = longs take profit' }); }
+      if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS && d.oiData && d.oiData.change24h < -5) { score += 2; signals.push({ type: 'long_exit', strength: 'strong', text: '🔻 Funding tinggi + OI ↓ = longs take profit' }); }
       const resistance = detectResistanceCluster(klines4h, d.price); if (resistance >= 3) { score += 1; signals.push({ type: 'resistance_wall', strength: 'medium', text: `🧱 ${resistance} level resistance di atas` }); }
       return { score, maxScore: 8, signals };
     }
@@ -1533,6 +1533,82 @@
 
     function closeResult() {
       document.getElementById('resultPanel').classList.remove('show');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MISSING FUNCTIONS (Added)
+    // ═══════════════════════════════════════════════════════════════
+    async function runShortCheck() {
+      const symbol = document.getElementById('symInput').value.toUpperCase();
+      if (!symbol) { alert('Please enter a symbol (e.g., SOL)'); return; }
+      clearLog(); showLog();
+      logMsg(`Starting short check for ${symbol}...`, 'info');
+      document.getElementById('liveDot').classList.add('loading');
+      document.getElementById('sectionTitle').textContent = `Short Check: ${symbol}`;
+      document.getElementById('cardsGrid').innerHTML = '<div class="skel-card"><div class="skel" style="width:60px;height:20px;"></div><div class="skel" style="width:150px;height:20px;"></div></div>';
+
+      try {
+        const data = await analyzeCoin(symbol);
+        if (data.funding < -0.05 && data.rsi4h > 70) {
+          logMsg(`⚠️ ${symbol} memiliki funding negatif (${data.funding.toFixed(4)}%) dan RSI overbought (${data.rsi4h})`, 'ok');
+        } else {
+          logMsg(`${symbol} tidak memenuhi kriteria short squeeze yang ketat`, 'info');
+        }
+        const pumpResult = detectPumpExhaustion(data, data.klines4h, data.klines1d);
+        displayResultPanel(data, { score: 0, maxScore: 1, signals: [] }, pumpResult);
+      } catch (error) {
+        logMsg(`Error during short check: ${error.message}`, 'bad');
+        document.getElementById('liveDot').classList.add('error');
+      } finally {
+        document.getElementById('liveDot').classList.remove('loading');
+        document.getElementById('liveDot').classList.add('active');
+      }
+    }
+
+    async function runAccumCheck() {
+      const symbol = document.getElementById('symInput').value.toUpperCase();
+      if (!symbol) { alert('Please enter a symbol (e.g., SOL)'); return; }
+      clearLog(); showLog();
+      logMsg(`Starting accumulation check for ${symbol}...`, 'info');
+      document.getElementById('liveDot').classList.add('loading');
+      document.getElementById('sectionTitle').textContent = `Accum Check: ${symbol}`;
+      document.getElementById('cardsGrid').innerHTML = '<div class="skel-card"><div class="skel" style="width:60px;height:20px;"></div><div class="skel" style="width:150px;height:20px;"></div></div>';
+
+      try {
+        const data = await analyzeCoin(symbol);
+        const accumResult = detectSmartAccumulation(data, data.klines4h, data.klines1d, data.oiData);
+        displayResultPanel(data, accumResult, { score: 0, maxScore: 1, signals: [] });
+        logMsg(`Accumulation check for ${symbol} completed.`, 'ok');
+      } catch (error) {
+        logMsg(`Error during accumulation check: ${error.message}`, 'bad');
+        document.getElementById('liveDot').classList.add('error');
+      } finally {
+        document.getElementById('liveDot').classList.remove('loading');
+        document.getElementById('liveDot').classList.add('active');
+      }
+    }
+
+    function exportResults(type) {
+      const cards = document.querySelectorAll('.card');
+      if (cards.length === 0) { alert('No results to export'); return; }
+      let csv = 'Symbol,Type,Price,Gain24h,RSI4h,Funding,OI24hChange\n';
+      cards.forEach(card => {
+        const sym = card.querySelector('.card-sym').textContent;
+        const tags = card.querySelectorAll('.tag');
+        const gain = tags[0] ? tags[0].textContent : 'N/A';
+        const rsi = tags[1] ? tags[1].textContent.replace('RSI ', '') : 'N/A';
+        const price = card.querySelector('.card-time').textContent;
+        const pill = card.querySelector('.pill').textContent;
+        csv += `${sym},${pill},${price},${gain},${rsi},N/A,N/A\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pawby_pro_results_${new Date().getTime()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      logMsg('Results exported to CSV', 'ok');
     }
 
     // Initial fetch of symbols
