@@ -855,7 +855,7 @@
     <button class="mode-btn" id="btnAccumScan" onclick="runMarketScan('accum')">
       <span class="mode-icon">◉</span> Accumulation Scan</button>
     <button class="mode-btn" id="btnPumpScan" onclick="runMarketScan('pump')">
-      <span class="mode-icon">▲</span> Pump Scan (7D)</button>
+      <span class="mode-icon">🚀</span> Pump Scan (24H)</button>
     <button class="mode-btn" id="btnShortScan" onclick="runMarketScan('short')">
       <span class="mode-icon">▼</span> Short Scan</button>
     <button class="mode-btn" id="btnTopScan" onclick="runMarketScan('top')">
@@ -2668,14 +2668,51 @@ async function scanAccumulation() {
   const candidates = await preFilterCoins('accum');
   if (CancelToken.cancelled || candidates.length === 0) return;
 
-  logMsg(`Deep analysis on ${candidates.length} coins...`, 'info');
+  // ── Stage A: Fast pre-score using only ticker data (no API calls) ──
+  // Fetch klines only for coins that pass this lightweight check.
+  // This cuts deep analysis from 150 → ~60 coins.
+  logMsg(`Stage A: Fast pre-score ${candidates.length} coins...`, 'info');
+  const tickers = await binance('ticker/24hr', {}, 1);
+  if (CancelToken.cancelled) return;
+
+  const tickerMap = {};
+  tickers.forEach(t => { tickerMap[t.symbol] = t; });
+
+  const preScored = candidates.map(sym => {
+    const t = tickerMap[sym + 'USDT'];
+    if (!t) return { sym, preScore: 0 };
+    const vol24h    = parseFloat(t.quoteVolume);
+    const change    = parseFloat(t.priceChangePercent);
+    const high      = parseFloat(t.highPrice);
+    const low       = parseFloat(t.lowPrice);
+    const price     = parseFloat(t.lastPrice);
+    const range     = high > 0 ? (high - low) / high * 100 : 99;
+
+    let preScore = 0;
+    // Volume spike signal (vs rough estimate — no 30d avg yet)
+    if (vol24h > 5000000)  preScore += 2;
+    else if (vol24h > 1000000) preScore += 1;
+    // Price flat = accumulation
+    if (change >= -5 && change <= 15)  preScore += 2;
+    else if (change >= -15 && change <= 25) preScore += 1;
+    // Tight intraday range = low volatility accumulation
+    if (range < 5)  preScore += 2;
+    else if (range < 10) preScore += 1;
+    // Near low of range = potential reversal
+    const posInRange = (high - price) / (high - low || 1);
+    if (posInRange > 0.6) preScore += 1; // price near bottom of range
+
+    return { sym, preScore };
+  }).sort((a, b) => b.preScore - a.preScore).slice(0, 60); // top 60 only
+
+  logMsg(`Stage B: Deep analysis on top ${preScored.length} coins...`, 'info');
   showProgress('Accumulation Scan');
 
-  for (let i = 0; i < candidates.length; i++) {
+  for (let i = 0; i < preScored.length; i++) {
     if (CancelToken.cancelled) return;
-    const sym = candidates[i];
-    logMsg(`[${i+1}/${candidates.length}] 🔬 ${sym}...`);
-    setProgress((i + 1) / candidates.length * 100);
+    const sym = preScored[i].sym;
+    logMsg(`[${i+1}/${preScored.length}] 🔬 ${sym}...`);
+    setProgress((i + 1) / preScored.length * 100);
 
     try {
       // FIX: analyzeCoin returns klines — no second fetch needed
@@ -2726,142 +2763,262 @@ async function getFutSymbols() {
   return futSymbols;
 }
 
-// ── PUMP / SHORT SCAN ───────────────────────────────────────────────────
+// ── PUMP SCAN — Early Momentum Detection ────────────────────────────────
+// Logic: Deteksi coin yang SEDANG mulai pump, bukan yang sudah pump tinggi.
+// Source: Binance futures ticker 24H (real-time, no CoinGecko lag)
+// Target: Coin seperti RAVE, CHIP, GWEI — volume spike + harga mulai gerak
 async function scanPumpShort(mode) {
-  logMsg('Fetching CoinGecko 7D movers...');
-  let cgCoins = [];
-  try {
-    cgCoins = await cg('coins/markets', {
-      vs_currency: 'usd',
-      order: 'percent_change_7d_desc',
-      per_page: 100, page: 1, sparkline: false,
-      price_change_percentage: '24h,7d',
-    });
-  } catch (e) { logMsg(`CoinGecko error: ${e.message} — using Binance only`, 'bad'); }
-
-  if (CancelToken.cancelled) return;
-
-  const futs = await getFutSymbols();
+  logMsg('🔍 Fetching 24H futures tickers...', 'info');
+  const tickers = await binance('ticker/24hr', {}, 1);
   if (CancelToken.cancelled) return;
 
   const STABLES = new Set(['USDC','BUSD','DAI','TUSD','USDT','USDP','USDD','FDUSD']);
-  const candidates = cgCoins.filter(c => {
-    const sym  = c.symbol.toUpperCase();
-    const gain = c.price_change_percentage_7d_in_currency || 0;
-    const vol  = c.total_volume || 0;
-    return futs.has(sym) && gain >= 50 && vol >= 1000000 && !STABLES.has(sym);
-  }).slice(0, 30);
 
-  if (candidates.length === 0) {
-    logMsg('Tidak ada kandidat dari CoinGecko, fallback ke Binance filter', 'warn');
-    return scanPumpShortBinance(mode);
+  // ── Stage A: Filter + pre-score dari ticker data saja ──────────────────
+  const prescored = tickers
+    .filter(t => {
+      if (!t.symbol.endsWith('USDT')) return false;
+      const base = t.symbol.replace('USDT','');
+      if ([...STABLES].some(s => base.includes(s))) return false;
+      const vol    = parseFloat(t.quoteVolume);
+      const change = parseFloat(t.priceChangePercent);
+      const price  = parseFloat(t.lastPrice);
+      if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
+      if (vol < 50000) return false;
+
+      if (mode === 'pump') {
+        // Pump scan: 24H gain antara +10% s/d +200%
+        // Bawah +10% belum bergerak, atas +200% sudah terlalu terlambat
+        return change >= 10 && change <= 200;
+      } else {
+        // Short scan: sudah pump tapi mulai drop dari high
+        return change >= 15 && change <= 150;
+      }
+    })
+    .map(t => {
+      const vol    = parseFloat(t.quoteVolume);
+      const change = parseFloat(t.priceChangePercent);
+      const high   = parseFloat(t.highPrice);
+      const low    = parseFloat(t.lowPrice);
+      const price  = parseFloat(t.lastPrice);
+      const trades = parseFloat(t.count) || 1;
+
+      // ── Momentum Score (pure ticker, no API call) ──
+      let mScore = 0;
+
+      // 1. Volume tier (absolute)
+      if (vol > 100e6)      mScore += 3; // >100M = major move
+      else if (vol > 10e6)  mScore += 2; // >10M  = solid
+      else if (vol > 1e6)   mScore += 1; // >1M   = decent
+
+      // 2. Price gain sweet spot
+      // +15–80% = early pump. >80% = already extended
+      if (change >= 15 && change <= 80)       mScore += 3;
+      else if (change > 80 && change <= 150)  mScore += 1;
+      else if (change >= 10)                  mScore += 1;
+
+      // 3. Price position — near HIGH of day = strong momentum
+      const range    = high - low;
+      const posInDay = range > 0 ? (price - low) / range : 0.5;
+      if (posInDay > 0.8)       mScore += 2; // near high = buyers in control
+      else if (posInDay > 0.5)  mScore += 1;
+
+      // 4. Funding rate from ticker (if available)
+      // Low/negative funding = not yet crowded = more room to run
+      const funding = parseFloat(t.lastFundingRate || 0) * 100;
+      if (funding < -0.01)       mScore += 2; // negative = squeeze potential
+      else if (funding < 0.05)   mScore += 1; // low positive = ok
+
+      // 5. Trade count — many small trades = retail FOMO starting
+      if (trades > 50000)       mScore += 1;
+
+      // Short mode: want price dropping from high
+      if (mode === 'short') {
+        const dropFromHigh = high > 0 ? (high - price) / high * 100 : 0;
+        if (dropFromHigh >= 5)  mScore += 2;
+        else                    mScore -= 1;
+      }
+
+      return {
+        sym: t.symbol.replace('USDT',''),
+        mScore,
+        vol, change, price, high, low, posInDay,
+        funding: parseFloat(t.lastFundingRate || 0) * 100,
+      };
+    })
+    .filter(t => t.mScore >= 4) // minimum pre-score threshold
+    .sort((a, b) => b.mScore - a.mScore)
+    .slice(0, 40); // top 40 for deep analysis
+
+  if (prescored.length === 0) {
+    logMsg('Tidak ada kandidat momentum ditemukan', 'warn');
+    return;
   }
 
-  logMsg(`${candidates.length} pump candidates. Analyzing...`, 'info');
-  showProgress(mode === 'pump' ? 'Pump Scan' : 'Short Scan');
+  logMsg(`✅ ${prescored.length} momentum candidates → deep analysis...`, 'info');
+  showProgress(mode === 'pump' ? '🚀 Pump Scan' : '▼ Short Scan');
 
-  for (let i = 0; i < candidates.length; i++) {
+  for (let i = 0; i < prescored.length; i++) {
     if (CancelToken.cancelled) return;
-    const c      = candidates[i];
-    const sym    = c.symbol.toUpperCase();
-    const gain7d = c.price_change_percentage_7d_in_currency || 0;
-    logMsg(`[${i+1}/${candidates.length}] ${sym}: +${gain7d.toFixed(0)}% (7D)`);
-    setProgress((i + 1) / candidates.length * 100);
+    const pre = prescored[i];
+    const sym = pre.sym;
+    setProgress((i + 1) / prescored.length * 100);
+    logMsg(`[${i+1}/${prescored.length}] ${sym}: +${pre.change.toFixed(1)}% vol:${fmtVol(pre.vol)} score:${pre.mScore}`);
 
     try {
-      // FIX: single analyzeCoin call — klines NOT re-fetched
       const d = await analyzeCoin(sym);
       if (CancelToken.cancelled) return;
 
       if (mode === 'pump') {
-        const s = scoreAccum(d);
-        results.pump.push({
-          sym, price: d.price, score: gain7d.toFixed(0), scoreMax: 100,
-          scorePct: Math.min(gain7d / 3, 100), gain24h: d.gain24h, gain7d,
-          type: 'PUMP', data: d, scoreData: s,
-          tags: [
-            { label: `+${gain7d.toFixed(0)}% 7D`, cls: 'g' },
-            { label: fmtPct(d.gain24h), cls: d.gain24h >= 0 ? 'g' : 'r' },
-            { label: `RSI ${d.rsi4h}`, cls: d.rsi4h > 70 ? 'r' : '' },
-            d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: '' } : null,
-          ].filter(Boolean),
-        });
+        const s      = scorePump(d, pre);
+        if (s.score >= 4) {
+          results.pump.push({
+            sym, price: d.price,
+            score: s.score, scoreMax: s.max,
+            scorePct: Math.round(s.score / s.max * 100),
+            gain24h: d.gain24h,
+            type: 'PUMP', data: d, scoreData: s, signals: s.signals,
+            tags: [
+              { label: fmtPct(d.gain24h),               cls: 'g' },
+              { label: `Vol ${fmtVol(pre.vol)}`,        cls: pre.vol > 10e6 ? 'g' : '' },
+              { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h > 70 ? 'r' : d.rsi4h < 40 ? 'g' : '' },
+              d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < 0 ? 'b' : d.funding > 0.05 ? 'r' : '' } : null,
+              { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : '' },
+            ].filter(Boolean),
+          });
+          logMsg(`✅ ${sym} pump score ${s.score}/${s.max}`, 'ok');
+        }
       } else {
+        // Short mode
         const pumpEx     = detectPumpExhaustion(d, d.klines4h, d.klines1d);
         const s          = scoreShort(d);
         const finalScore = Math.round((s.score + pumpEx.score / pumpEx.maxScore * s.max) / 2);
-
-        if (finalScore >= 2) {
+        if (finalScore >= 3) {
           results.short.push({
             sym, price: d.price, score: finalScore, scoreMax: s.max,
             scorePct: Math.round(finalScore / s.max * 100),
-            gain24h: d.gain24h, gain7d, type: 'SHORT',
+            gain24h: d.gain24h, type: 'SHORT',
             data: d, scoreData: s, signals: pumpEx.signals,
             tags: [
-              { label: `+${gain7d.toFixed(0)}% 7D`, cls: 'r' },
-              { label: `RSI ${d.rsi4h}`,            cls: d.rsi4h > 65 ? 'r' : '' },
+              { label: fmtPct(d.gain24h),  cls: 'r' },
+              { label: `RSI ${d.rsi4h}`,   cls: d.rsi4h > 65 ? 'r' : '' },
               d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
-              { label: `SL $${fmt(d.sl,4)}`,        cls: '' },
-              d.oiChange !== 0 ? { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange < -5 ? 'r' : '' } : null,
+              { label: `SL $${fmt(d.sl,4)}`, cls: '' },
             ].filter(Boolean),
           });
-          logMsg(`✓ ${sym} — short score ${finalScore}/${s.max}`, 'ok');
+          logMsg(`✅ ${sym} short score ${finalScore}/${s.max}`, 'ok');
         }
       }
       renderCards(); updateStats();
     } catch (e) { logMsg(`✗ ${sym}: ${e.message}`, 'bad'); }
 
-    await sleep(450);
-  }
-  document.getElementById('stScanned').textContent = candidates.length;
-}
-
-// Fallback: if CoinGecko fails, use Binance filter directly
-async function scanPumpShortBinance(mode) {
-  const candidates = await preFilterCoins(mode === 'pump' ? 'pump' : 'short');
-  if (CancelToken.cancelled || !candidates.length) return;
-  logMsg(`Binance fallback: ${candidates.length} coins`, 'info');
-  showProgress(mode === 'pump' ? 'Pump Scan' : 'Short Scan');
-
-  for (let i = 0; i < candidates.length; i++) {
-    if (CancelToken.cancelled) return;
-    const sym = candidates[i];
-    setProgress((i + 1) / candidates.length * 100);
-    try {
-      const d = await analyzeCoin(sym);
-      if (CancelToken.cancelled) return;
-
-      if (mode === 'pump') {
-        const s = scoreAccum(d);
-        results.pump.push({
-          sym, price: d.price, score: d.gain24h.toFixed(0), scoreMax: 100,
-          scorePct: Math.min(d.gain24h, 100), gain24h: d.gain24h,
-          type: 'PUMP', data: d, scoreData: s,
-          tags: [
-            { label: fmtPct(d.gain24h), cls: 'g' },
-            { label: `RSI ${d.rsi4h}`, cls: d.rsi4h > 70 ? 'r' : '' },
-          ],
-        });
-      } else {
-        const s = scoreShort(d);
-        if (s.score >= 3) {
-          results.short.push({
-            sym, price: d.price, score: s.score, scoreMax: s.max,
-            scorePct: s.pct, gain24h: d.gain24h,
-            type: 'SHORT', data: d, scoreData: s, signals: [],
-            tags: [
-              { label: fmtPct(d.gain24h), cls: 'r' },
-              { label: `RSI ${d.rsi4h}`, cls: d.rsi4h > 65 ? 'r' : '' },
-            ],
-          });
-        }
-      }
-      renderCards(); updateStats();
-    } catch (e) { logMsg(`✗ ${sym}: ${e.message}`, 'bad'); }
     await sleep(350);
   }
-  document.getElementById('stScanned').textContent = candidates.length;
+  document.getElementById('stScanned').textContent = prescored.length;
 }
+
+// ── PUMP SCORE ───────────────────────────────────────────────────────────
+// Scoring khusus pump — kombinasi momentum ticker + technical indicator
+function scorePump(d, pre) {
+  const checks  = [];
+  const signals = [];
+  let score     = 0;
+
+  // 1. Volume tier
+  if (pre.vol > 50e6) {
+    score += 2;
+    checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — massive, institutional interest` });
+  } else if (pre.vol > 5e6) {
+    score++;
+    checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — solid volume` });
+  } else {
+    checks.push({ warn: true, text: `Volume 24H: ${fmtVol(pre.vol)} — masih kecil` });
+  }
+
+  // 2. Gain sweet spot
+  if (pre.change >= 15 && pre.change <= 60) {
+    score += 2;
+    checks.push({ pass: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — early pump, masih ada room` });
+    signals.push({ strength: 'strong', text: `🚀 +${pre.change.toFixed(1)}% dalam 24H — early stage momentum` });
+  } else if (pre.change > 60 && pre.change <= 120) {
+    score++;
+    checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — sudah naik signifikan, hati-hati` });
+    signals.push({ strength: 'medium', text: `⚡ +${pre.change.toFixed(1)}% — momentum kuat tapi extended` });
+  } else {
+    checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — fase awal gerak` });
+  }
+
+  // 3. Price near high of day = buyers in control
+  if (pre.posInDay > 0.8) {
+    score++;
+    checks.push({ pass: true, text: `Harga dekat HIGH hari ini — buyers in control` });
+    signals.push({ strength: 'strong', text: `📈 Price holding near daily high — no seller pressure` });
+  } else if (pre.posInDay > 0.5) {
+    checks.push({ warn: true, text: `Harga di tengah range — momentum moderat` });
+  } else {
+    checks.push({ fail: true, text: `Harga dekat LOW hari ini — momentum melemah` });
+  }
+
+  // 4. Funding rate — negatif atau rendah = lebih banyak room
+  if (d.funding !== null && d.funding < 0) {
+    score += 2;
+    checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, short squeeze fuel 🚀` });
+    signals.push({ strength: 'strong', text: `💥 Funding negatif saat harga naik = short squeeze aktif` });
+  } else if (d.funding !== null && d.funding < 0.05) {
+    score++;
+    checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — masih rendah, belum crowded` });
+  } else if (d.funding !== null) {
+    checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — longs sudah banyak, hati-hati` });
+  }
+
+  // 5. OI naik = fresh money masuk
+  if (d.oiChange > 10) {
+    score += 2;
+    checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk, trend kuat` });
+    signals.push({ strength: 'strong', text: `📊 OI +${d.oiChange.toFixed(1)}% — new money entering` });
+  } else if (d.oiChange > 3) {
+    score++;
+    checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}% — ada fresh positioning` });
+  } else if (d.oiChange < -5) {
+    checks.push({ fail: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — longs keluar, hati-hati` });
+  } else {
+    checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
+  }
+
+  // 6. RSI tidak overbought = masih ada room
+  if (d.rsi4h < 60) {
+    score++;
+    checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — belum overbought, masih bisa lanjut` });
+  } else if (d.rsi4h < 75) {
+    checks.push({ warn: true, text: `RSI 4H: ${d.rsi4h} — mulai panas, monitor ketat` });
+  } else {
+    checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought, rawan reversal` });
+  }
+
+  // 7. TF Confluence — pump lebih kuat kalau 4H + 1D align
+  if (d.tfConfluence?.aligned) {
+    score += 2;
+    checks.push({ pass: true, text: `Triple confluence 1H+4H+1D bullish — pump bisa sustain` });
+    signals.push({ strength: 'strong', text: `🎯 All timeframes aligned — high probability continuation` });
+  } else if (d.tfConfluence?.score >= 4) {
+    score++;
+    checks.push({ pass: true, text: `TF confluence ${d.tfConfluence.score}/6 — majority bullish` });
+  } else {
+    checks.push({ warn: true, text: `TF confluence lemah — pump mungkin tidak sustain lama` });
+  }
+
+  const max  = 12;
+  const pct  = Math.round(score / max * 100);
+  const cls  = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
+  const verdict = score >= 9
+    ? { cls: 'strong', text: `🟢 MOMENTUM KUAT — Entry sekarang, target +${Math.min(pre.change * 0.8, 50).toFixed(0)}% lagi` }
+    : score >= 6
+    ? { cls: 'medium', text: '🟡 MOMENTUM BAGUS — Monitor, set alert di breakout level' }
+    : { cls: 'weak',   text: '⚪ Momentum lemah — terlalu berisiko' };
+
+  return { score, max, pct, cls, checks, verdict, signals };
+}
+
 
 // ── RENDER CARDS ──────────────────────────────────────────────────────
 function renderCards() {
@@ -2889,7 +3046,7 @@ function renderCards() {
 
   const pillMap = {
     ACCUM: ['pill-accum', 'Accum'],
-    PUMP:  ['pill-pump',  'Pump 7D'],
+    PUMP:  ['pill-pump',  'Pump 24H'],
     SHORT: ['pill-short', 'Short'],
     TOP:   ['pill-top',   'Top Mover'],
   };
