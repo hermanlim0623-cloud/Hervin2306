@@ -2535,10 +2535,13 @@ async function preFilterCoins(mode) {
     const vol    = parseFloat(t.quoteVolume);
     const change = parseFloat(t.priceChangePercent);
     const price  = parseFloat(t.lastPrice);
-    if (vol   < THRESHOLDS.MIN_VOLUME)  return false;
+
+    // FIX: lower MIN_VOLUME so mid/small caps aren't excluded
+    if (vol   < 200000) return false;
     if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
 
-    if (mode === 'accum')  return change >= THRESHOLDS.PRICE_FLAT_MIN && change <= THRESHOLDS.PRICE_FLAT_MAX;
+    // FIX: accum range widened — catch coins pumping moderately too
+    if (mode === 'accum')  return change >= -20 && change <= 35;
     if (mode === 'pump')   return change >= THRESHOLDS.PUMP_GAIN_MIN && change <= THRESHOLDS.PUMP_GAIN_MAX;
     if (mode === 'short')  return change >= -20 && change <= 80;
     return true;
@@ -2547,7 +2550,19 @@ async function preFilterCoins(mode) {
   logMsg(`✓ Stage 2: ${candidates.length} candidates after basic filter`);
 
   const sorted = candidates.sort((a, b) => {
-    if (mode === 'accum') return parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume);
+    if (mode === 'accum') {
+      // FIX: sort by volume-to-price-change ratio
+      // High volume + small price move = accumulation signal
+      // We want coins where volume is HIGH relative to price change
+      const volA = parseFloat(a.quoteVolume);
+      const volB = parseFloat(b.quoteVolume);
+      const chgA = Math.abs(parseFloat(a.priceChangePercent)) || 0.1;
+      const chgB = Math.abs(parseFloat(b.priceChangePercent)) || 0.1;
+      // Score = volume / abs(change) — high means lots of volume with little price move
+      const scoreA = volA / chgA;
+      const scoreB = volB / chgB;
+      return scoreB - scoreA;
+    }
     if (mode === 'pump')  return parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent);
     if (mode === 'short') {
       const dA = (parseFloat(a.highPrice) - parseFloat(a.lastPrice)) / (parseFloat(a.highPrice) || 1);
@@ -2555,7 +2570,8 @@ async function preFilterCoins(mode) {
       return dB - dA;
     }
     return 0;
-  }).slice(0, 50);
+  // FIX: increase from 50 to 80 so more coins get deep-analyzed
+  }).slice(0, 80);
 
   logMsg(`🎯 Stage 3: Top ${sorted.length} selected for deep analysis`);
   return sorted.map(t => t.symbol.replace('USDT', ''));
@@ -3160,18 +3176,18 @@ async function pfScanAll(mode = 'accum') {
                        : s.score >= Math.ceil(s.max * 0.4)  ? 'a' : 'r';
 
       const tags = [
-        { label: fmtPct(d.gain24h),          cls: d.gain24h >= 0 ? 'g' : 'r' },
-        { label: `RSI ${d.rsi4h}`,           cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
+        { label: fmtPct(d.gain24h),               cls: d.gain24h >= 0 ? 'g' : 'r' },
+        { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
         { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' },
         d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
         { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : d.oiChange < -5 ? 'r' : '' },
       ].filter(Boolean);
 
-      const tagsHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
-      const chart = `https://www.tradingview.com/chart/?symbol=BINANCE:${c.sym}USDT.P`;
+      const tagsHtml  = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
+      const chart     = `https://www.tradingview.com/chart/?symbol=BINANCE:${c.sym}USDT.P`;
       const typeLabel = c.type === 'fav' ? '⭐' : '📦';
 
-      placeholder.outerHTML = `
+      const cardHtml = `
         <div class="portfolio-card" id="pf-card-${c.sym}">
           <div>
             <div class="portfolio-card-sym">${typeLabel} ${c.sym}/USDT</div>
@@ -3194,13 +3210,26 @@ async function pfScanAll(mode = 'accum') {
           </div>
         </div>`;
 
+      // FIX: use insertAdjacentHTML instead of outerHTML
+      // outerHTML on a detached/re-parented element can silently fail
+      const existing = document.getElementById(`pf-card-${c.sym}`);
+      if (existing) {
+        existing.insertAdjacentHTML('afterend', cardHtml);
+        existing.remove();
+      } else {
+        grid.insertAdjacentHTML('beforeend', cardHtml);
+      }
+
     } catch (e) {
-      document.getElementById(`pf-card-${c.sym}`).outerHTML = `
-        <div class="portfolio-card" id="pf-card-${c.sym}" style="opacity:0.5">
-          <div><div class="portfolio-card-sym">❌ ${c.sym}</div></div>
-          <div style="font-size:0.75rem;color:var(--r)">${e.message}</div>
+      const errHtml = `
+        <div class="portfolio-card" id="pf-card-${c.sym}" style="opacity:0.6">
+          <div><div class="portfolio-card-sym">❌ ${c.sym}/USDT</div></div>
+          <div style="font-size:0.75rem;color:var(--r);">${e.message}</div>
           <div></div>
         </div>`;
+      const existing = document.getElementById(`pf-card-${c.sym}`);
+      if (existing) { existing.insertAdjacentHTML('afterend', errHtml); existing.remove(); }
+      else { grid.insertAdjacentHTML('beforeend', errHtml); }
     }
 
     done++;
