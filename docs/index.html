@@ -2526,6 +2526,19 @@ async function preFilterCoins(mode) {
 
   const STABLES = new Set(['BUSD','USDC','DAI','TUSD','FDUSD','USDP','USDD']);
 
+  // Debug: log why specific coins got filtered
+  ['NEWT','BIO'].forEach(sym => {
+    const t = tickers.find(t => t.symbol === sym + 'USDT');
+    if (t) {
+      const vol = parseFloat(t.quoteVolume);
+      const chg = parseFloat(t.priceChangePercent);
+      const price = parseFloat(t.lastPrice);
+      logMsg(`🔍 ${sym}: vol=$${(vol/1e6).toFixed(2)}M chg=${chg.toFixed(1)}% price=$${price}`, 'info');
+    } else {
+      logMsg(`🔍 ${sym}: not found in futures tickers`, 'bad');
+    }
+  });
+
   const candidates = tickers.filter(t => {
     if (!t.symbol.endsWith('USDT')) return false;
     const base = t.symbol.replace('USDT', '');
@@ -2534,11 +2547,10 @@ async function preFilterCoins(mode) {
     const change = parseFloat(t.priceChangePercent);
     const price  = parseFloat(t.lastPrice);
 
-    // FIX: lower MIN_VOLUME so mid/small caps aren't excluded
-    if (vol   < 200000) return false;
+    // Lowered to 50k — catch small/mid caps being accumulated
+    if (vol   < 50000) return false;
     if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
 
-    // FIX: accum range widened — catch coins pumping moderately too
     if (mode === 'accum')  return change >= -20 && change <= 35;
     if (mode === 'pump')   return change >= THRESHOLDS.PUMP_GAIN_MIN && change <= THRESHOLDS.PUMP_GAIN_MAX;
     if (mode === 'short')  return change >= -20 && change <= 80;
@@ -2547,19 +2559,22 @@ async function preFilterCoins(mode) {
 
   logMsg(`✓ Stage 2: ${candidates.length} candidates after basic filter`);
 
+  // Always include portfolio coins — never let them get cut by top-80 limit
+  const portfolioSyms = new Set(pfLoad().map(c => c.sym));
+
   const sorted = candidates.sort((a, b) => {
+    // Portfolio coins always float to top
+    const aIsPf = portfolioSyms.has(a.symbol.replace('USDT',''));
+    const bIsPf = portfolioSyms.has(b.symbol.replace('USDT',''));
+    if (aIsPf && !bIsPf) return -1;
+    if (!aIsPf && bIsPf) return 1;
+
     if (mode === 'accum') {
-      // FIX: sort by volume-to-price-change ratio
-      // High volume + small price move = accumulation signal
-      // We want coins where volume is HIGH relative to price change
       const volA = parseFloat(a.quoteVolume);
       const volB = parseFloat(b.quoteVolume);
       const chgA = Math.abs(parseFloat(a.priceChangePercent)) || 0.1;
       const chgB = Math.abs(parseFloat(b.priceChangePercent)) || 0.1;
-      // Score = volume / abs(change) — high means lots of volume with little price move
-      const scoreA = volA / chgA;
-      const scoreB = volB / chgB;
-      return scoreB - scoreA;
+      return (volB / chgB) - (volA / chgA);
     }
     if (mode === 'pump')  return parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent);
     if (mode === 'short') {
@@ -2568,7 +2583,6 @@ async function preFilterCoins(mode) {
       return dB - dA;
     }
     return 0;
-  // FIX: increase from 50 to 80 so more coins get deep-analyzed
   }).slice(0, 80);
 
   logMsg(`🎯 Stage 3: Top ${sorted.length} selected for deep analysis`);
