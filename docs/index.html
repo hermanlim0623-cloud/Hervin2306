@@ -2572,6 +2572,12 @@ async function preFilterCoins(mode) {
   }).slice(0, 80);
 
   logMsg(`🎯 Stage 3: Top ${sorted.length} selected for deep analysis`);
+  // Debug: log if specific coins made it through
+  ['NEWT','BIO','EDU','WLD'].forEach(sym => {
+    const found = sorted.find(t => t.symbol === sym + 'USDT');
+    if (found) logMsg(`✓ ${sym} in candidates — vol:${(parseFloat(found.quoteVolume)/1e6).toFixed(1)}M chg:${parseFloat(found.priceChangePercent).toFixed(1)}%`, 'info');
+    else logMsg(`✗ ${sym} NOT in candidates — filtered out`, 'bad');
+  });
   return sorted.map(t => t.symbol.replace('USDT', ''));
 }
 
