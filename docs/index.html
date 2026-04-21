@@ -1158,6 +1158,232 @@ function detectResistanceCluster(klines, currentPrice) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// BREAKOUT DETECTION
+// Checks if price just broke above a key resistance level with
+// convincing volume. Three sub-checks:
+//   1. Structural breakout — price vs recent swing high range
+//   2. Volume confirmation — breakout candle vol vs avg
+//   3. Retest / consolidation before breakout (bullish flag)
+// ═══════════════════════════════════════════════════════════════════
+function detectBreakout(klines4h, klines1h, currentPrice) {
+  const result = {
+    broke: false,          // clean breakout
+    retesting: false,      // broke + now pulling back to retest (best entry)
+    consolidating: false,  // tight range before potential breakout
+    volConfirmed: false,   // volume backed the move
+    breakoutPct: 0,        // how far above breakout level (%)
+    level: 0,              // the key level that was broken
+    score: 0,              // 0–5
+    signals: [],
+  };
+
+  if (!klines4h || klines4h.length < 30) return result;
+
+  const closes4h = klines4h.map(k => parseFloat(k[4]));
+  const highs4h  = klines4h.map(k => parseFloat(k[2]));
+  const lows4h   = klines4h.map(k => parseFloat(k[3]));
+  const vols4h   = klines4h.map(k => parseFloat(k[5]));
+
+  // ── 1. Find key resistance (highest high in prev 20–5 candles) ──
+  const lookback    = closes4h.slice(-25, -3);
+  const highsLb     = highs4h.slice(-25, -3);
+  const resistLevel = Math.max(...highsLb);
+
+  result.level = resistLevel;
+
+  const breakoutPct = resistLevel > 0
+    ? (currentPrice - resistLevel) / resistLevel * 100
+    : 0;
+  result.breakoutPct = breakoutPct;
+
+  // ── 2. Structural breakout — price > resistance ──
+  if (breakoutPct > 0.5 && breakoutPct < 25) {
+    result.broke = true;
+    result.score += 2;
+    result.signals.push({
+      strength: 'strong',
+      text: `🚀 Breakout dari resistance $${fmt(resistLevel, 5)} (+${breakoutPct.toFixed(1)}%)`,
+    });
+  }
+
+  // ── 3. Volume confirmation on breakout candle ──
+  const avgVol       = vols4h.slice(-20, -5).reduce((a, b) => a + b, 0) / 15;
+  const breakoutVol  = vols4h[vols4h.length - 1];
+  const volMultiple  = avgVol > 0 ? breakoutVol / avgVol : 1;
+
+  if (result.broke && volMultiple >= 1.8) {
+    result.volConfirmed = true;
+    result.score += 1;
+    result.signals.push({
+      strength: 'strong',
+      text: `📊 Volume breakout ${volMultiple.toFixed(1)}x avg — genuine move`,
+    });
+  } else if (result.broke && volMultiple >= 1.2) {
+    result.score += 0;
+    result.signals.push({
+      strength: 'medium',
+      text: `📊 Volume breakout ${volMultiple.toFixed(1)}x — kurang meyakinkan`,
+    });
+  }
+
+  // ── 4. Retest detection (broke up, now pulling back 1–5% to old level) ──
+  if (result.broke && breakoutPct > 0 && breakoutPct < 5) {
+    result.retesting = true;
+    result.score += 2;
+    result.signals.push({
+      strength: 'strong',
+      text: `🎯 Retest resistance lama = entry terbaik sebelum pump lanjut`,
+    });
+  }
+
+  // ── 5. Consolidation / bull flag (price range tight last 8 candles) ──
+  if (!result.broke) {
+    const recent8    = closes4h.slice(-8);
+    const recentHigh = Math.max(...highs4h.slice(-8));
+    const recentLow  = Math.min(...lows4h.slice(-8));
+    const rangeWidth = recentHigh > 0 ? (recentHigh - recentLow) / recentHigh * 100 : 99;
+
+    // Volume contracting in consolidation = healthy
+    const earlyVol = vols4h.slice(-8, -4).reduce((a, b) => a + b, 0) / 4;
+    const lateVol  = vols4h.slice(-4).reduce((a, b) => a + b, 0) / 4;
+    const volContracting = lateVol < earlyVol * 0.85;
+
+    if (rangeWidth < 6 && volContracting) {
+      result.consolidating = true;
+      result.score += 2;
+      result.signals.push({
+        strength: 'strong',
+        text: `🔲 Konsolidasi ketat ${rangeWidth.toFixed(1)}% + volume menyusut = coiling sebelum pump`,
+      });
+    } else if (rangeWidth < 10) {
+      result.score += 1;
+      result.signals.push({
+        strength: 'medium',
+        text: `🔲 Range sempit ${rangeWidth.toFixed(1)}% — potensi breakout segera`,
+      });
+    }
+
+    // How far price is from resistance
+    const distToBreak = resistLevel > 0
+      ? (resistLevel - currentPrice) / resistLevel * 100
+      : 99;
+    if (distToBreak < 3 && distToBreak > 0) {
+      result.score += 1;
+      result.signals.push({
+        strength: 'medium',
+        text: `⚡ Harga hanya ${distToBreak.toFixed(1)}% dari resistance — siap breakout`,
+      });
+    }
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TIMEFRAME CONFLUENCE
+// Checks alignment across 1H → 4H → 1D
+// A coin with all three timeframes bullish has much higher pump
+// probability than one where only 4H is bullish.
+// ═══════════════════════════════════════════════════════════════════
+function detectTFConfluence(d, klines1h) {
+  const result = {
+    score: 0,        // 0–6
+    aligned: false,  // all 3 TF bullish
+    signals: [],
+    tf: { h1: null, h4: null, d1: null },
+  };
+
+  // ── 4H analysis (already in d) ──
+  const tf4h = {
+    trend:  d.trend4h,
+    rsi:    d.rsi4h,
+    macdBull: d.macd && d.macd.hist > 0,
+    aboveMA: d.price > d.ma20_4h,
+  };
+  result.tf.h4 = tf4h;
+
+  // ── 1D analysis ──
+  const tf1d = {
+    trend:   d.trend1d,
+    rsi:     d.rsi1d,
+    aboveMA: d.price > d.ma20_1d,
+  };
+  result.tf.d1 = tf1d;
+
+  // ── 1H analysis (new klines) ──
+  let tf1h = { trend: null, rsi: 50, macdBull: false, aboveMA: false };
+  if (klines1h && klines1h.length >= 22) {
+    const closes1h = klines1h.map(k => parseFloat(k[4]));
+    const ma20_1h  = calcMA(closes1h, 20);
+    const rsi1h    = calcRSI(closes1h);
+    const macd1h   = calcMACD(closes1h);
+    tf1h = {
+      trend:    d.price > ma20_1h ? 'bullish' : 'bearish',
+      rsi:      rsi1h,
+      macdBull: macd1h.hist > 0,
+      aboveMA:  d.price > ma20_1h,
+    };
+  }
+  result.tf.h1 = tf1h;
+
+  // ── Score each TF ──
+  // 1H
+  if (tf1h.trend === 'bullish') {
+    result.score += 1;
+  }
+  if (tf1h.macdBull && tf1h.rsi > 40 && tf1h.rsi < 70) {
+    result.score += 1;
+    result.signals.push({ strength: 'medium', text: `⏱ 1H bullish — RSI ${tf1h.rsi}, MACD positif` });
+  } else if (tf1h.trend === 'bullish') {
+    result.signals.push({ strength: 'medium', text: `⏱ 1H trend bullish (RSI ${tf1h.rsi})` });
+  } else {
+    result.signals.push({ strength: 'weak', text: `⏱ 1H masih bearish — belum konfirmasi` });
+  }
+
+  // 4H
+  if (tf4h.trend === 'bullish' && tf4h.macdBull) {
+    result.score += 2;
+    result.signals.push({ strength: 'strong', text: `📐 4H bullish + MACD hijau — momentum utama kuat` });
+  } else if (tf4h.trend === 'bullish') {
+    result.score += 1;
+    result.signals.push({ strength: 'medium', text: `📐 4H trend bullish (MACD belum confirm)` });
+  } else {
+    result.signals.push({ strength: 'weak', text: `📐 4H masih bearish — hati-hati` });
+  }
+
+  // 1D
+  if (tf1d.trend === 'bullish' && tf1d.rsi < 70) {
+    result.score += 2;
+    result.signals.push({ strength: 'strong', text: `📅 1D bullish + RSI ${tf1d.rsi} — belum overbought, ruang masih ada` });
+  } else if (tf1d.trend === 'bullish') {
+    result.score += 1;
+    result.signals.push({ strength: 'medium', text: `📅 1D bullish tapi RSI ${tf1d.rsi} — mulai tinggi` });
+  } else {
+    result.signals.push({ strength: 'weak', text: `📅 1D bearish — pump akan susah sustain` });
+  }
+
+  // ── Confluence bonus: all 3 aligned ──
+  const allBull = tf1h.trend === 'bullish' && tf4h.trend === 'bullish' && tf1d.trend === 'bullish';
+  const noneBull = tf1h.trend === 'bearish' && tf4h.trend === 'bearish' && tf1d.trend === 'bearish';
+
+  if (allBull) {
+    result.aligned = true;
+    result.score   = Math.min(result.score + 1, 6); // bonus cap
+    result.signals.unshift({
+      strength: 'strong',
+      text: '🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish = high probability pump',
+    });
+  } else if (noneBull) {
+    result.signals.unshift({
+      strength: 'weak',
+      text: '⛔ Semua TF bearish — hindari long posisi',
+    });
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // SMART PATTERN DETECTORS
 // ═══════════════════════════════════════════════════════════════════
 
@@ -1270,13 +1496,14 @@ async function analyzeCoin(symbol) {
   const sym = symbol.toUpperCase();
 
   // Fetch everything in parallel — klines only fetched once via getKlines()
-  const [ticker, klines4h, klines1d, ob, premium, oiChange] = await Promise.all([
+  const [ticker, klines4h, klines1d, klines1h, ob, premium, oiChange] = await Promise.all([
     binance('ticker/24hr',   { symbol: sym + 'USDT' },              1),
     getKlines(sym, '4h', 60),
     getKlines(sym, '1d', 30),
+    getKlines(sym, '1h', 48),  // 48h of 1H candles for TF confluence
     binance('depth',         { symbol: sym + 'USDT', limit: 20 },   2),
     binance('premiumIndex',  { symbol: sym + 'USDT' },              1).catch(() => null),
-    getOIChange(sym),  // FIX: real OI change, was hardcoded 0 in v7
+    getOIChange(sym),
   ]);
 
   const price    = parseFloat(ticker.lastPrice);
@@ -1338,7 +1565,13 @@ async function analyzeCoin(symbol) {
     closes4h, closes1d, vols4h, vols1d,
     obvDiv, wyckoff, macd, bb,
     // Raw klines returned so callers never need to re-fetch
-    klines4h, klines1d,
+    klines4h, klines1d, klines1h,
+    // Pre-computed pump setup signals (used in renderResult + scoreAccum)
+    breakout:    detectBreakout(klines4h, klines1h, price),
+    tfConfluence: detectTFConfluence(
+      { trend4h, trend1d, rsi4h, rsi1d, macd, ma20_4h, ma20_1d, price },
+      klines1h
+    ),
   };
 
   Cache.set(symbol, 'analysis', result);
@@ -1434,14 +1667,51 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
   }
 
-  const max  = 8;
+  // 9. Breakout / Consolidation (from detectBreakout)
+  if (d.breakout) {
+    if (d.breakout.broke && d.breakout.volConfirmed) {
+      score++;
+      checks.push({ pass: true, text: `🚀 Breakout terkonfirmasi volume (+${d.breakout.breakoutPct.toFixed(1)}%)` });
+    } else if (d.breakout.retesting) {
+      score++;
+      checks.push({ pass: true, text: `🎯 Retest level breakout — entry ideal` });
+    } else if (d.breakout.consolidating) {
+      score++;
+      checks.push({ pass: true, text: `🔲 Konsolidasi ketat — coiling sebelum breakout` });
+    } else if (d.breakout.broke) {
+      checks.push({ warn: true, text: `🚀 Breakout tanpa konfirmasi volume — hati-hati fakeout` });
+    } else {
+      checks.push({ fail: true, text: `Tidak ada breakout / konsolidasi terdeteksi` });
+    }
+  } else {
+    checks.push({ fail: true, text: `Breakout data tidak tersedia` });
+  }
+
+  // 10. Timeframe Confluence (1H + 4H + 1D)
+  if (d.tfConfluence) {
+    if (d.tfConfluence.aligned) {
+      score++;
+      checks.push({ pass: true, text: `🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish` });
+    } else if (d.tfConfluence.score >= 4) {
+      score++;
+      checks.push({ pass: true, text: `📐 TF Confluence kuat (${d.tfConfluence.score}/6) — 2 dari 3 TF bullish` });
+    } else if (d.tfConfluence.score >= 2) {
+      checks.push({ warn: true, text: `📐 TF Confluence lemah (${d.tfConfluence.score}/6) — belum align` });
+    } else {
+      checks.push({ fail: true, text: `📐 TF Confluence negatif — mayoritas bearish` });
+    }
+  } else {
+    checks.push({ fail: true, text: `Confluence data tidak tersedia` });
+  }
+
+  const max  = 10;
   const pct  = Math.round(score / max * 100);
-  const cls  = score >= 6 ? 'high' : score >= 4 ? 'mid' : 'low';
-  const verdict = score >= 6
-    ? { cls: 'strong', text: '🟢 AKUMULASI KUAT — Potensi pump besar' }
-    : score >= 4
-    ? { cls: 'medium', text: '🟡 AKUMULASI SEDANG — Monitor terus' }
-    : { cls: 'weak',   text: '⚪ Signal lemah — Skip' };
+  const cls  = score >= 7 ? 'high' : score >= 5 ? 'mid' : 'low';
+  const verdict = score >= 7
+    ? { cls: 'strong', text: '🟢 PUMP SETUP KUAT — High probability, siap entry' }
+    : score >= 5
+    ? { cls: 'medium', text: '🟡 SETUP SEDANG — Monitor, tunggu konfirmasi' }
+    : { cls: 'weak',   text: '⚪ Signal lemah — Skip dulu' };
 
   return { score, max, pct, cls, checks, verdict };
 }
@@ -1601,6 +1871,85 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
     </div>
   </div>` : '';
 
+  // ── PUMP SETUP SECTION (Breakout + TF Confluence) ──
+  const bo  = d.breakout;
+  const tfc = d.tfConfluence;
+
+  const pumpSetupHtml = (bo || tfc) ? `
+  <div>
+    <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">🚀 Pump Setup Analysis</div>
+
+    ${bo ? `
+    <div style="margin-bottom:10px;">
+      <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Breakout Detection</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
+        <div class="metric">
+          <div class="metric-l">Status</div>
+          <div class="metric-v ${bo.broke ? 'green' : bo.consolidating ? 'amber' : ''}">
+            ${bo.broke ? (bo.retesting ? 'RETEST' : 'BROKE') : bo.consolidating ? 'COILING' : 'RANGING'}
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-l">Key Level</div>
+          <div class="metric-v">$${fmt(bo.level, 5)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-l">Dist / Gain</div>
+          <div class="metric-v ${bo.breakoutPct > 0 ? 'green' : 'red'}">
+            ${bo.breakoutPct >= 0 ? '+' : ''}${bo.breakoutPct.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+      <div class="signals-list">
+        ${bo.signals.map(s => `
+          <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}">
+            <span style="flex-shrink:0">◈</span><span>${s.text}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${tfc ? `
+    <div>
+      <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Timeframe Confluence</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
+        <div class="metric">
+          <div class="metric-l">1H Trend</div>
+          <div class="metric-v ${tfc.tf.h1?.trend === 'bullish' ? 'green' : 'red'}">
+            ${tfc.tf.h1?.trend?.toUpperCase() || 'N/A'}
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-l">4H Trend</div>
+          <div class="metric-v ${tfc.tf.h4?.trend === 'bullish' ? 'green' : 'red'}">
+            ${tfc.tf.h4?.trend?.toUpperCase() || 'N/A'}
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-l">1D Trend</div>
+          <div class="metric-v ${tfc.tf.d1?.trend === 'bullish' ? 'green' : 'red'}">
+            ${tfc.tf.d1?.trend?.toUpperCase() || 'N/A'}
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <div class="score-section">
+          <span class="score-label" style="font-size:0.72rem;">Confluence</span>
+          <div class="score-track">
+            <div class="score-fill ${tfc.score >= 5 ? 'high' : tfc.score >= 3 ? 'mid' : 'low'}" style="width:${Math.round(tfc.score/6*100)}%"></div>
+          </div>
+          <span class="score-val">${tfc.score}/6${tfc.aligned ? ' 🎯' : ''}</span>
+        </div>
+      </div>
+      <div class="signals-list">
+        ${tfc.signals.map(s => `
+          <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}">
+            <span style="flex-shrink:0">◈</span><span>${s.text}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+  </div>` : '';
+
   const scoreHtml = `
   <div class="score-section">
     <span class="score-label">Score</span>
@@ -1613,7 +1962,7 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
   const verdictHtml = `<div class="verdict ${scoreData.verdict.cls}">${scoreData.verdict.text}</div>`;
 
   document.getElementById('rpBody').innerHTML =
-    metricsHtml + checkHtml + smartHtml + scoreHtml + verdictHtml +
+    metricsHtml + checkHtml + smartHtml + pumpSetupHtml + scoreHtml + verdictHtml +
     `<a class="chart-link" href="${chart}" target="_blank">↗ Open in TradingView</a>`;
 
   panel.classList.add('show');
