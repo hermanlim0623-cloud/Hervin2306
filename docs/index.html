@@ -1700,13 +1700,16 @@ async function scanAccumulation() {
 
       const smart     = detectSmartAccumulation(d, d.klines4h, d.klines1d);
       const s         = scoreAccum(d);
-      const finalScore = Math.round((s.score + smart.score / smart.maxScore * s.max) / 2);
+      // FIX: s.score is primary gatekeeper — smart signals are bonus only
+      // smart adds up to +1 bonus point if score >= 3 (to boost ranking, not filter)
+      const smartBonus = smart.score >= 5 ? 1 : 0;
+      const finalScore = s.score + smartBonus;
 
-      if (finalScore >= 3 || smart.score >= 5) {
-        logMsg(`✅ ${sym}: ${finalScore}/${s.max}`, 'ok');
+      if (s.score >= 3) {
+        logMsg(`✅ ${sym}: ${s.score}/${s.max} (smart bonus: +${smartBonus})`, 'ok');
         results.accum.push({
-          sym, price: d.price, score: finalScore, scoreMax: s.max,
-          scorePct: Math.round(finalScore / s.max * 100),
+          sym, price: d.price, score: s.score, scoreMax: s.max,
+          scorePct: Math.round(s.score / s.max * 100),
           gain24h: d.gain24h, type: 'ACCUM',
           data: d, scoreData: s, signals: smart.signals,
           tags: [
