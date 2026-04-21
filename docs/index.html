@@ -1285,17 +1285,57 @@
 
     // ── ACCUM SCAN ──────────────────────────────
     async function scanAccumulation() {
-      const candidates = await preFilterCoins('accum'); logMsg(`Starting deep analysis on ${candidates.length} coins...`, 'info'); let processed = 0;
+      const candidates = await preFilterCoins('accum');
+      logMsg(`Starting deep analysis on ${candidates.length} coins...`, 'info');
+      let processed = 0;
+
       for (const sym of candidates) {
-        processed++; logMsg(`[${processed}/${candidates.length}] 🔬 ${sym}...`);
+        processed++;
+        logMsg(`[${processed}/${candidates.length}] 🔬 ${sym}...`, 'info');
+
         try {
-          const d = await analyzeCoin(sym); const k4h = await binance('klines', { symbol: sym + 'USDT', interval: '4h', limit: 60 }, 5), k1d = await binance('klines', { symbol: sym + 'USDT', interval: '1d', limit: 30 }, 5); d.closes4h = k4h.map(k => parseFloat(k[4])); d.closes1d = k1d.map(k => parseFloat(k[4]));
-          const smartAcc = detectSmartAccumulation(d, k4h, k1d), s = scoreAccum(d), finalScore = Math.round((s.score + smartAcc.score / 8 * 6) / 2);
-          if (finalScore >= 3 || smartAcc.score >= 4) {
-            logMsg(`✅ ${sym}: Score ${finalScore}/6`, 'ok');
-            results.accum.push({ sym, price: d.price, score: finalScore, scoreMax: 6, scorePct: Math.round(finalScore / 6 * 100), gain24h: d.gain24h, type: 'ACCUM', data: d, scoreData: s, signals: smartAcc.signals, tags: [{ label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' }, { label: `7D ${d.priceChg7d >= 0 ? '+' : ''}${d.priceChg7d.toFixed(1)}%`, cls: '' }, { label: `RSI ${d.rsi4h}`, cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' }, d.funding !== null ? { label: `F: ${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : '' } : null, smartAcc.signals.slice(0, 1).map(x => ({ label: x.type, cls: x.strength === 'strong' ? 'g' : 'a' }))[0]].filter(Boolean) }); renderCards(); updateStats();
+          const d = await analyzeCoin(sym);
+          const k4h = await binance('klines', { symbol: sym + 'USDT', interval: '4h', limit: 60 }, 5);
+          const k1d = await binance('klines', { symbol: sym + 'USDT', interval: '1d', limit: 30 }, 5);
+
+          d.closes4h = k4h.map(k => parseFloat(k[4]));
+          d.closes1d = k1d.map(k => parseFloat(k[4]));
+
+          const smartAcc = detectSmartAccumulation(d, k4h, k1d);
+          const s = scoreAccum(d);
+
+          // 🚀 BREAKOUT DETECTION: Jika harga baru cross MA20 + volume spike
+          const ma20_4h = d.closes4h.slice(-20).reduce((a, b) => a + b, 0) / 20;
+          const isBreakout = d.price > ma20_4h * 1.02 && d.volRatio >= 2.0 && d.funding < -0.05;
+
+          // LONGGARKAN THRESHOLD untuk early breakout
+          const hasStrongSignal = smartAcc.signals.some(s => s.strength === 'strong');
+          const finalScore = Math.round((s.score + smartAcc.score / 8 * 6) / 2);
+
+          if (finalScore >= 2 || smartAcc.score >= 3 || hasStrongSignal || isBreakout) {
+            logMsg(`✅ ${sym}: Score ${finalScore}/6 | Breakout: ${isBreakout}`, 'ok');
+
+            results.accum.push({
+              sym, price: d.price, score: finalScore, scoreMax: 6,
+              scorePct: Math.round(finalScore / 6 * 100), gain24h: d.gain24h,
+              type: 'ACCUM', data: d, scoreData: s, signals: smartAcc.signals,
+              tags: [
+                { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' },
+                { label: `7D ${d.priceChg7d >= 0 ? '+' : ''}${d.priceChg7d.toFixed(1)}%`, cls: '' },
+                { label: `RSI ${d.rsi4h}`, cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
+                d.funding !== null ? { label: `F: ${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : '' } : null,
+                isBreakout ? { label: '🚀 BREAKOUT', cls: 'g' } : null,
+                smartAcc.signals.slice(0, 1).map(x => ({ label: x.type, cls: x.strength === 'strong' ? 'g' : 'a' }))[0]
+              ].filter(Boolean)
+            });
+            renderCards(); updateStats();
+          } else {
+            logMsg(`❌ ${sym}: final=${finalScore}, smart=${smartAcc.score}`, 'bad');
           }
-        } catch (e) { logMsg(`❌ ${sym}: ${e.message}`, 'bad'); } await sleep(350);
+        } catch (e) {
+          logMsg(`❌ ${sym}: ${e.message}`, 'bad');
+        }
+        await sleep(350);
       }
       document.getElementById('stScanned').textContent = processed;
     }
