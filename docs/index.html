@@ -2526,19 +2526,6 @@ async function preFilterCoins(mode) {
 
   const STABLES = new Set(['BUSD','USDC','DAI','TUSD','FDUSD','USDP','USDD']);
 
-  // Debug: log why specific coins got filtered
-  ['NEWT','BIO'].forEach(sym => {
-    const t = tickers.find(t => t.symbol === sym + 'USDT');
-    if (t) {
-      const vol = parseFloat(t.quoteVolume);
-      const chg = parseFloat(t.priceChangePercent);
-      const price = parseFloat(t.lastPrice);
-      logMsg(`🔍 ${sym}: vol=$${(vol/1e6).toFixed(2)}M chg=${chg.toFixed(1)}% price=$${price}`, 'info');
-    } else {
-      logMsg(`🔍 ${sym}: not found in futures tickers`, 'bad');
-    }
-  });
-
   const candidates = tickers.filter(t => {
     if (!t.symbol.endsWith('USDT')) return false;
     const base = t.symbol.replace('USDT', '');
@@ -2559,19 +2546,11 @@ async function preFilterCoins(mode) {
 
   logMsg(`✓ Stage 2: ${candidates.length} candidates after basic filter`);
 
-  // Always include portfolio coins — never let them get cut by top-80 limit
-  const portfolioSyms = new Set(pfLoad().map(c => c.sym));
-
   const sorted = candidates.sort((a, b) => {
-    // Portfolio coins always float to top
-    const aIsPf = portfolioSyms.has(a.symbol.replace('USDT',''));
-    const bIsPf = portfolioSyms.has(b.symbol.replace('USDT',''));
-    if (aIsPf && !bIsPf) return -1;
-    if (!aIsPf && bIsPf) return 1;
-
     if (mode === 'accum') {
-      const volA = parseFloat(a.quoteVolume);
-      const volB = parseFloat(b.quoteVolume);
+      // log10 normalization so small caps can compete with large caps
+      const volA = Math.log10(parseFloat(a.quoteVolume) + 1);
+      const volB = Math.log10(parseFloat(b.quoteVolume) + 1);
       const chgA = Math.abs(parseFloat(a.priceChangePercent)) || 0.1;
       const chgB = Math.abs(parseFloat(b.priceChangePercent)) || 0.1;
       return (volB / chgB) - (volA / chgA);
@@ -2583,15 +2562,9 @@ async function preFilterCoins(mode) {
       return dB - dA;
     }
     return 0;
-  }).slice(0, 80);
+  }).slice(0, mode === 'accum' ? 150 : 80);
 
   logMsg(`🎯 Stage 3: Top ${sorted.length} selected for deep analysis`);
-  // Debug: log if specific coins made it through
-  ['NEWT','BIO','EDU','WLD'].forEach(sym => {
-    const found = sorted.find(t => t.symbol === sym + 'USDT');
-    if (found) logMsg(`✓ ${sym} in candidates — vol:${(parseFloat(found.quoteVolume)/1e6).toFixed(1)}M chg:${parseFloat(found.priceChangePercent).toFixed(1)}%`, 'info');
-    else logMsg(`✗ ${sym} NOT in candidates — filtered out`, 'bad');
-  });
   return sorted.map(t => t.symbol.replace('USDT', ''));
 }
 
