@@ -471,6 +471,94 @@
     .toast.error   { background: var(--r); }
     .toast.warn    { background: var(--a); }
 
+    /* ── PORTFOLIO SECTION ───────────────────────── */
+    .portfolio-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r12); margin-bottom: 16px;
+      overflow: hidden; box-shadow: var(--shadow-sm);
+    }
+    .portfolio-head {
+      padding: 12px 18px; display: flex; align-items: center;
+      justify-content: space-between; cursor: pointer; user-select: none;
+      background: var(--bg); border-bottom: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s; gap: 10px;
+    }
+    .portfolio-head.open { border-bottom-color: var(--border); }
+    .portfolio-head:hover { background: var(--border); }
+    .portfolio-head-l { display: flex; align-items: center; gap: 10px; }
+    .portfolio-head-title { font-size: 0.78rem; font-weight: 700; letter-spacing: -0.01em; }
+    .portfolio-badge {
+      font-family: var(--mono); font-size: 0.62rem;
+      background: var(--b-bg); color: var(--b); border: 1px solid var(--b-border);
+      padding: 2px 7px; border-radius: 4px;
+    }
+    .portfolio-chevron { font-size: 0.7rem; color: var(--faint); transition: transform 0.2s; flex-shrink: 0; }
+    .portfolio-chevron.open { transform: rotate(180deg); }
+    .portfolio-body { display: none; padding: 16px 18px; flex-direction: column; gap: 14px; }
+    .portfolio-body.open { display: flex; }
+
+    .portfolio-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .portfolio-input {
+      font-family: var(--mono); font-size: 0.85rem; font-weight: 500;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
+      padding: 8px 12px; color: var(--text); width: 120px;
+      text-transform: uppercase; outline: none; letter-spacing: 0.05em;
+      transition: border-color 0.15s;
+    }
+    .portfolio-input:focus { border-color: var(--text); }
+    .portfolio-input::placeholder { text-transform: none; font-weight: 300; color: var(--faint); letter-spacing: 0; }
+    .portfolio-price-input {
+      font-family: var(--mono); font-size: 0.82rem;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
+      padding: 8px 10px; color: var(--text); width: 110px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .portfolio-price-input:focus { border-color: var(--text); }
+    .type-select {
+      font-family: var(--sans); font-size: 0.75rem; font-weight: 600;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
+      padding: 8px 10px; color: var(--text); outline: none; cursor: pointer;
+    }
+
+    .portfolio-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+    .portfolio-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 10px; cursor: default; transition: all 0.15s;
+      animation: fadeUp 0.18s ease;
+    }
+    .portfolio-chip.fav  { border-color: var(--a-border); background: var(--a-bg); color: var(--a); }
+    .portfolio-chip.hold { border-color: var(--b-border); background: var(--b-bg); color: var(--b); }
+    .chip-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--faint); font-size: 0.75rem; padding: 0; transition: color 0.15s;
+    }
+    .chip-remove:hover { color: var(--r); }
+
+    .portfolio-cards { display: flex; flex-direction: column; gap: 6px; }
+    .portfolio-card {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
+      padding: 10px 14px; display: grid;
+      grid-template-columns: 110px 1fr auto;
+      gap: 10px; align-items: center;
+      animation: fadeUp 0.2s ease both;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .portfolio-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+    .portfolio-card-sym { font-family: var(--mono); font-size: 0.88rem; font-weight: 600; }
+    .portfolio-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .portfolio-card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .portfolio-card-price { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; color: var(--text); }
+    .portfolio-card-pnl { font-family: var(--mono); font-size: 0.72rem; }
+    .portfolio-card-pnl.green { color: var(--g); }
+    .portfolio-card-pnl.red   { color: var(--r); }
+    .portfolio-actions {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    .portfolio-empty { font-size: 0.8rem; color: var(--faint); text-align: center; padding: 12px 0 4px; }
+
     /* ── RESPONSIVE ──────────────────────────────── */
     @media (max-width: 640px) {
       .stats { grid-template-columns: repeat(3,1fr); }
@@ -515,6 +603,61 @@
     <button class="btn" onclick="exportResults('all')">📥 Export CSV</button>
     <button class="btn danger" id="btnCancel" onclick="cancelScan()" style="display:none">✕ Cancel</button>
   </div>
+
+  <!-- ══ PORTFOLIO / WATCHLIST PANEL ══ -->
+  <div class="portfolio-wrap">
+    <div class="portfolio-head" id="portfolioHead" onclick="togglePortfolio()">
+      <div class="portfolio-head-l">
+        <span style="font-size:1rem">📁</span>
+        <span class="portfolio-head-title">My Portfolio &amp; Watchlist</span>
+        <span class="portfolio-badge" id="portfolioBadge">0 coins</span>
+      </div>
+      <span class="portfolio-chevron" id="portfolioChevron">▼</span>
+    </div>
+    <div class="portfolio-body" id="portfolioBody">
+
+      <!-- Add coin row -->
+      <div>
+        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Add Coin</div>
+        <div class="portfolio-input-row">
+          <input class="portfolio-input" id="pfInput" placeholder="e.g. BIO"
+            onkeydown="if(event.key==='Enter') pfAddCoin()">
+          <input class="portfolio-price-input" id="pfEntryPrice" placeholder="Entry price" type="number" step="any">
+          <select class="type-select" id="pfType">
+            <option value="hold">📦 Hold</option>
+            <option value="fav">⭐ Watchlist</option>
+          </select>
+          <button class="btn primary" onclick="pfAddCoin()">+ Add</button>
+          <button class="btn" onclick="pfImportFromText()" title="Paste multiple: SOL,BTC,ETH">📋 Paste List</button>
+        </div>
+      </div>
+
+      <!-- Chip list -->
+      <div>
+        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Coins</div>
+        <div class="portfolio-chips" id="pfChips">
+          <span class="portfolio-empty">No coins yet — add your first position above</span>
+        </div>
+      </div>
+
+      <!-- Scan results -->
+      <div id="pfResultsWrap" style="display:none">
+        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Live Analysis</div>
+        <div class="portfolio-cards" id="pfCards"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="portfolio-actions">
+        <button class="btn primary" id="pfScanBtn" onclick="pfScanAll()">⚡ Scan All Positions</button>
+        <button class="btn" onclick="pfScanAll('accum')">◉ Accum Check</button>
+        <button class="btn" onclick="pfScanAll('short')">▼ Short Check</button>
+        <button class="btn" onclick="pfExportCSV()">📥 Export</button>
+        <button class="btn danger" onclick="pfClearAll()">🗑 Clear All</button>
+      </div>
+
+    </div>
+  </div>
+  <!-- ══ END PORTFOLIO PANEL ══ -->
 
   <!-- Result Detail Panel -->
   <div class="result-panel" id="resultPanel">
@@ -2012,6 +2155,273 @@ function exportResults(mode) {
   URL.revokeObjectURL(url);
   showToast(`📥 Exported ${data.length} rows`, 'success');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// PORTFOLIO / WATCHLIST MODULE
+// - Persisted in localStorage
+// - Add by symbol + optional entry price + type (hold/fav)
+// - Paste comma-separated list
+// - Scan all at once with accum or short check
+// - PnL shown if entry price was set
+// ═══════════════════════════════════════════════════════════════════
+
+const PF_KEY = 'hervin_portfolio_v8';
+
+function pfLoad() {
+  try { return JSON.parse(localStorage.getItem(PF_KEY)) || []; }
+  catch { return []; }
+}
+function pfSave(coins) {
+  localStorage.setItem(PF_KEY, JSON.stringify(coins));
+}
+
+// Toggle collapse
+function togglePortfolio() {
+  const body    = document.getElementById('portfolioBody');
+  const head    = document.getElementById('portfolioHead');
+  const chevron = document.getElementById('portfolioChevron');
+  const isOpen  = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  head.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+// Render chips
+function pfRenderChips() {
+  const coins   = pfLoad();
+  const wrap    = document.getElementById('pfChips');
+  const badge   = document.getElementById('portfolioBadge');
+  badge.textContent = `${coins.length} coin${coins.length !== 1 ? 's' : ''}`;
+
+  if (coins.length === 0) {
+    wrap.innerHTML = `<span class="portfolio-empty">No coins yet — add your first position above</span>`;
+    return;
+  }
+  wrap.innerHTML = coins.map((c, i) => `
+    <div class="portfolio-chip ${c.type}">
+      <span>${c.sym}</span>
+      ${c.entry ? `<span style="opacity:0.7;font-size:0.65rem">@${c.entry}</span>` : ''}
+      <button class="chip-remove" onclick="pfRemove(${i})" title="Remove">✕</button>
+    </div>
+  `).join('');
+}
+
+// Add coin
+function pfAddCoin() {
+  const sym   = (document.getElementById('pfInput').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  const entry = parseFloat(document.getElementById('pfEntryPrice').value) || null;
+  const type  = document.getElementById('pfType').value;
+  if (!sym) { showToast('Masukkan symbol coin', 'warn'); return; }
+
+  const coins = pfLoad();
+  if (coins.find(c => c.sym === sym)) { showToast(`${sym} sudah ada`, 'warn'); return; }
+  coins.push({ sym, entry, type });
+  pfSave(coins);
+  pfRenderChips();
+
+  document.getElementById('pfInput').value = '';
+  document.getElementById('pfEntryPrice').value = '';
+  showToast(`✅ ${sym} ditambahkan`, 'success');
+}
+
+// Paste comma list: "SOL,BTC,ETH" or "SOL BTC ETH"
+function pfImportFromText() {
+  const raw = prompt('Paste daftar coin (pisah koma atau spasi):\nContoh: EDU,WLD,BIO,BASED');
+  if (!raw) return;
+  const syms  = raw.toUpperCase().split(/[\s,;]+/).map(s => s.replace(/[^A-Z0-9]/g,'')).filter(Boolean);
+  const coins = pfLoad();
+  let added   = 0;
+  for (const sym of syms) {
+    if (!sym || coins.find(c => c.sym === sym)) continue;
+    coins.push({ sym, entry: null, type: 'hold' });
+    added++;
+  }
+  pfSave(coins);
+  pfRenderChips();
+  showToast(`✅ ${added} coin ditambahkan`, 'success');
+}
+
+// Remove one coin
+function pfRemove(idx) {
+  const coins = pfLoad();
+  const sym   = coins[idx]?.sym;
+  coins.splice(idx, 1);
+  pfSave(coins);
+  pfRenderChips();
+  // Remove card from results if visible
+  const card = document.getElementById(`pf-card-${sym}`);
+  if (card) card.remove();
+  if (document.getElementById('pfCards').children.length === 0) {
+    document.getElementById('pfResultsWrap').style.display = 'none';
+  }
+  showToast(`Removed ${sym}`, '');
+}
+
+// Clear all
+function pfClearAll() {
+  if (!confirm('Hapus semua coins dari portfolio?')) return;
+  pfSave([]);
+  pfRenderChips();
+  document.getElementById('pfCards').innerHTML = '';
+  document.getElementById('pfResultsWrap').style.display = 'none';
+  showToast('Portfolio cleared', '');
+}
+
+// Scan all coins in portfolio
+async function pfScanAll(mode = 'accum') {
+  const coins = pfLoad();
+  if (coins.length === 0) { showToast('Portfolio kosong — tambah coin dulu', 'warn'); return; }
+
+  const btn = document.getElementById('pfScanBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Scanning...';
+
+  const wrap  = document.getElementById('pfResultsWrap');
+  const grid  = document.getElementById('pfCards');
+  wrap.style.display = 'block';
+  grid.innerHTML = '';
+
+  // Make sure portfolio panel is open
+  const body = document.getElementById('portfolioBody');
+  if (!body.classList.contains('open')) togglePortfolio();
+
+  setDot('loading');
+  let done = 0;
+
+  for (const c of coins) {
+    const existCard = document.getElementById(`pf-card-${c.sym}`);
+    if (existCard) existCard.remove();
+
+    // Insert loading placeholder
+    const placeholder = document.createElement('div');
+    placeholder.id = `pf-card-${c.sym}`;
+    placeholder.className = 'skel-card';
+    placeholder.innerHTML = `
+      <div class="skel" style="width:80px;height:36px;border-radius:6px;flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div class="skel" style="height:13px;width:80px;"></div>
+        <div class="skel" style="height:11px;width:140px;"></div>
+      </div>`;
+    grid.appendChild(placeholder);
+
+    try {
+      const d = await analyzeCoin(c.sym);
+      const s = mode === 'short' ? scoreShort(d) : scoreAccum(d);
+      const signals = mode === 'short'
+        ? detectPumpExhaustion(d, d.klines4h, d.klines1d).signals
+        : detectSmartAccumulation(d, d.klines4h, d.klines1d).signals;
+
+      // PnL calculation if entry price recorded
+      let pnlHtml = '';
+      if (c.entry && c.entry > 0) {
+        const pnlPct = (d.price - c.entry) / c.entry * 100;
+        const pnlCls = pnlPct >= 0 ? 'green' : 'red';
+        pnlHtml = `<div class="portfolio-card-pnl ${pnlCls}">${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}% from entry</div>`;
+      }
+
+      // Verdict color
+      const verdictCls = s.score >= Math.ceil(s.max * 0.65) ? 'g'
+                       : s.score >= Math.ceil(s.max * 0.4)  ? 'a' : 'r';
+
+      const tags = [
+        { label: fmtPct(d.gain24h),          cls: d.gain24h >= 0 ? 'g' : 'r' },
+        { label: `RSI ${d.rsi4h}`,           cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
+        { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' },
+        d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
+        { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : d.oiChange < -5 ? 'r' : '' },
+      ].filter(Boolean);
+
+      const tagsHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
+      const chart = `https://www.tradingview.com/chart/?symbol=BINANCE:${c.sym}USDT.P`;
+      const typeLabel = c.type === 'fav' ? '⭐' : '📦';
+
+      placeholder.outerHTML = `
+        <div class="portfolio-card" id="pf-card-${c.sym}">
+          <div>
+            <div class="portfolio-card-sym">${typeLabel} ${c.sym}/USDT</div>
+            ${c.entry ? `<div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-top:2px;">Entry: $${c.entry}</div>` : ''}
+          </div>
+          <div>
+            <div class="portfolio-card-tags">${tagsHtml}</div>
+            ${signals.slice(0,2).map(sig =>
+              `<div style="font-size:0.7rem;color:var(--${sig.strength==='strong'?'g':'a'});margin-top:4px;">◈ ${sig.text}</div>`
+            ).join('')}
+          </div>
+          <div class="portfolio-card-right">
+            <div class="portfolio-card-price">$${fmt(d.price, 5)}</div>
+            <div><span class="tag ${verdictCls}" style="font-size:0.66rem;">${s.score}/${s.max}</span></div>
+            ${pnlHtml}
+            <div style="display:flex;gap:5px;margin-top:5px;justify-content:flex-end;">
+              <button class="btn-sm" onclick="pfShowDetail('${c.sym}')">Detail</button>
+              <a class="btn-sm" href="${chart}" target="_blank">Chart ↗</a>
+            </div>
+          </div>
+        </div>`;
+
+    } catch (e) {
+      document.getElementById(`pf-card-${c.sym}`).outerHTML = `
+        <div class="portfolio-card" id="pf-card-${c.sym}" style="opacity:0.5">
+          <div><div class="portfolio-card-sym">❌ ${c.sym}</div></div>
+          <div style="font-size:0.75rem;color:var(--r)">${e.message}</div>
+          <div></div>
+        </div>`;
+    }
+
+    done++;
+    await sleep(350);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⚡ Scan All Positions';
+  setDot('active');
+  showToast(`✅ Portfolio scan selesai — ${done} coins`, 'success');
+}
+
+// Show full detail panel for a portfolio coin
+async function pfShowDetail(sym) {
+  setDot('loading');
+  try {
+    const d = await analyzeCoin(sym);
+    const s = scoreAccum(d);
+    const smart = detectSmartAccumulation(d, d.klines4h, d.klines1d);
+    renderResult(sym, d, s, smart.signals);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setDot('active');
+  } catch (e) { showToast(`Error: ${e.message}`, 'error'); setDot('error'); }
+}
+
+// Export portfolio results as CSV
+function pfExportCSV() {
+  const coins = pfLoad();
+  if (!coins.length) { showToast('Portfolio kosong', 'warn'); return; }
+  const headers = ['Symbol','Type','Entry Price','Current Price','PnL%','RSI 4H','24h%','Funding','OI%','Vol Ratio'];
+  const rows = coins.map(c => {
+    const cardEl = document.getElementById(`pf-card-${c.sym}`);
+    // Best effort — grab from cache
+    const d = Cache.get(c.sym, 'analysis');
+    if (!d) return [c.sym, c.type, c.entry || '', '', '', '', '', '', '', ''];
+    const pnl = c.entry ? ((d.price - c.entry) / c.entry * 100).toFixed(2) + '%' : '';
+    return [
+      c.sym, c.type, c.entry || '', fmt(d.price,5), pnl,
+      d.rsi4h, fmtPct(d.gain24h),
+      d.funding != null ? `${d.funding.toFixed(4)}%` : 'N/A',
+      `${d.oiChange.toFixed(1)}%`,
+      d.volRatio.toFixed(2),
+    ];
+  });
+  const csv  = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `hervin_portfolio_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast(`📥 Portfolio exported`, 'success');
+}
+
+// Init on load
+pfRenderChips();
 </script>
 
 
