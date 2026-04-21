@@ -1849,60 +1849,58 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `MACD histogram negatif` });
   }
 
-  // 8. OI change (was dead in v7)
+  // 8. OI change — bonus only (often 0 due to API delay, don't penalize)
   if (d.oiChange > 5) {
     score++;
     checks.push({ pass: true, text: `Open Interest ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk` });
   } else if (d.oiChange < -5) {
     checks.push({ warn: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — hati-hati deleveraging` });
   } else {
-    checks.push({ fail: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
+    checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat / data belum update` });
   }
 
-  // 9. Breakout / Consolidation (from detectBreakout)
+  // 9. Breakout / Consolidation — bonus (coin akumulasi belum tentu breakout)
   if (d.breakout) {
     if (d.breakout.broke && d.breakout.volConfirmed) {
-      score++;
+      score += 2; // double bonus — breakout + volume = strongest signal
       checks.push({ pass: true, text: `🚀 Breakout terkonfirmasi volume (+${d.breakout.breakoutPct.toFixed(1)}%)` });
     } else if (d.breakout.retesting) {
-      score++;
+      score += 2;
       checks.push({ pass: true, text: `🎯 Retest level breakout — entry ideal` });
     } else if (d.breakout.consolidating) {
       score++;
       checks.push({ pass: true, text: `🔲 Konsolidasi ketat — coiling sebelum breakout` });
     } else if (d.breakout.broke) {
-      checks.push({ warn: true, text: `🚀 Breakout tanpa konfirmasi volume — hati-hati fakeout` });
+      checks.push({ warn: true, text: `🚀 Breakout tapi volume lemah — hati-hati fakeout` });
     } else {
-      checks.push({ fail: true, text: `Tidak ada breakout / konsolidasi terdeteksi` });
+      checks.push({ warn: true, text: `Belum breakout — masih akumulasi / ranging` });
     }
-  } else {
-    checks.push({ fail: true, text: `Breakout data tidak tersedia` });
   }
 
-  // 10. Timeframe Confluence (1H + 4H + 1D)
+  // 10. Timeframe Confluence — bonus (strong pump needs all TF aligned)
   if (d.tfConfluence) {
     if (d.tfConfluence.aligned) {
-      score++;
+      score += 2;
       checks.push({ pass: true, text: `🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish` });
     } else if (d.tfConfluence.score >= 4) {
       score++;
       checks.push({ pass: true, text: `📐 TF Confluence kuat (${d.tfConfluence.score}/6) — 2 dari 3 TF bullish` });
     } else if (d.tfConfluence.score >= 2) {
-      checks.push({ warn: true, text: `📐 TF Confluence lemah (${d.tfConfluence.score}/6) — belum align` });
+      checks.push({ warn: true, text: `📐 TF Confluence partial (${d.tfConfluence.score}/6) — belum align semua` });
     } else {
-      checks.push({ fail: true, text: `📐 TF Confluence negatif — mayoritas bearish` });
+      checks.push({ warn: true, text: `📐 TF mayoritas bearish — timing belum tepat` });
     }
-  } else {
-    checks.push({ fail: true, text: `Confluence data tidak tersedia` });
   }
 
-  const max  = 10;
+  // Base max = 7 (checks 1–7), bonus up to +5 from checks 8–10
+  // This way base accum quality shows clearly, bonus separates good from great
+  const max  = 12;
   const pct  = Math.round(score / max * 100);
-  const cls  = score >= 7 ? 'high' : score >= 5 ? 'mid' : 'low';
-  const verdict = score >= 7
+  const cls  = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
+  const verdict = score >= 9
     ? { cls: 'strong', text: '🟢 PUMP SETUP KUAT — High probability, siap entry' }
-    : score >= 5
-    ? { cls: 'medium', text: '🟡 SETUP SEDANG — Monitor, tunggu konfirmasi' }
+    : score >= 6
+    ? { cls: 'medium', text: '🟡 AKUMULASI TERDETEKSI — Monitor, tunggu konfirmasi' }
     : { cls: 'weak',   text: '⚪ Signal lemah — Skip dulu' };
 
   return { score, max, pct, cls, checks, verdict };
