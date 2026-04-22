@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hervin Scanner v8</title>
+  <title>Hervin Scanner v9</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -79,7 +79,6 @@
       letter-spacing: 0.06em;
     }
 
-    /* live dot */
     .live-dot {
       width: 7px; height: 7px;
       border-radius: 50%;
@@ -164,7 +163,7 @@
 
     .scan-divider { width: 1px; height: 24px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
 
-    /* ── MARKET ROW (mode buttons) ───────────────── */
+    /* ── MARKET ROW ───────────────────────────────── */
     .market-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
     .mode-btn {
       font-family: var(--sans);
@@ -326,7 +325,6 @@
     }
     .chart-link:hover { border-color: var(--border2); background: var(--border); }
 
-    /* extra signals section inside result panel */
     .signals-list { display: flex; flex-direction: column; gap: 5px; }
     .signal-row {
       display: flex; align-items: flex-start; gap: 9px;
@@ -337,6 +335,7 @@
       color: var(--g);
     }
     .signal-row.warn { border-color: var(--a-border); background: var(--a-bg); color: var(--a); }
+    .signal-row.bear { border-color: var(--r-border); background: var(--r-bg); color: var(--r); }
 
     /* ── SECTION HEADER ──────────────────────────── */
     .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -449,7 +448,7 @@
     .empty-msg  { font-size: 0.85rem; }
     .empty-sub  { font-size: 0.75rem; margin-top: 4px; color: var(--faint); }
 
-    /* ── TOAST NOTIFICATION ──────────────────────── */
+    /* ── TOAST ───────────────────────────────────── */
     .toast {
       position: fixed;
       bottom: 24px; right: 24px;
@@ -490,240 +489,70 @@
       justify-content: space-between;
       gap: 10px;
     }
-    .trade-setup.no-setup .trade-setup-head {
-      background: var(--border2);
-    }
-    .trade-setup-head-title {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.01em;
-    }
-    .trade-setup-rr {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: rgba(255,255,255,0.85);
-      background: rgba(255,255,255,0.15);
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-    .trade-setup-body {
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .trade-setup.no-setup .trade-setup-head { background: var(--border2); }
+    .trade-setup-head-title { font-size: 0.78rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+    .trade-setup-rr { font-family: var(--mono); font-size: 0.72rem; color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 4px; }
+    .trade-setup-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 
-    /* Entry / SL / TP rows */
-    .setup-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .setup-row-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--muted);
-      min-width: 80px;
-      flex-shrink: 0;
-    }
-    .setup-price {
-      font-family: var(--mono);
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .setup-pct {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      padding: 2px 7px;
-      border-radius: 4px;
-    }
+    .setup-row { display: flex; align-items: center; gap: 10px; }
+    .setup-row-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); min-width: 80px; flex-shrink: 0; }
+    .setup-price { font-family: var(--mono); font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .setup-pct { font-family: var(--mono); font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; }
     .setup-pct.green { background: var(--g-bg); color: var(--g); border: 1px solid var(--g-border); }
     .setup-pct.red   { background: var(--r-bg); color: var(--r); border: 1px solid var(--r-border); }
     .setup-pct.amber { background: var(--a-bg); color: var(--a); border: 1px solid var(--a-border); }
-    .setup-note {
-      font-size: 0.72rem;
-      color: var(--muted);
-      flex: 1;
-      text-align: right;
-    }
+    .setup-note { font-size: 0.72rem; color: var(--muted); flex: 1; text-align: right; }
 
-    /* TP levels bar visual */
-    .tp-levels {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .tp-level {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .tp-level-tag {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      font-weight: 600;
-      min-width: 28px;
-      color: var(--muted);
-    }
-    .tp-bar-wrap {
-      flex: 1;
-      height: 5px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .tp-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: var(--g);
-      transition: width 0.5s ease;
-    }
+    .tp-levels { display: flex; flex-direction: column; gap: 6px; }
+    .tp-level { display: flex; align-items: center; gap: 8px; }
+    .tp-level-tag { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; min-width: 28px; color: var(--muted); }
+    .tp-bar-wrap { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .tp-bar-fill { height: 100%; border-radius: 3px; background: var(--g); transition: width 0.5s ease; }
     .tp-bar-fill.tp2 { background: var(--b); }
     .tp-bar-fill.tp3 { background: var(--a); }
-    .tp-level-price {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--text);
-      min-width: 70px;
-      text-align: right;
-    }
-    .tp-level-pct {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      color: var(--g);
-      min-width: 44px;
-      text-align: right;
-    }
+    .tp-level-price { font-family: var(--mono); font-size: 0.72rem; color: var(--text); min-width: 70px; text-align: right; }
+    .tp-level-pct   { font-family: var(--mono); font-size: 0.68rem; color: var(--g); min-width: 44px; text-align: right; }
 
-    /* Position size widget */
-    .possize-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r8);
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .possize-title {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--muted);
-    }
-    .possize-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .possize-input {
-      font-family: var(--mono);
-      font-size: 0.82rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--r8);
-      padding: 7px 10px;
-      color: var(--text);
-      width: 110px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
+    .possize-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r8); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .possize-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .possize-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .possize-input { font-family: var(--mono); font-size: 0.82rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 7px 10px; color: var(--text); width: 110px; outline: none; transition: border-color 0.15s; }
     .possize-input:focus { border-color: var(--text); }
-    .possize-result {
-      display: grid;
-      grid-template-columns: repeat(3,1fr);
-      gap: 6px;
-      margin-top: 4px;
-    }
-    .possize-stat {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px 10px;
-    }
+    .possize-result { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 4px; }
+    .possize-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
     .possize-stat-l { font-size: 0.62rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
     .possize-stat-v { font-family: var(--mono); font-size: 0.82rem; font-weight: 600; }
 
-    /* ── PORTFOLIO SECTION ───────────────────────── */
-    .portfolio-wrap {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--r12); margin-bottom: 16px;
-      overflow: hidden; box-shadow: var(--shadow-sm);
-    }
-    .portfolio-head {
-      padding: 12px 18px; display: flex; align-items: center;
-      justify-content: space-between; cursor: pointer; user-select: none;
-      background: var(--bg); border-bottom: 1px solid transparent;
-      transition: background 0.15s, border-color 0.15s; gap: 10px;
-    }
+    /* ── PORTFOLIO ───────────────────────────────── */
+    .portfolio-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r12); margin-bottom: 16px; overflow: hidden; box-shadow: var(--shadow-sm); }
+    .portfolio-head { padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; background: var(--bg); border-bottom: 1px solid transparent; transition: background 0.15s, border-color 0.15s; gap: 10px; }
     .portfolio-head.open { border-bottom-color: var(--border); }
     .portfolio-head:hover { background: var(--border); }
     .portfolio-head-l { display: flex; align-items: center; gap: 10px; }
     .portfolio-head-title { font-size: 0.78rem; font-weight: 700; letter-spacing: -0.01em; }
-    .portfolio-badge {
-      font-family: var(--mono); font-size: 0.62rem;
-      background: var(--b-bg); color: var(--b); border: 1px solid var(--b-border);
-      padding: 2px 7px; border-radius: 4px;
-    }
+    .portfolio-badge { font-family: var(--mono); font-size: 0.62rem; background: var(--b-bg); color: var(--b); border: 1px solid var(--b-border); padding: 2px 7px; border-radius: 4px; }
     .portfolio-chevron { font-size: 0.7rem; color: var(--faint); transition: transform 0.2s; flex-shrink: 0; }
     .portfolio-chevron.open { transform: rotate(180deg); }
     .portfolio-body { display: none; padding: 16px 18px; flex-direction: column; gap: 14px; }
     .portfolio-body.open { display: flex; }
 
     .portfolio-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .portfolio-input {
-      font-family: var(--mono); font-size: 0.85rem; font-weight: 500;
-      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
-      padding: 8px 12px; color: var(--text); width: 120px;
-      text-transform: uppercase; outline: none; letter-spacing: 0.05em;
-      transition: border-color 0.15s;
-    }
+    .portfolio-input { font-family: var(--mono); font-size: 0.85rem; font-weight: 500; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 8px 12px; color: var(--text); width: 120px; text-transform: uppercase; outline: none; letter-spacing: 0.05em; transition: border-color 0.15s; }
     .portfolio-input:focus { border-color: var(--text); }
     .portfolio-input::placeholder { text-transform: none; font-weight: 300; color: var(--faint); letter-spacing: 0; }
-    .portfolio-price-input {
-      font-family: var(--mono); font-size: 0.82rem;
-      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
-      padding: 8px 10px; color: var(--text); width: 110px; outline: none;
-      transition: border-color 0.15s;
-    }
+    .portfolio-price-input { font-family: var(--mono); font-size: 0.82rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 8px 10px; color: var(--text); width: 110px; outline: none; transition: border-color 0.15s; }
     .portfolio-price-input:focus { border-color: var(--text); }
-    .type-select {
-      font-family: var(--sans); font-size: 0.75rem; font-weight: 600;
-      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
-      padding: 8px 10px; color: var(--text); outline: none; cursor: pointer;
-    }
+    .type-select { font-family: var(--sans); font-size: 0.75rem; font-weight: 600; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 8px 10px; color: var(--text); outline: none; cursor: pointer; }
 
     .portfolio-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
-    .portfolio-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
-      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-      padding: 4px 10px; cursor: default; transition: all 0.15s;
-      animation: fadeUp 0.18s ease;
-    }
+    .portfolio-chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.72rem; font-weight: 500; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: default; transition: all 0.15s; animation: fadeUp 0.18s ease; }
     .portfolio-chip.fav  { border-color: var(--a-border); background: var(--a-bg); color: var(--a); }
     .portfolio-chip.hold { border-color: var(--b-border); background: var(--b-bg); color: var(--b); }
-    .chip-remove {
-      background: none; border: none; cursor: pointer;
-      color: var(--faint); font-size: 0.75rem; padding: 0; transition: color 0.15s;
-    }
+    .chip-remove { background: none; border: none; cursor: pointer; color: var(--faint); font-size: 0.75rem; padding: 0; transition: color 0.15s; }
     .chip-remove:hover { color: var(--r); }
 
     .portfolio-cards { display: flex; flex-direction: column; gap: 6px; }
-    .portfolio-card {
-      background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8);
-      padding: 10px 14px; display: grid;
-      grid-template-columns: 110px 1fr auto;
-      gap: 10px; align-items: center;
-      animation: fadeUp 0.2s ease both;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
+    .portfolio-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 10px 14px; display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; animation: fadeUp 0.2s ease both; transition: border-color 0.15s, box-shadow 0.15s; }
     .portfolio-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
     .portfolio-card-sym { font-family: var(--mono); font-size: 0.88rem; font-weight: 600; }
     .portfolio-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
@@ -732,10 +561,7 @@
     .portfolio-card-pnl { font-family: var(--mono); font-size: 0.72rem; }
     .portfolio-card-pnl.green { color: var(--g); }
     .portfolio-card-pnl.red   { color: var(--r); }
-    .portfolio-actions {
-      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-      padding-top: 10px; border-top: 1px solid var(--border);
-    }
+    .portfolio-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border); }
     .portfolio-empty { font-size: 0.8rem; color: var(--faint); text-align: center; padding: 12px 0 4px; }
 
     /* ── RESPONSIVE ──────────────────────────────── */
@@ -753,23 +579,20 @@
 </head>
 <body>
 
-<!-- ═══════════════════ HEADER ═══════════════════ -->
 <header class="hdr">
   <div class="hdr-l">
     <div class="live-dot" id="liveDot"></div>
-    <span class="hdr-title">Hervin Scanner <span style="color:var(--a)">v8 PRO</span></span>
+    <span class="hdr-title">Hervin Scanner <span style="color:var(--a)">v9 PRO</span></span>
     <span class="hdr-badge">ULTRA</span>
   </div>
   <div class="hdr-r">
-    <span class="hdr-version">BUILD 8.0.0</span>
+    <span class="hdr-version">BUILD 9.0.0</span>
     <span class="clock" id="clock">--:-- UTC</span>
   </div>
 </header>
 
-<!-- ═══════════════════ MAIN ═════════════════════ -->
 <div class="wrap">
 
-  <!-- Quick Scan Bar -->
   <div class="scan-bar">
     <span class="scan-label">Quick Scan</span>
     <input class="sym-input" id="symInput" placeholder="e.g. SOL"
@@ -783,7 +606,7 @@
     <button class="btn danger" id="btnCancel" onclick="cancelScan()" style="display:none">✕ Cancel</button>
   </div>
 
-  <!-- ══ PORTFOLIO / WATCHLIST PANEL ══ -->
+  <!-- PORTFOLIO -->
   <div class="portfolio-wrap">
     <div class="portfolio-head" id="portfolioHead" onclick="togglePortfolio()">
       <div class="portfolio-head-l">
@@ -794,38 +617,29 @@
       <span class="portfolio-chevron" id="portfolioChevron">▼</span>
     </div>
     <div class="portfolio-body" id="portfolioBody">
-
-      <!-- Add coin row -->
       <div>
         <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Add Coin</div>
         <div class="portfolio-input-row">
-          <input class="portfolio-input" id="pfInput" placeholder="e.g. BIO"
-            onkeydown="if(event.key==='Enter') pfAddCoin()">
+          <input class="portfolio-input" id="pfInput" placeholder="e.g. BIO" onkeydown="if(event.key==='Enter') pfAddCoin()">
           <input class="portfolio-price-input" id="pfEntryPrice" placeholder="Entry price" type="number" step="any">
           <select class="type-select" id="pfType">
             <option value="hold">📦 Hold</option>
             <option value="fav">⭐ Watchlist</option>
           </select>
           <button class="btn primary" onclick="pfAddCoin()">+ Add</button>
-          <button class="btn" onclick="pfImportFromText()" title="Paste multiple: SOL,BTC,ETH">📋 Paste List</button>
+          <button class="btn" onclick="pfImportFromText()" title="Paste multiple">📋 Paste List</button>
         </div>
       </div>
-
-      <!-- Chip list -->
       <div>
         <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Coins</div>
         <div class="portfolio-chips" id="pfChips">
           <span class="portfolio-empty">No coins yet — add your first position above</span>
         </div>
       </div>
-
-      <!-- Scan results -->
       <div id="pfResultsWrap" style="display:none">
         <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Live Analysis</div>
         <div class="portfolio-cards" id="pfCards"></div>
       </div>
-
-      <!-- Actions -->
       <div class="portfolio-actions">
         <button class="btn primary" id="pfScanBtn" onclick="pfScanAll()">⚡ Scan All Positions</button>
         <button class="btn" onclick="pfScanAll('accum')">◉ Accum Check</button>
@@ -833,12 +647,9 @@
         <button class="btn" onclick="pfExportCSV()">📥 Export</button>
         <button class="btn danger" onclick="pfClearAll()">🗑 Clear All</button>
       </div>
-
     </div>
   </div>
-  <!-- ══ END PORTFOLIO PANEL ══ -->
 
-  <!-- Result Detail Panel -->
   <div class="result-panel" id="resultPanel">
     <div class="rp-head">
       <div style="display:flex;align-items:center;gap:12px;">
@@ -850,56 +661,32 @@
     <div class="rp-body" id="rpBody"></div>
   </div>
 
-  <!-- Market Mode Buttons -->
   <div class="market-row">
-    <button class="mode-btn" id="btnAccumScan" onclick="runMarketScan('accum')">
-      <span class="mode-icon">◉</span> Accumulation Scan</button>
-    <button class="mode-btn" id="btnPumpScan" onclick="runMarketScan('pump')">
-      <span class="mode-icon">🚀</span> Pump Scan (24H)</button>
-    <button class="mode-btn" id="btnShortScan" onclick="runMarketScan('short')">
-      <span class="mode-icon">▼</span> Short Scan</button>
-    <button class="mode-btn" id="btnTopScan" onclick="runMarketScan('top')">
-      <span class="mode-icon">⚡</span> Top Movers</button>
+    <button class="mode-btn" id="btnAccumScan" onclick="runMarketScan('accum')"><span class="mode-icon">◉</span> Accumulation Scan</button>
+    <button class="mode-btn" id="btnPumpScan"  onclick="runMarketScan('pump')"><span class="mode-icon">🚀</span> Pump Scan (24H)</button>
+    <button class="mode-btn" id="btnShortScan" onclick="runMarketScan('short')"><span class="mode-icon">▼</span> Short Scan</button>
+    <button class="mode-btn" id="btnTopScan"   onclick="runMarketScan('top')"><span class="mode-icon">⚡</span> Top Movers</button>
   </div>
 
-  <!-- Progress Bar -->
   <div class="progress-wrap" id="progressWrap">
     <span class="progress-label" id="progressLabel">Scanning...</span>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <span class="progress-pct" id="progressPct">0%</span>
   </div>
 
-  <!-- Stats -->
   <div class="stats">
-    <div class="stat">
-      <div class="stat-l">Found</div>
-      <div class="stat-v" id="stTotal">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-l">Accumulation</div>
-      <div class="stat-v blue" id="stAccum">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-l">Pump</div>
-      <div class="stat-v green" id="stPump">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-l">Short</div>
-      <div class="stat-v red" id="stShort">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-l">Scanned</div>
-      <div class="stat-v" id="stScanned">—</div>
-    </div>
+    <div class="stat"><div class="stat-l">Found</div><div class="stat-v" id="stTotal">—</div></div>
+    <div class="stat"><div class="stat-l">Accumulation</div><div class="stat-v blue" id="stAccum">—</div></div>
+    <div class="stat"><div class="stat-l">Pump</div><div class="stat-v green" id="stPump">—</div></div>
+    <div class="stat"><div class="stat-l">Short</div><div class="stat-v red" id="stShort">—</div></div>
+    <div class="stat"><div class="stat-l">Scanned</div><div class="stat-v" id="stScanned">—</div></div>
   </div>
 
-  <!-- Scan Log -->
   <div class="scan-log" id="scanLog">
     <div class="log-title">Scan Progress</div>
     <div class="log-lines" id="logLines"></div>
   </div>
 
-  <!-- Cards Section -->
   <div class="section-head">
     <span class="section-title" id="sectionTitle">Run a scan to find signals</span>
     <span class="section-count" id="sectionCount"></span>
@@ -912,19 +699,14 @@
     </div>
   </div>
 
-</div><!-- /wrap -->
+</div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-// PART 2 — CORE ENGINE
-// Fixes: double-fetch klines, OI fetching, cache for raw klines,
-//        proper cache TTL, smarter rate limiter, cancel support
+// CONFIG
 // ═══════════════════════════════════════════════════════════════════
-
-// ── CONFIG ──────────────────────────────────────────────────────────
 const FAPI = 'https://fapi.binance.com/fapi/v1';
 const CG   = 'https://api.coingecko.com/api/v3';
 
@@ -949,8 +731,42 @@ const THRESHOLDS = {
 };
 
 // ── CANCEL TOKEN ─────────────────────────────────────────────────────
-// Simple flag; scanners check this and bail out early
 const CancelToken = { cancelled: false, cancel() { this.cancelled = true; }, reset() { this.cancelled = false; } };
+
+// ═══════════════════════════════════════════════════════════════════
+// OPTIMASI 1: PARALLEL CHUNKING
+// Ganti serial await per-coin dengan concurrent batch processing.
+// CONCURRENCY = 3 → 3 coins diproses bersamaan, bukan satu-satu.
+// Ini yang paling berdampak: 60 coins × 300ms → ~6-7 detik total.
+// ═══════════════════════════════════════════════════════════════════
+const CONCURRENCY = 3; // max concurrent coin analyses
+
+/**
+ * runChunked(items, asyncFn, onProgress)
+ * Proses array items dengan max CONCURRENCY concurrent tasks.
+ * onProgress(done, total) dipanggil setiap kali satu item selesai.
+ * Kalau CancelToken.cancelled = true, berhenti setelah batch current.
+ */
+async function runChunked(items, asyncFn, onProgress) {
+  const total   = items.length;
+  let   done    = 0;
+  let   idx     = 0;
+
+  async function worker() {
+    while (idx < total) {
+      if (CancelToken.cancelled) return;
+      const i    = idx++;
+      const item = items[i];
+      await asyncFn(item, i);
+      done++;
+      if (onProgress) onProgress(done, total);
+    }
+  }
+
+  // Spawn CONCURRENCY workers, let them race through the queue
+  const workers = Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker());
+  await Promise.all(workers);
+}
 
 // ── RATE LIMITER ─────────────────────────────────────────────────────
 class RateLimiter {
@@ -974,7 +790,6 @@ class RateLimiter {
     if (this.processing || this.queue.length === 0) return;
     this.processing = true;
 
-    // Reset window if expired
     if (Date.now() - this.windowStart > this.windowMs) {
       this.currentWeight = 0;
       this.windowStart   = Date.now();
@@ -1000,7 +815,6 @@ class RateLimiter {
     this.process();
   }
 
-  // Drain queue on cancel
   drain() {
     this.queue.forEach(item => item.reject(new Error('Cancelled')));
     this.queue = [];
@@ -1021,7 +835,6 @@ async function binance(path, params = {}, weight = 1) {
     const qs  = new URLSearchParams(params).toString();
     const url = `${FAPI}/${path}${qs ? '?' + qs : ''}`;
     const r   = await fetch(url);
-
     if (r.status === 429) {
       const retry = parseInt(r.headers.get('Retry-After') || '30', 10);
       logMsg(`⚠ Rate limited — retry in ${retry}s`, 'bad');
@@ -1033,24 +846,25 @@ async function binance(path, params = {}, weight = 1) {
   }, weight);
 }
 
-async function cg(path, params = {}) {
-  const qs  = new URLSearchParams(params).toString();
-  const url = `${CG}/${path}${qs ? '?' + qs : ''}`;
-  const r   = await fetch(url);
-  if (r.status === 429) { await sleep(30000); return cg(path, params); }
-  if (!r.ok) throw new Error(`CoinGecko HTTP ${r.status} on /${path}`);
-  return r.json();
-}
-
 // ── CACHE ─────────────────────────────────────────────────────────────
-// Two-tier: klines cached 3 min, analysis 5 min
+// L1 = in-memory Map (instant), L2 = localStorage (persisted across reload)
+const MemCache = new Map(); // L1 — clears on page reload
+
 const Cache = {
-  prefix: 'hervin_v8_',
+  prefix: 'hervin_v9_',
   ttls:   { klines: 3 * 60 * 1000, analysis: 5 * 60 * 1000, oi: 2 * 60 * 1000 },
 
   _key(sym, type) { return `${this.prefix}${type}_${sym}`; },
 
   get(sym, type) {
+    // L1 first
+    const memKey = `${type}_${sym}`;
+    if (MemCache.has(memKey)) {
+      const { ts, data } = MemCache.get(memKey);
+      if (Date.now() - ts <= (this.ttls[type] || this.ttls.analysis)) return data;
+      MemCache.delete(memKey);
+    }
+    // L2 fallback
     try {
       const raw = localStorage.getItem(this._key(sym, type));
       if (!raw) return null;
@@ -1059,13 +873,18 @@ const Cache = {
         localStorage.removeItem(this._key(sym, type));
         return null;
       }
+      // Promote to L1
+      MemCache.set(memKey, { ts, data });
       return data;
     } catch { return null; }
   },
 
   set(sym, type, data) {
+    const ts     = Date.now();
+    const memKey = `${type}_${sym}`;
+    MemCache.set(memKey, { ts, data });
     try {
-      localStorage.setItem(this._key(sym, type), JSON.stringify({ ts: Date.now(), data }));
+      localStorage.setItem(this._key(sym, type), JSON.stringify({ ts, data }));
     } catch (e) {
       if (e.name === 'QuotaExceededError') { this.clearOld(); }
     }
@@ -1085,7 +904,6 @@ const Cache = {
 };
 
 // ── KLINES WITH CACHE ─────────────────────────────────────────────────
-// FIX: centralized klines fetch so it is never double-fetched
 async function getKlines(symbol, interval, limit) {
   const cacheKey = `${symbol}_${interval}_${limit}`;
   const cached   = Cache.get(cacheKey, 'klines');
@@ -1095,15 +913,12 @@ async function getKlines(symbol, interval, limit) {
   return data;
 }
 
-// ── OPEN INTEREST (Real OI change) ───────────────────────────────────
-// FIX: was hardcoded to 0 in v7 — now fetched from /openInterestHist
+// ── OPEN INTEREST ─────────────────────────────────────────────────────
 async function getOIChange(symbol) {
   const cached = Cache.get(symbol, 'oi');
   if (cached !== null) return cached;
   try {
-    const data = await binance('openInterestHist', {
-      symbol: symbol + 'USDT', period: '1h', limit: 6
-    }, 1);
+    const data = await binance('openInterestHist', { symbol: symbol + 'USDT', period: '1h', limit: 6 }, 1);
     if (!data || data.length < 2) return 0;
     const oldest = parseFloat(data[0].sumOpenInterestValue);
     const newest = parseFloat(data[data.length - 1].sumOpenInterestValue);
@@ -1127,7 +942,6 @@ function logMsg(msg, type = '') {
   const ts   = new Date().toUTCString().slice(17, 25);
   line.textContent = `${ts} — ${msg}`;
   el.appendChild(line);
-  // Keep log lean — max 120 lines
   while (el.children.length > 120) el.removeChild(el.firstChild);
   el.scrollTop = el.scrollHeight;
 }
@@ -1142,15 +956,10 @@ function showToast(msg, type = '', duration = 2800) {
   setTimeout(() => { el.classList.remove('show'); }, duration);
 }
 
-function setDot(state) {
-  const d = document.getElementById('liveDot');
-  d.className = 'live-dot ' + state;
-}
+function setDot(state) { document.getElementById('liveDot').className = 'live-dot ' + state; }
 
-// Progress bar helpers
 function showProgress(label) {
-  const w = document.getElementById('progressWrap');
-  w.classList.add('show');
+  document.getElementById('progressWrap').classList.add('show');
   document.getElementById('progressLabel').textContent = label;
   setProgress(0);
 }
@@ -1165,7 +974,7 @@ function setProgress(pct) {
 function hideProgress() { document.getElementById('progressWrap').classList.remove('show'); }
 
 // ═══════════════════════════════════════════════════════════════════
-// TECHNICAL INDICATORS
+// TECHNICAL INDICATORS (unchanged from v8)
 // ═══════════════════════════════════════════════════════════════════
 
 function calcRSI(closes, period = 14) {
@@ -1226,7 +1035,6 @@ function calcMACD(closes) {
   const ema12 = calcEMA(closes, 12);
   const ema26 = calcEMA(closes, 26);
   const macd  = ema12 - ema26;
-  // Approximate signal using last 9 macd values
   const macdArr = [];
   for (let i = 26; i <= closes.length; i++) {
     const e12 = calcEMA(closes.slice(0, i), 12);
@@ -1288,11 +1096,10 @@ function detectOBVDivergence(closes, volumes) {
     else                                 obv.push(obv[i-1]);
   }
   const n          = 10;
-  const priceStart = Math.min(...closes.slice(-n));
   const priceEnd   = closes[closes.length - 1];
+  const priceStart = Math.min(...closes.slice(-n));
   const obvStart   = Math.min(...obv.slice(-n));
   const obvEnd     = obv[obv.length - 1];
-
   if (priceEnd <= priceStart && obvEnd > obvStart * 1.05) return 'bullish';
   if (priceEnd >= priceStart && obvEnd < obvStart * 0.95) return 'bearish';
   return null;
@@ -1301,8 +1108,7 @@ function detectOBVDivergence(closes, volumes) {
 function detectWyckoffPhase(closes, volumes) {
   if (closes.length < 30) return null;
   const recent   = closes.slice(-30);
-  const minP     = Math.min(...recent);
-  const maxP     = Math.max(...recent);
+  const minP     = Math.min(...recent), maxP = Math.max(...recent);
   const range    = maxP - minP;
   const currPos  = range === 0 ? 0.5 : (recent[recent.length - 1] - minP) / range;
   const avgVol   = volumes.slice(-10).reduce((a, b) => a + b, 0) / 10;
@@ -1337,25 +1143,148 @@ function detectResistanceCluster(klines, currentPrice) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// BREAKOUT DETECTION
-// Checks if price just broke above a key resistance level with
-// convincing volume. Three sub-checks:
-//   1. Structural breakout — price vs recent swing high range
-//   2. Volume confirmation — breakout candle vol vs avg
-//   3. Retest / consolidation before breakout (bullish flag)
+// OPTIMASI 2: CANDLESTICK PATTERN DETECTION
+// Menggunakan klines1d yang sudah di-fetch di analyzeCoin() — zero API cost.
+// Context-aware: pattern hanya meaningful kalau RSI/harga mendukung.
+//
+// Pattern yang dideteksi:
+//   Bearish Engulfing   — reversal candle cover full prev bullish body
+//   Evening Star        — 3-candle: bull + doji/small + big bear
+//   Shooting Star       — long upper wick rejection di resistance
+//   Three Black Crows   — 3 consecutive bearish candles, closing near low
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * detectCandlePatterns(klines1d, rsi1d, price)
+ *
+ * Returns array of pattern objects:
+ * { name, strength ('strong'|'medium'), text, contextValid }
+ *
+ * contextValid = false kalau pattern muncul tapi kondisi tidak mendukung
+ * (misal Shooting Star di RSI 35 = tidak relevan untuk short)
+ */
+function detectCandlePatterns(klines1d, rsi1d, price) {
+  const patterns = [];
+  if (!klines1d || klines1d.length < 5) return patterns;
+
+  const len  = klines1d.length;
+  const k    = (i) => ({
+    o: parseFloat(klines1d[i][1]),
+    h: parseFloat(klines1d[i][2]),
+    l: parseFloat(klines1d[i][3]),
+    c: parseFloat(klines1d[i][4]),
+    v: parseFloat(klines1d[i][5]),
+    body: Math.abs(parseFloat(klines1d[i][4]) - parseFloat(klines1d[i][1])),
+    range: parseFloat(klines1d[i][2]) - parseFloat(klines1d[i][3]),
+    isBull: parseFloat(klines1d[i][4]) > parseFloat(klines1d[i][1]),
+    isBear: parseFloat(klines1d[i][4]) < parseFloat(klines1d[i][1]),
+  });
+
+  const c0 = k(len - 1); // current (most recent completed daily)
+  const c1 = k(len - 2); // 1 candle ago
+  const c2 = k(len - 3); // 2 candles ago
+
+  // ── 1. BEARISH ENGULFING ─────────────────────────────────────────
+  // c1 = bullish candle, c0 = bearish candle yang cover full body c1
+  if (
+    c1.isBull &&
+    c0.isBear &&
+    c0.o >= c1.c &&           // open >= prev close
+    c0.c <= c1.o &&           // close <= prev open
+    c0.body >= c1.body * 0.9  // engulf at least 90% of prev body
+  ) {
+    const contextValid = rsi1d > 55; // only meaningful if not already oversold
+    patterns.push({
+      name: 'Bearish Engulfing',
+      strength: contextValid ? 'strong' : 'medium',
+      text: `🕯 Bearish Engulfing (1D) — candle merah telan full body hijau sebelumnya${contextValid ? ' + RSI ' + rsi1d + ' overbought zone' : ' (RSI rendah, low confidence)'}`,
+      contextValid,
+    });
+  }
+
+  // ── 2. EVENING STAR ──────────────────────────────────────────────
+  // c2 = big bullish, c1 = small body (star/doji), c0 = big bearish
+  // c0 close harus masuk ke dalam body c2
+  const starBody = c1.body / (c2.body || 1);
+  if (
+    c2.isBull &&
+    c2.body > 0 &&
+    starBody < 0.35 &&                              // c1 small = star
+    c0.isBear &&
+    c0.body >= c2.body * 0.6 &&                     // c0 substantial bearish
+    c0.c <= (c2.o + c2.c) / 2                       // close into c2 body
+  ) {
+    const contextValid = rsi1d > 60;
+    patterns.push({
+      name: 'Evening Star',
+      strength: contextValid ? 'strong' : 'medium',
+      text: `🌟 Evening Star (1D) — pola 3 candle reversal: bull → doji → bear${contextValid ? ', RSI ' + rsi1d : ' (konfirmasi lemah, RSI tidak overbought)'}`,
+      contextValid,
+    });
+  }
+
+  // ── 3. SHOOTING STAR ─────────────────────────────────────────────
+  // c0 = candle dengan upper wick panjang (2x body), body kecil di bawah
+  // Upper wick harus > 2/3 dari total range
+  const upperWick0  = c0.h - Math.max(c0.o, c0.c);
+  const lowerWick0  = Math.min(c0.o, c0.c) - c0.l;
+  const totalRange0 = c0.range;
+
+  if (
+    totalRange0 > 0 &&
+    upperWick0 >= totalRange0 * 0.60 &&    // upper wick >= 60% range
+    upperWick0 >= c0.body * 2.0 &&         // wick setidaknya 2x body
+    lowerWick0 <= totalRange0 * 0.15       // lower wick kecil
+  ) {
+    const contextValid = rsi1d > 55;
+    patterns.push({
+      name: 'Shooting Star',
+      strength: contextValid ? 'strong' : 'medium',
+      text: `⭐ Shooting Star (1D) — rejection wick panjang di atas, close rendah${contextValid ? ' di resistance zone (RSI ' + rsi1d + ')' : ' (RSI ' + rsi1d + ' belum overbought — low confidence)'}`,
+      contextValid,
+    });
+  }
+
+  // ── 4. THREE BLACK CROWS ─────────────────────────────────────────
+  // 3 candle bearish berturut, masing-masing open dalam body candle sebelumnya
+  // dan close mendekati low (lower wick < 25% body)
+  const c3 = len >= 4 ? k(len - 4) : null;
+  if (c3) {
+    const crow3lw = Math.min(c3.o, c3.c) - c3.l;
+    const crow2lw = Math.min(c2.o, c2.c) - c2.l;
+    const crow1lw = Math.min(c1.o, c1.c) - c1.l;
+
+    if (
+      c3.isBear && c2.isBear && c1.isBear &&
+      c2.o <= Math.max(c3.o, c3.c) && c2.o >= Math.min(c3.o, c3.c) && // c2 open within c3 body
+      c1.o <= Math.max(c2.o, c2.c) && c1.o >= Math.min(c2.o, c2.c) && // c1 open within c2 body
+      crow3lw <= c3.body * 0.25 &&  // close near low
+      crow2lw <= c2.body * 0.25 &&
+      crow1lw <= c1.body * 0.25 &&
+      c3.body > 0 && c2.body > 0 && c1.body > 0
+    ) {
+      // 3 Black Crows di crypto = less reliable, tapi perlu konteks trend
+      const contextValid = rsi1d > 50; // only warn if still above midline
+      patterns.push({
+        name: 'Three Black Crows',
+        strength: contextValid ? 'medium' : 'weak', // deliberately lower in crypto
+        text: `🦅 Three Black Crows (1D) — 3 candle merah berturut close near low${contextValid ? ' — selling pressure kuat' : ' (RSI sudah oversold, reversal bisa datang)'}`,
+        contextValid,
+      });
+    }
+  }
+
+  return patterns;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BREAKOUT DETECTION (unchanged from v8)
 // ═══════════════════════════════════════════════════════════════════
 function detectBreakout(klines4h, klines1h, currentPrice) {
   const result = {
-    broke: false,          // clean breakout
-    retesting: false,      // broke + now pulling back to retest (best entry)
-    consolidating: false,  // tight range before potential breakout
-    volConfirmed: false,   // volume backed the move
-    breakoutPct: 0,        // how far above breakout level (%)
-    level: 0,              // the key level that was broken
-    score: 0,              // 0–5
-    signals: [],
+    broke: false, retesting: false, consolidating: false,
+    volConfirmed: false, breakoutPct: 0, level: 0, score: 0, signals: [],
   };
-
   if (!klines4h || klines4h.length < 30) return result;
 
   const closes4h = klines4h.map(k => parseFloat(k[4]));
@@ -1363,95 +1292,58 @@ function detectBreakout(klines4h, klines1h, currentPrice) {
   const lows4h   = klines4h.map(k => parseFloat(k[3]));
   const vols4h   = klines4h.map(k => parseFloat(k[5]));
 
-  // ── 1. Find key resistance (highest high in prev 20–5 candles) ──
-  const lookback    = closes4h.slice(-25, -3);
   const highsLb     = highs4h.slice(-25, -3);
   const resistLevel = Math.max(...highsLb);
+  result.level      = resistLevel;
 
-  result.level = resistLevel;
-
-  const breakoutPct = resistLevel > 0
-    ? (currentPrice - resistLevel) / resistLevel * 100
-    : 0;
+  const breakoutPct = resistLevel > 0 ? (currentPrice - resistLevel) / resistLevel * 100 : 0;
   result.breakoutPct = breakoutPct;
 
-  // ── 2. Structural breakout — price > resistance ──
   if (breakoutPct > 0.5 && breakoutPct < 25) {
     result.broke = true;
     result.score += 2;
-    result.signals.push({
-      strength: 'strong',
-      text: `🚀 Breakout dari resistance $${fmt(resistLevel, 5)} (+${breakoutPct.toFixed(1)}%)`,
-    });
+    result.signals.push({ strength: 'strong', text: `🚀 Breakout dari resistance $${fmt(resistLevel, 5)} (+${breakoutPct.toFixed(1)}%)` });
   }
 
-  // ── 3. Volume confirmation on breakout candle ──
-  const avgVol       = vols4h.slice(-20, -5).reduce((a, b) => a + b, 0) / 15;
-  const breakoutVol  = vols4h[vols4h.length - 1];
-  const volMultiple  = avgVol > 0 ? breakoutVol / avgVol : 1;
+  const avgVol      = vols4h.slice(-20, -5).reduce((a, b) => a + b, 0) / 15;
+  const breakoutVol = vols4h[vols4h.length - 1];
+  const volMultiple = avgVol > 0 ? breakoutVol / avgVol : 1;
 
   if (result.broke && volMultiple >= 1.8) {
     result.volConfirmed = true;
     result.score += 1;
-    result.signals.push({
-      strength: 'strong',
-      text: `📊 Volume breakout ${volMultiple.toFixed(1)}x avg — genuine move`,
-    });
+    result.signals.push({ strength: 'strong', text: `📊 Volume breakout ${volMultiple.toFixed(1)}x avg — genuine move` });
   } else if (result.broke && volMultiple >= 1.2) {
-    result.score += 0;
-    result.signals.push({
-      strength: 'medium',
-      text: `📊 Volume breakout ${volMultiple.toFixed(1)}x — kurang meyakinkan`,
-    });
+    result.signals.push({ strength: 'medium', text: `📊 Volume breakout ${volMultiple.toFixed(1)}x — kurang meyakinkan` });
   }
 
-  // ── 4. Retest detection (broke up, now pulling back 1–5% to old level) ──
   if (result.broke && breakoutPct > 0 && breakoutPct < 5) {
     result.retesting = true;
     result.score += 2;
-    result.signals.push({
-      strength: 'strong',
-      text: `🎯 Retest resistance lama = entry terbaik sebelum pump lanjut`,
-    });
+    result.signals.push({ strength: 'strong', text: `🎯 Retest resistance lama = entry terbaik sebelum pump lanjut` });
   }
 
-  // ── 5. Consolidation / bull flag (price range tight last 8 candles) ──
   if (!result.broke) {
-    const recent8    = closes4h.slice(-8);
     const recentHigh = Math.max(...highs4h.slice(-8));
     const recentLow  = Math.min(...lows4h.slice(-8));
     const rangeWidth = recentHigh > 0 ? (recentHigh - recentLow) / recentHigh * 100 : 99;
-
-    // Volume contracting in consolidation = healthy
-    const earlyVol = vols4h.slice(-8, -4).reduce((a, b) => a + b, 0) / 4;
-    const lateVol  = vols4h.slice(-4).reduce((a, b) => a + b, 0) / 4;
+    const earlyVol   = vols4h.slice(-8, -4).reduce((a, b) => a + b, 0) / 4;
+    const lateVol    = vols4h.slice(-4).reduce((a, b) => a + b, 0) / 4;
     const volContracting = lateVol < earlyVol * 0.85;
 
     if (rangeWidth < 6 && volContracting) {
       result.consolidating = true;
       result.score += 2;
-      result.signals.push({
-        strength: 'strong',
-        text: `🔲 Konsolidasi ketat ${rangeWidth.toFixed(1)}% + volume menyusut = coiling sebelum pump`,
-      });
+      result.signals.push({ strength: 'strong', text: `🔲 Konsolidasi ketat ${rangeWidth.toFixed(1)}% + volume menyusut = coiling sebelum pump` });
     } else if (rangeWidth < 10) {
       result.score += 1;
-      result.signals.push({
-        strength: 'medium',
-        text: `🔲 Range sempit ${rangeWidth.toFixed(1)}% — potensi breakout segera`,
-      });
+      result.signals.push({ strength: 'medium', text: `🔲 Range sempit ${rangeWidth.toFixed(1)}% — potensi breakout segera` });
     }
 
-    // How far price is from resistance
-    const distToBreak = resistLevel > 0
-      ? (resistLevel - currentPrice) / resistLevel * 100
-      : 99;
+    const distToBreak = resistLevel > 0 ? (resistLevel - currentPrice) / resistLevel * 100 : 99;
     if (distToBreak < 3 && distToBreak > 0) {
       result.score += 1;
-      result.signals.push({
-        strength: 'medium',
-        text: `⚡ Harga hanya ${distToBreak.toFixed(1)}% dari resistance — siap breakout`,
-      });
+      result.signals.push({ strength: 'medium', text: `⚡ Harga hanya ${distToBreak.toFixed(1)}% dari resistance — siap breakout` });
     }
   }
 
@@ -1459,57 +1351,27 @@ function detectBreakout(klines4h, klines1h, currentPrice) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// TIMEFRAME CONFLUENCE
-// Checks alignment across 1H → 4H → 1D
-// A coin with all three timeframes bullish has much higher pump
-// probability than one where only 4H is bullish.
+// TIMEFRAME CONFLUENCE (unchanged from v8)
 // ═══════════════════════════════════════════════════════════════════
 function detectTFConfluence(d, klines1h) {
-  const result = {
-    score: 0,        // 0–6
-    aligned: false,  // all 3 TF bullish
-    signals: [],
-    tf: { h1: null, h4: null, d1: null },
-  };
+  const result = { score: 0, aligned: false, signals: [], tf: { h1: null, h4: null, d1: null } };
 
-  // ── 4H analysis (already in d) ──
-  const tf4h = {
-    trend:  d.trend4h,
-    rsi:    d.rsi4h,
-    macdBull: d.macd && d.macd.hist > 0,
-    aboveMA: d.price > d.ma20_4h,
-  };
+  const tf4h = { trend: d.trend4h, rsi: d.rsi4h, macdBull: d.macd && d.macd.hist > 0, aboveMA: d.price > d.ma20_4h };
+  const tf1d = { trend: d.trend1d, rsi: d.rsi1d, aboveMA: d.price > d.ma20_1d };
   result.tf.h4 = tf4h;
-
-  // ── 1D analysis ──
-  const tf1d = {
-    trend:   d.trend1d,
-    rsi:     d.rsi1d,
-    aboveMA: d.price > d.ma20_1d,
-  };
   result.tf.d1 = tf1d;
 
-  // ── 1H analysis (new klines) ──
   let tf1h = { trend: null, rsi: 50, macdBull: false, aboveMA: false };
   if (klines1h && klines1h.length >= 22) {
     const closes1h = klines1h.map(k => parseFloat(k[4]));
     const ma20_1h  = calcMA(closes1h, 20);
     const rsi1h    = calcRSI(closes1h);
     const macd1h   = calcMACD(closes1h);
-    tf1h = {
-      trend:    d.price > ma20_1h ? 'bullish' : 'bearish',
-      rsi:      rsi1h,
-      macdBull: macd1h.hist > 0,
-      aboveMA:  d.price > ma20_1h,
-    };
+    tf1h = { trend: d.price > ma20_1h ? 'bullish' : 'bearish', rsi: rsi1h, macdBull: macd1h.hist > 0, aboveMA: d.price > ma20_1h };
   }
   result.tf.h1 = tf1h;
 
-  // ── Score each TF ──
-  // 1H
-  if (tf1h.trend === 'bullish') {
-    result.score += 1;
-  }
+  if (tf1h.trend === 'bullish') result.score += 1;
   if (tf1h.macdBull && tf1h.rsi > 40 && tf1h.rsi < 70) {
     result.score += 1;
     result.signals.push({ strength: 'medium', text: `⏱ 1H bullish — RSI ${tf1h.rsi}, MACD positif` });
@@ -1519,7 +1381,6 @@ function detectTFConfluence(d, klines1h) {
     result.signals.push({ strength: 'weak', text: `⏱ 1H masih bearish — belum konfirmasi` });
   }
 
-  // 4H
   if (tf4h.trend === 'bullish' && tf4h.macdBull) {
     result.score += 2;
     result.signals.push({ strength: 'strong', text: `📐 4H bullish + MACD hijau — momentum utama kuat` });
@@ -1530,7 +1391,6 @@ function detectTFConfluence(d, klines1h) {
     result.signals.push({ strength: 'weak', text: `📐 4H masih bearish — hati-hati` });
   }
 
-  // 1D
   if (tf1d.trend === 'bullish' && tf1d.rsi < 70) {
     result.score += 2;
     result.signals.push({ strength: 'strong', text: `📅 1D bullish + RSI ${tf1d.rsi} — belum overbought, ruang masih ada` });
@@ -1541,29 +1401,22 @@ function detectTFConfluence(d, klines1h) {
     result.signals.push({ strength: 'weak', text: `📅 1D bearish — pump akan susah sustain` });
   }
 
-  // ── Confluence bonus: all 3 aligned ──
-  const allBull = tf1h.trend === 'bullish' && tf4h.trend === 'bullish' && tf1d.trend === 'bullish';
+  const allBull  = tf1h.trend === 'bullish' && tf4h.trend === 'bullish' && tf1d.trend === 'bullish';
   const noneBull = tf1h.trend === 'bearish' && tf4h.trend === 'bearish' && tf1d.trend === 'bearish';
 
   if (allBull) {
     result.aligned = true;
-    result.score   = Math.min(result.score + 1, 6); // bonus cap
-    result.signals.unshift({
-      strength: 'strong',
-      text: '🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish = high probability pump',
-    });
+    result.score   = Math.min(result.score + 1, 6);
+    result.signals.unshift({ strength: 'strong', text: '🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish = high probability pump' });
   } else if (noneBull) {
-    result.signals.unshift({
-      strength: 'weak',
-      text: '⛔ Semua TF bearish — hindari long posisi',
-    });
+    result.signals.unshift({ strength: 'weak', text: '⛔ Semua TF bearish — hindari long posisi' });
   }
 
   return result;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SMART PATTERN DETECTORS
+// SMART PATTERN DETECTORS (unchanged from v8, candlestick added separately)
 // ═══════════════════════════════════════════════════════════════════
 
 function detectSmartAccumulation(d, klines4h, klines1d) {
@@ -1587,7 +1440,6 @@ function detectSmartAccumulation(d, klines4h, klines1d) {
     score += 2;
     signals.push({ strength: 'strong', text: '🔄 Wyckoff Accumulation phase terdeteksi' });
   }
-  // FIX: now uses real oiChange from API
   if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG && d.oiChange > 5) {
     score += 2;
     signals.push({ strength: 'strong', text: '💥 Funding negatif + OI ↑ = potensi short squeeze' });
@@ -1597,13 +1449,11 @@ function detectSmartAccumulation(d, klines4h, klines1d) {
     score += 1;
     signals.push({ strength: 'medium', text: `🧱 ${support} support cluster terkonfirmasi` });
   }
-  // Stoch RSI oversold bonus
   const stochRsi = calcStochRSI(d.closes4h);
   if (stochRsi < 20) {
     score += 1;
     signals.push({ strength: 'medium', text: `📉 Stoch RSI ${stochRsi} — extreme oversold` });
   }
-  // MACD histogram turning positive
   const macd = calcMACD(d.closes4h);
   if (macd.hist > 0 && macd.macd < 0) {
     score += 1;
@@ -1616,7 +1466,6 @@ function detectPumpExhaustion(d, klines4h, klines1d) {
   const signals = [];
   let score = 0;
 
-  // Parabolic acceleration
   const closes = d.closes4h, accs = [];
   for (let i = 2; i < closes.length; i++) {
     accs.push(((closes[i] - closes[i-1]) - (closes[i-1] - closes[i-2])) / (closes[i-2] || 1));
@@ -1627,7 +1476,6 @@ function detectPumpExhaustion(d, klines4h, klines1d) {
     signals.push({ strength: 'strong', text: '🚀 Move parabolik — rawan reversal tajam' });
   }
 
-  // Volume climax
   const vols    = klines4h.map(k => parseFloat(k[5]));
   const avgVol  = vols.slice(-20, -5).reduce((a, b) => a + b, 0) / 15;
   const recVol  = vols.slice(-5).reduce((a, b) => a + b, 0) / 5;
@@ -1641,7 +1489,6 @@ function detectPumpExhaustion(d, klines4h, klines1d) {
     score += 2;
     signals.push({ strength: 'strong', text: '📉 Bearish divergence RSI (4H)' });
   }
-  // Real OI change used here now
   if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS && d.oiChange < -5) {
     score += 2;
     signals.push({ strength: 'strong', text: `🔻 Funding +${d.funding.toFixed(4)}% + OI ↓ = longs take profit` });
@@ -1653,84 +1500,92 @@ function detectPumpExhaustion(d, klines4h, klines1d) {
     signals.push({ strength: 'medium', text: `🧱 ${resistance} resistance cluster di atas` });
   }
 
-  // Bollinger squeeze
   const bb = calcBollingerBands(d.closes4h);
   if (d.price > bb.upper) {
     score += 1;
     signals.push({ strength: 'medium', text: '📊 Harga di atas Bollinger Upper Band' });
   }
 
-  return { score, maxScore: 10, signals };
+  // ── Integrate candlestick patterns ──
+  // Patterns sudah dihitung di analyzeCoin(), tinggal pakai dari d.candlePatterns
+  if (d.candlePatterns && d.candlePatterns.length > 0) {
+    for (const p of d.candlePatterns) {
+      if (p.contextValid) {
+        score += p.strength === 'strong' ? 2 : 1;
+      } else {
+        score += 0; // tetap show tapi tidak tambah score kalau konteks buruk
+      }
+      signals.push({
+        strength: p.strength,
+        text: p.text,
+        isBear: true,
+      });
+    }
+  }
+
+  return { score, maxScore: 10 + (d.candlePatterns?.length > 0 ? 2 : 0), signals };
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // COIN ANALYSIS — SINGLE SOURCE OF TRUTH
-// FIX: klines fetched ONCE here and returned with result
-//      callers use this data directly — no second fetch
 // ═══════════════════════════════════════════════════════════════════
 async function analyzeCoin(symbol, force = false) {
   if (!force) {
     const cached = Cache.get(symbol, 'analysis');
     if (cached) return cached;
   } else {
-    // Force refresh: wipe all cached data for this symbol
-    // analysis cache
     try { localStorage.removeItem(Cache._key(symbol, 'analysis')); } catch {}
-    // OI cache
     try { localStorage.removeItem(Cache._key(symbol, 'oi')); } catch {}
-    // klines cache — key format: "${symbol}_${interval}_${limit}"
+    MemCache.delete(`analysis_${symbol}`);
+    MemCache.delete(`oi_${symbol}`);
     [['4h',60], ['1d',30], ['1h',48]].forEach(([interval, limit]) => {
       const k = `${symbol}_${interval}_${limit}`;
       try { localStorage.removeItem(Cache._key(k, 'klines')); } catch {}
+      MemCache.delete(`klines_${k}`);
     });
   }
 
   const sym = symbol.toUpperCase();
 
-  // Fetch everything in parallel — klines only fetched once via getKlines()
   const [ticker, klines4h, klines1d, klines1h, ob, premium, oiChange] = await Promise.all([
-    binance('ticker/24hr',   { symbol: sym + 'USDT' },              1),
+    binance('ticker/24hr',  { symbol: sym + 'USDT' },             1),
     getKlines(sym, '4h', 60),
     getKlines(sym, '1d', 30),
-    getKlines(sym, '1h', 48),  // 48h of 1H candles for TF confluence
-    binance('depth',         { symbol: sym + 'USDT', limit: 20 },   2),
-    binance('premiumIndex',  { symbol: sym + 'USDT' },              1).catch(() => null),
+    getKlines(sym, '1h', 48),
+    binance('depth',        { symbol: sym + 'USDT', limit: 20 }, 2),
+    binance('premiumIndex', { symbol: sym + 'USDT' },            1).catch(() => null),
     getOIChange(sym),
   ]);
 
-  const price    = parseFloat(ticker.lastPrice);
-  const gain24h  = parseFloat(ticker.priceChangePercent);
-  const high24h  = parseFloat(ticker.highPrice);
-  const vol24h   = parseFloat(ticker.quoteVolume);
-  const funding  = premium ? parseFloat(premium.lastFundingRate) * 100 : null;
+  const price   = parseFloat(ticker.lastPrice);
+  const gain24h = parseFloat(ticker.priceChangePercent);
+  const high24h = parseFloat(ticker.highPrice);
+  const vol24h  = parseFloat(ticker.quoteVolume);
+  const funding = premium ? parseFloat(premium.lastFundingRate) * 100 : null;
 
   const closes4h = klines4h.map(k => parseFloat(k[4]));
   const closes1d = klines1d.map(k => parseFloat(k[4]));
   const vols4h   = klines4h.map(k => parseFloat(k[5]));
   const vols1d   = klines1d.map(k => parseFloat(k[5]));
 
-  const rsi4h  = calcRSI(closes4h);
-  const rsi1d  = calcRSI(closes1d);
-  const atr4h  = calcATR(klines4h);
+  const rsi4h   = calcRSI(closes4h);
+  const rsi1d   = calcRSI(closes1d);
+  const atr4h   = calcATR(klines4h);
   const ma20_4h = calcMA(closes4h, 20);
   const ma20_1d = calcMA(closes1d, 20);
-  const macd   = calcMACD(closes4h);
-  const bb     = calcBollingerBands(closes4h);
+  const macd    = calcMACD(closes4h);
+  const bb      = calcBollingerBands(closes4h);
 
-  const vol7dAvg   = vols1d.slice(-7).reduce((a, b) => a + b, 0) / 7;
-  const vol30dAvg  = vols1d.reduce((a, b) => a + b, 0) / vols1d.length;
-  const volRatio   = vol30dAvg > 0 ? vol7dAvg / vol30dAvg : 1;
+  const vol7dAvg  = vols1d.slice(-7).reduce((a, b) => a + b, 0) / 7;
+  const vol30dAvg = vols1d.reduce((a, b) => a + b, 0) / vols1d.length;
+  const volRatio  = vol30dAvg > 0 ? vol7dAvg / vol30dAvg : 1;
 
   const price7d    = closes1d.length >= 7 ? closes1d[closes1d.length - 7] : price;
   const priceChg7d = price7d > 0 ? (price - price7d) / price7d * 100 : 0;
   const priceChg30d = closes1d[0] > 0 ? (price - closes1d[0]) / closes1d[0] * 100 : 0;
 
-  const bids = ob.bids
-    ? ob.bids.slice(0, 10).reduce((s, b) => s + parseFloat(b[0]) * parseFloat(b[1]), 0)
-    : 0;
-  const asks = ob.asks
-    ? ob.asks.slice(0, 10).reduce((s, a) => s + parseFloat(a[0]) * parseFloat(a[1]), 0)
-    : 0;
+  const bids = ob.bids ? ob.bids.slice(0,10).reduce((s,b) => s + parseFloat(b[0])*parseFloat(b[1]), 0) : 0;
+  const asks = ob.asks ? ob.asks.slice(0,10).reduce((s,a) => s + parseFloat(a[0])*parseFloat(a[1]), 0) : 0;
 
   const bestBid = ob.bids?.[0]?.[0] ? parseFloat(ob.bids[0][0]) : price;
   const bestAsk = ob.asks?.[0]?.[0] ? parseFloat(ob.asks[0][0]) : price;
@@ -1745,9 +1600,11 @@ async function analyzeCoin(symbol, force = false) {
   const trend4h = price > ma20_4h ? 'bullish' : 'bearish';
   const trend1d = price > ma20_1d ? 'bullish' : 'bearish';
 
-  // Short SL/TP (above price for short entry)
   const sl = price + atr4h * 1.5;
   const tp = price - atr4h * 3.0;
+
+  // ── CANDLESTICK PATTERNS — computed once here, used everywhere ──
+  const candlePatterns = detectCandlePatterns(klines1d, rsi1d, price);
 
   const result = {
     symbol, price, gain24h, high24h, vol24h, funding, oiChange,
@@ -1756,10 +1613,9 @@ async function analyzeCoin(symbol, force = false) {
     trend4h, trend1d, sl, tp, ma20_4h, ma20_1d,
     closes4h, closes1d, vols4h, vols1d,
     obvDiv, wyckoff, macd, bb,
-    // Raw klines returned so callers never need to re-fetch
     klines4h, klines1d, klines1h,
-    // Pre-computed pump setup signals (used in renderResult + scoreAccum)
-    breakout:    detectBreakout(klines4h, klines1h, price),
+    candlePatterns,  // NEW: computed once, zero extra API cost
+    breakout:     detectBreakout(klines4h, klines1h, price),
     tfConfluence: detectTFConfluence(
       { trend4h, trend1d, rsi4h, rsi1d, macd, ma20_4h, ma20_1d, price },
       klines1h
@@ -1773,9 +1629,7 @@ async function analyzeCoin(symbol, force = false) {
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-// PART 3 — SCANNER LOGIC, SCORING, UI RENDERING
-// Fixes: double-fetch gone (uses d.klines4h / d.klines1d from Part 2)
-//        cancel scan, real progress bar, export, toast feedback
+// SCORING, UI RENDERING, SCANNER LOGIC
 // ═══════════════════════════════════════════════════════════════════
 
 // ── ACCUM SCORE ──────────────────────────────────────────────────────
@@ -1783,7 +1637,6 @@ function scoreAccum(d) {
   const checks = [];
   let score = 0;
 
-  // 1. Volume ratio
   if (d.volRatio >= THRESHOLDS.VOLUME_SPIKE) {
     score++;
     checks.push({ pass: true, text: `Volume 7D: ${d.volRatio.toFixed(1)}x avg — silent buying detected` });
@@ -1793,7 +1646,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `Volume 7D: ${d.volRatio.toFixed(1)}x avg — normal` });
   }
 
-  // 2. Price flat
   if (d.priceChg7d >= THRESHOLDS.PRICE_FLAT_MIN && d.priceChg7d <= THRESHOLDS.PRICE_FLAT_MAX) {
     score++;
     checks.push({ pass: true, text: `Harga 7D flat: ${fmtPct(d.priceChg7d)} — akumulasi diam-diam` });
@@ -1803,7 +1655,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `Harga 7D turun: ${fmtPct(d.priceChg7d)} — hati-hati distribution` });
   }
 
-  // 3. RSI Bullish Divergence
   if (d.bullDiv) {
     score++;
     checks.push({ pass: true, text: `RSI Bullish Divergence (4H) — momentum naik diam-diam` });
@@ -1811,7 +1662,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `Tidak ada RSI bullish divergence (4H)` });
   }
 
-  // 4. RSI level
   if (d.rsi4h < THRESHOLDS.RSI_OVERSOLD) {
     score++;
     checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — masih murah` });
@@ -1821,7 +1671,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought` });
   }
 
-  // 5. Funding
   if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG) {
     score++;
     checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, squeeze fuel 🚀` });
@@ -1831,7 +1680,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `Funding: N/A` });
   }
 
-  // 6. Bid depth
   if (d.bids >= THRESHOLDS.BID_DEPTH_STRONG) {
     score++;
     checks.push({ pass: true, text: `Bid wall kuat: $${(d.bids/1000).toFixed(0)}K` });
@@ -1841,7 +1689,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `Bid tipis: $${(d.bids/1000).toFixed(0)}K` });
   }
 
-  // 7. MACD histogram (new check)
   if (d.macd && d.macd.hist > 0) {
     score++;
     checks.push({ pass: true, text: `MACD histogram positif — bullish momentum` });
@@ -1849,7 +1696,6 @@ function scoreAccum(d) {
     checks.push({ fail: true, text: `MACD histogram negatif` });
   }
 
-  // 8. OI change — bonus only (often 0 due to API delay, don't penalize)
   if (d.oiChange > 5) {
     score++;
     checks.push({ pass: true, text: `Open Interest ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk` });
@@ -1859,10 +1705,9 @@ function scoreAccum(d) {
     checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat / data belum update` });
   }
 
-  // 9. Breakout / Consolidation — bonus (coin akumulasi belum tentu breakout)
   if (d.breakout) {
     if (d.breakout.broke && d.breakout.volConfirmed) {
-      score += 2; // double bonus — breakout + volume = strongest signal
+      score += 2;
       checks.push({ pass: true, text: `🚀 Breakout terkonfirmasi volume (+${d.breakout.breakoutPct.toFixed(1)}%)` });
     } else if (d.breakout.retesting) {
       score += 2;
@@ -1877,7 +1722,6 @@ function scoreAccum(d) {
     }
   }
 
-  // 10. Timeframe Confluence — bonus (strong pump needs all TF aligned)
   if (d.tfConfluence) {
     if (d.tfConfluence.aligned) {
       score += 2;
@@ -1892,11 +1736,9 @@ function scoreAccum(d) {
     }
   }
 
-  // Base max = 7 (checks 1–7), bonus up to +5 from checks 8–10
-  // This way base accum quality shows clearly, bonus separates good from great
-  const max  = 12;
-  const pct  = Math.round(score / max * 100);
-  const cls  = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
+  const max     = 12;
+  const pct     = Math.round(score / max * 100);
+  const cls     = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
   const verdict = score >= 9
     ? { cls: 'strong', text: '🟢 PUMP SETUP KUAT — High probability, siap entry' }
     : score >= 6
@@ -1906,7 +1748,7 @@ function scoreAccum(d) {
   return { score, max, pct, cls, checks, verdict };
 }
 
-// ── SHORT SCORE ───────────────────────────────────────────────────────
+// ── SHORT SCORE — Candlestick patterns integrated ─────────────────────
 function scoreShort(d) {
   const checks = [];
   let score = 0;
@@ -1963,7 +1805,6 @@ function scoreShort(d) {
     checks.push({ fail: true, text: `Trend 1D masih bullish — counter-trend risk` });
   }
 
-  // OI dropping = longs exiting
   if (d.oiChange < -5) {
     score++;
     checks.push({ pass: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — longs keluar` });
@@ -1971,10 +1812,26 @@ function scoreShort(d) {
     checks.push({ fail: true, text: `OI: ${d.oiChange.toFixed(1)}% — belum turun signifikan` });
   }
 
-  const max  = 8;
+  // ── CANDLESTICK PATTERNS — integrated ke short score ──
+  // Hanya pattern dengan contextValid = true yang tambah score
+  // Pattern yang tidak valid tetap muncul sebagai warning
+  let candleBonus = 0;
+  if (d.candlePatterns && d.candlePatterns.length > 0) {
+    for (const p of d.candlePatterns) {
+      if (p.contextValid) {
+        candleBonus += p.strength === 'strong' ? 2 : 1;
+        checks.push({ pass: true, text: p.text });
+      } else {
+        checks.push({ warn: true, text: p.text + ' ⚠ konteks lemah' });
+      }
+    }
+    score += Math.min(candleBonus, 3); // cap candle bonus at 3 points
+  }
+
+  const max  = 8 + 3; // base 8 + max candle bonus 3
   const pct  = Math.round(score / max * 100);
-  const cls  = score >= 6 ? 'high' : score >= 4 ? 'mid' : 'low';
-  const verdict = score >= 6
+  const cls  = score >= 7 ? 'high' : score >= 4 ? 'mid' : 'low';
+  const verdict = score >= 7
     ? { cls: 'strong', text: `🟢 LAYAK SHORT — SL $${fmt(d.sl,5)} | TP $${fmt(d.tp,5)}` }
     : score >= 4
     ? { cls: 'medium', text: '🟡 TUNGGU — Konfirmasi lebih lanjut' }
@@ -1983,38 +1840,27 @@ function scoreShort(d) {
   return { score, max, pct, cls, checks, verdict };
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// TRADE SETUP CALCULATOR
-// Uses existing ATR, support/resistance clusters, breakout level,
-// and klines to compute dynamic entry zone, SL, TP1/2/3, and RR.
-// No new API calls needed — all data already in `d`.
-// ═══════════════════════════════════════════════════════════════════
+// ── TRADE SETUP CALCULATOR (unchanged) ─────────────────────────────
 function calcTradeSetup(d) {
   const price  = d.price;
   const atr    = d.atr4h;
   const klines = d.klines4h;
-
   if (!klines || klines.length < 20 || atr <= 0) return null;
 
   const highs  = klines.map(k => parseFloat(k[2]));
   const lows   = klines.map(k => parseFloat(k[3]));
-  const closes = d.closes4h;
 
-  // ── Find nearest support levels ──────────────────────────────────
-  // Method: group lows within 2% of each other, take top 3 clusters
   const lowClusters = [];
   for (const low of lows) {
     const existing = lowClusters.find(c => Math.abs(c.price - low) / low < 0.02);
     if (existing) { existing.count++; existing.prices.push(low); }
     else lowClusters.push({ price: low, count: 1, prices: [low] });
   }
-  // Average within each cluster, sort by proximity to current price
   const supports = lowClusters
-    .map(c => ({ price: c.prices.reduce((a,b) => a+b,0) / c.prices.length, count: c.count }))
-    .filter(c => c.price < price * 0.995) // must be below current price
-    .sort((a, b) => b.price - a.price);   // nearest first
+    .map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
+    .filter(c => c.price < price * 0.995)
+    .sort((a,b) => b.price - a.price);
 
-  // ── Find nearest resistance levels ───────────────────────────────
   const highClusters = [];
   for (const high of highs) {
     const existing = highClusters.find(c => Math.abs(c.price - high) / high < 0.015);
@@ -2022,126 +1868,74 @@ function calcTradeSetup(d) {
     else highClusters.push({ price: high, count: 1, prices: [high] });
   }
   const resistances = highClusters
-    .map(c => ({ price: c.prices.reduce((a,b) => a+b,0) / c.prices.length, count: c.count }))
-    .filter(c => c.price > price * 1.005)  // must be above current price
-    .sort((a, b) => a.price - b.price);    // nearest first
+    .map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
+    .filter(c => c.price > price * 1.005)
+    .sort((a,b) => a.price - b.price);
 
-  // ── Entry Zone ───────────────────────────────────────────────────
-  // Ideal entry = nearest support or current price - 0.5 ATR (if already at support)
   let entryLow, entryHigh;
   if (supports.length > 0 && supports[0].price > price * 0.93) {
-    // Strong nearby support — entry zone around it
     entryLow  = supports[0].price * 0.995;
     entryHigh = supports[0].price * 1.015;
   } else {
-    // No clear support — use ATR-based zone below current
     entryLow  = price - atr * 0.5;
     entryHigh = price + atr * 0.2;
   }
-
-  // If breakout + retest, entry zone is tighter around breakout level
   if (d.breakout?.retesting && d.breakout.level > 0) {
     entryLow  = d.breakout.level * 0.995;
     entryHigh = d.breakout.level * 1.02;
   }
-
-  // Clamp entry to realistic range
   const entryMid = (entryLow + entryHigh) / 2;
 
-  // ── Stop Loss ────────────────────────────────────────────────────
-  // SL = below nearest strong support OR 1.5x ATR below entry
   let sl;
   const supportBelow = supports.find(s => s.price < entryLow * 0.99);
-  if (supportBelow && supportBelow.count >= 2) {
-    sl = supportBelow.price * 0.985; // just below support
-  } else {
-    sl = entryLow - atr * 1.5;
-  }
-  // SL sanity: never more than 20% below entry
+  if (supportBelow && supportBelow.count >= 2) { sl = supportBelow.price * 0.985; }
+  else { sl = entryLow - atr * 1.5; }
   sl = Math.max(sl, entryMid * 0.80);
 
   const slPct = (entryMid - sl) / entryMid * 100;
+  const risk  = entryMid - sl;
 
-  // ── Take Profit Levels ───────────────────────────────────────────
-  // TP1 = nearest resistance OR 1.5x risk above entry (1:1.5 RR)
-  // TP2 = second resistance OR 3x risk (1:3 RR)
-  // TP3 = measured move (height of base × 1.5) OR 5x risk
+  let tp1 = resistances.length >= 1 ? resistances[0].price : entryMid + risk * 1.5;
+  let tp2 = resistances.length >= 2 ? resistances[1].price : entryMid + risk * 3.0;
 
-  const risk = entryMid - sl; // dollar risk per unit
-
-  let tp1, tp2, tp3;
-
-  if (resistances.length >= 1) {
-    tp1 = resistances[0].price;
-  } else {
-    tp1 = entryMid + risk * 1.5;
-  }
-
-  if (resistances.length >= 2) {
-    tp2 = resistances[1].price;
-  } else {
-    tp2 = entryMid + risk * 3.0;
-  }
-
-  // TP3: measured move — range of consolidation projected up
   const consolidationHigh = Math.max(...highs.slice(-15));
   const consolidationLow  = Math.min(...lows.slice(-15));
   const measuredMove      = consolidationHigh - consolidationLow;
-  tp3 = consolidationHigh + measuredMove * 1.2;
-  // Fallback if too close
+  let tp3 = consolidationHigh + measuredMove * 1.2;
   if (tp3 <= tp2 * 1.05) tp3 = entryMid + risk * 5.0;
 
-  // ── Risk/Reward ──────────────────────────────────────────────────
   const rr1 = risk > 0 ? (tp1 - entryMid) / risk : 0;
   const rr2 = risk > 0 ? (tp2 - entryMid) / risk : 0;
   const rr3 = risk > 0 ? (tp3 - entryMid) / risk : 0;
 
-  // ── Quality rating ───────────────────────────────────────────────
-  // Good setup needs RR >= 2 and clear structure
-  const isGoodSetup = rr2 >= 2.0 && slPct <= 15 && slPct >= 1;
-  const setupRating = rr2 >= 3 ? 'excellent' : rr2 >= 2 ? 'good' : rr2 >= 1.5 ? 'fair' : 'poor';
-
-  // ── Leverage suggestion ──────────────────────────────────────────
-  // Conservative: based on SL distance
-  // If SL is 5% away → max 4x (so max loss = 20% of margin)
-  const maxLevSafe = slPct > 0 ? Math.floor(15 / slPct) : 1;
+  const isGoodSetup  = rr2 >= 2.0 && slPct <= 15 && slPct >= 1;
+  const setupRating  = rr2 >= 3 ? 'excellent' : rr2 >= 2 ? 'good' : rr2 >= 1.5 ? 'fair' : 'poor';
+  const maxLevSafe   = slPct > 0 ? Math.floor(15 / slPct) : 1;
   const levSuggested = Math.min(Math.max(maxLevSafe, 1), 10);
-  const levRange = `${levSuggested}x – ${Math.min(levSuggested + 2, 10)}x`;
+  const levRange     = `${levSuggested}x – ${Math.min(levSuggested + 2, 10)}x`;
 
   return {
-    entryLow, entryHigh, entryMid,
-    sl, slPct,
+    entryLow, entryHigh, entryMid, sl, slPct,
     tp1, tp2, tp3,
     tp1Pct: (tp1 - entryMid) / entryMid * 100,
     tp2Pct: (tp2 - entryMid) / entryMid * 100,
     tp3Pct: (tp3 - entryMid) / entryMid * 100,
     rr1, rr2, rr3,
-    isGoodSetup, setupRating,
-    levRange,
-    supports:    supports.slice(0, 3),
-    resistances: resistances.slice(0, 3),
+    isGoodSetup, setupRating, levRange,
+    supports: supports.slice(0,3), resistances: resistances.slice(0,3),
   };
 }
 
-// ── RENDER TRADE SETUP HTML ─────────────────────────────────────────
 function renderTradeSetupHtml(d, sym) {
   const setup = calcTradeSetup(d);
   if (!setup) return '';
 
-  const rrLabel = setup.rr2 >= 2
-    ? `RR 1:${setup.rr2.toFixed(1)} ✅`
-    : `RR 1:${setup.rr2.toFixed(1)} ⚠`;
-
-  const headBg = setup.isGoodSetup ? '' : 'no-setup';
-
-  // TP bar widths — relative to TP3
-  const maxPct = setup.tp3Pct;
-  const tp1W   = Math.round(setup.tp1Pct / maxPct * 100);
-  const tp2W   = Math.round(setup.tp2Pct / maxPct * 100);
-
-  const ratingColor = {
-    excellent: 'var(--g)', good: 'var(--b)', fair: 'var(--a)', poor: 'var(--r)'
-  }[setup.setupRating];
+  const rrLabel    = setup.rr2 >= 2 ? `RR 1:${setup.rr2.toFixed(1)} ✅` : `RR 1:${setup.rr2.toFixed(1)} ⚠`;
+  const headBg     = setup.isGoodSetup ? '' : 'no-setup';
+  const maxPct     = setup.tp3Pct;
+  const tp1W       = Math.round(setup.tp1Pct / maxPct * 100);
+  const tp2W       = Math.round(setup.tp2Pct / maxPct * 100);
+  const ratingColor = { excellent:'var(--g)', good:'var(--b)', fair:'var(--a)', poor:'var(--r)' }[setup.setupRating];
 
   return `
   <div class="trade-setup ${headBg}">
@@ -2150,23 +1944,17 @@ function renderTradeSetupHtml(d, sym) {
       <span class="trade-setup-rr">${rrLabel}</span>
     </div>
     <div class="trade-setup-body">
-
-      <!-- Entry Zone -->
       <div class="setup-row">
         <span class="setup-row-label">Entry Zone</span>
         <span class="setup-price">$${fmt(setup.entryLow,5)} – $${fmt(setup.entryHigh,5)}</span>
         <span class="setup-note">${setup.breakout?.retesting ? '🎯 Retest zone' : setup.entryMid < d.price ? '⬇ Wait pullback' : '✅ Di zona sekarang'}</span>
       </div>
-
-      <!-- Stop Loss -->
       <div class="setup-row">
         <span class="setup-row-label">Stop Loss</span>
         <span class="setup-price">$${fmt(setup.sl,5)}</span>
         <span class="setup-pct red">-${setup.slPct.toFixed(1)}%</span>
         <span class="setup-note">Invalidasi setup</span>
       </div>
-
-      <!-- TP Levels -->
       <div>
         <div class="setup-row" style="margin-bottom:8px;">
           <span class="setup-row-label">Take Profit</span>
@@ -2193,8 +1981,6 @@ function renderTradeSetupHtml(d, sym) {
           </div>
         </div>
       </div>
-
-      <!-- Setup quality + leverage -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <div class="metric" style="flex:1;min-width:120px;">
           <div class="metric-l">Setup Quality</div>
@@ -2209,8 +1995,6 @@ function renderTradeSetupHtml(d, sym) {
           <div class="metric-v ${setup.rr2 >= 2 ? 'green' : 'red'}">1 : ${setup.rr2.toFixed(1)}</div>
         </div>
       </div>
-
-      <!-- Position Size Calculator -->
       <div class="possize-wrap">
         <div class="possize-title">💰 Position Size Calculator</div>
         <div class="possize-row">
@@ -2222,54 +2006,32 @@ function renderTradeSetupHtml(d, sym) {
             oninput="calcPosSize('${sym}', ${setup.entryMid}, ${setup.sl})">
         </div>
         <div class="possize-result" id="psResult" style="display:none">
-          <div class="possize-stat">
-            <div class="possize-stat-l">Position Size</div>
-            <div class="possize-stat-v" id="psSize">—</div>
-          </div>
-          <div class="possize-stat">
-            <div class="possize-stat-l">Max Loss</div>
-            <div class="possize-stat-v" id="psLoss" style="color:var(--r)">—</div>
-          </div>
-          <div class="possize-stat">
-            <div class="possize-stat-l">Profit @ TP2</div>
-            <div class="possize-stat-v" id="psProfit" style="color:var(--g)">—</div>
-          </div>
+          <div class="possize-stat"><div class="possize-stat-l">Position Size</div><div class="possize-stat-v" id="psSize">—</div></div>
+          <div class="possize-stat"><div class="possize-stat-l">Max Loss</div><div class="possize-stat-v" id="psLoss" style="color:var(--r)">—</div></div>
+          <div class="possize-stat"><div class="possize-stat-l">Profit @ TP2</div><div class="possize-stat-v" id="psProfit" style="color:var(--g)">—</div></div>
         </div>
       </div>
-
-      ${!setup.isGoodSetup ? `
-      <div style="font-size:0.78rem;color:var(--a);background:var(--a-bg);border:1px solid var(--a-border);border-radius:var(--r8);padding:10px 14px;">
-        ⚠ Setup kurang ideal (RR ${setup.rr2.toFixed(1)}x) — tunggu kondisi lebih baik atau adjust entry lebih rendah
-      </div>` : ''}
-
+      ${!setup.isGoodSetup ? `<div style="font-size:0.78rem;color:var(--a);background:var(--a-bg);border:1px solid var(--a-border);border-radius:var(--r8);padding:10px 14px;">⚠ Setup kurang ideal (RR ${setup.rr2.toFixed(1)}x) — tunggu kondisi lebih baik atau adjust entry lebih rendah</div>` : ''}
     </div>
   </div>`;
 }
 
-// Position size calculator (called from input oninput)
 function calcPosSize(sym, entryMid, sl) {
   const capital = parseFloat(document.getElementById('psCapital')?.value) || 0;
   const riskPct = parseFloat(document.getElementById('psRisk')?.value) || 2;
   if (capital <= 0) return;
-
-  const riskAmt    = capital * riskPct / 100;           // dollar risk
-  const slDist     = Math.abs(entryMid - sl) / entryMid; // % distance to SL
+  const riskAmt   = capital * riskPct / 100;
+  const slDist    = Math.abs(entryMid - sl) / entryMid;
   if (slDist <= 0) return;
-
-  const posSize    = riskAmt / slDist;                  // position value
-  const maxLoss    = riskAmt;
-  const rr2Profit  = riskAmt * 3;                       // approx TP2 at 3:1
-
-  const resultEl = document.getElementById('psResult');
+  const posSize   = riskAmt / slDist;
+  const resultEl  = document.getElementById('psResult');
   if (resultEl) resultEl.style.display = 'grid';
-
-  const sizeEl   = document.getElementById('psSize');
-  const lossEl   = document.getElementById('psLoss');
-  const profitEl = document.getElementById('psProfit');
-
+  const sizeEl    = document.getElementById('psSize');
+  const lossEl    = document.getElementById('psLoss');
+  const profitEl  = document.getElementById('psProfit');
   if (sizeEl)   sizeEl.textContent   = `$${posSize.toFixed(2)}`;
-  if (lossEl)   lossEl.textContent   = `-$${maxLoss.toFixed(2)}`;
-  if (profitEl) profitEl.textContent = `+$${rr2Profit.toFixed(2)}`;
+  if (lossEl)   lossEl.textContent   = `-$${riskAmt.toFixed(2)}`;
+  if (profitEl) profitEl.textContent = `+$${(riskAmt * 3).toFixed(2)}`;
 }
 
 // ── RENDER RESULT PANEL ───────────────────────────────────────────────
@@ -2327,6 +2089,20 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
     </div>
   </div>`;
 
+  // ── Candlestick pattern section ──
+  const candleHtml = d.candlePatterns && d.candlePatterns.length > 0 ? `
+  <div>
+    <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;">🕯 Candlestick Patterns (1D)</div>
+    <div class="signals-list">
+      ${d.candlePatterns.map(p => `
+        <div class="signal-row ${p.contextValid ? 'bear' : 'warn'}">
+          <span style="flex-shrink:0">◈</span>
+          <span>${p.text}</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>` : '';
+
   const checkHtml = `
   <div class="checklist">
     ${scoreData.checks.map(c => `
@@ -2342,110 +2118,54 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
     <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;">Smart Signals</div>
     <div class="signals-list">
       ${smartSignals.map(s => `
-        <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}">
-          <span style="flex-shrink:0">◈</span>
-          <span>${s.text}</span>
+        <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''} ${s.isBear ? 'bear' : ''}">
+          <span style="flex-shrink:0">◈</span><span>${s.text}</span>
         </div>
       `).join('')}
     </div>
   </div>` : '';
 
-  // ── PUMP SETUP SECTION (Breakout + TF Confluence) ──
   const bo  = d.breakout;
   const tfc = d.tfConfluence;
 
   const pumpSetupHtml = (bo || tfc) ? `
   <div>
     <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">🚀 Pump Setup Analysis</div>
-
     ${bo ? `
     <div style="margin-bottom:10px;">
       <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Breakout Detection</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
-        <div class="metric">
-          <div class="metric-l">Status</div>
-          <div class="metric-v ${bo.broke ? 'green' : bo.consolidating ? 'amber' : ''}">
-            ${bo.broke ? (bo.retesting ? 'RETEST' : 'BROKE') : bo.consolidating ? 'COILING' : 'RANGING'}
-          </div>
-        </div>
-        <div class="metric">
-          <div class="metric-l">Key Level</div>
-          <div class="metric-v">$${fmt(bo.level, 5)}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-l">Dist / Gain</div>
-          <div class="metric-v ${bo.breakoutPct > 0 ? 'green' : 'red'}">
-            ${bo.breakoutPct >= 0 ? '+' : ''}${bo.breakoutPct.toFixed(1)}%
-          </div>
-        </div>
+        <div class="metric"><div class="metric-l">Status</div><div class="metric-v ${bo.broke ? 'green' : bo.consolidating ? 'amber' : ''}">${bo.broke ? (bo.retesting ? 'RETEST' : 'BROKE') : bo.consolidating ? 'COILING' : 'RANGING'}</div></div>
+        <div class="metric"><div class="metric-l">Key Level</div><div class="metric-v">$${fmt(bo.level,5)}</div></div>
+        <div class="metric"><div class="metric-l">Dist / Gain</div><div class="metric-v ${bo.breakoutPct > 0 ? 'green' : 'red'}">${bo.breakoutPct >= 0 ? '+' : ''}${bo.breakoutPct.toFixed(1)}%</div></div>
       </div>
-      <div class="signals-list">
-        ${bo.signals.map(s => `
-          <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}">
-            <span style="flex-shrink:0">◈</span><span>${s.text}</span>
-          </div>`).join('')}
-      </div>
+      <div class="signals-list">${bo.signals.map(s => `<div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
     </div>` : ''}
-
     ${tfc ? `
     <div>
       <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Timeframe Confluence</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
-        <div class="metric">
-          <div class="metric-l">1H Trend</div>
-          <div class="metric-v ${tfc.tf.h1?.trend === 'bullish' ? 'green' : 'red'}">
-            ${tfc.tf.h1?.trend?.toUpperCase() || 'N/A'}
-          </div>
-        </div>
-        <div class="metric">
-          <div class="metric-l">4H Trend</div>
-          <div class="metric-v ${tfc.tf.h4?.trend === 'bullish' ? 'green' : 'red'}">
-            ${tfc.tf.h4?.trend?.toUpperCase() || 'N/A'}
-          </div>
-        </div>
-        <div class="metric">
-          <div class="metric-l">1D Trend</div>
-          <div class="metric-v ${tfc.tf.d1?.trend === 'bullish' ? 'green' : 'red'}">
-            ${tfc.tf.d1?.trend?.toUpperCase() || 'N/A'}
-          </div>
-        </div>
+        <div class="metric"><div class="metric-l">1H Trend</div><div class="metric-v ${tfc.tf.h1?.trend==='bullish'?'green':'red'}">${tfc.tf.h1?.trend?.toUpperCase()||'N/A'}</div></div>
+        <div class="metric"><div class="metric-l">4H Trend</div><div class="metric-v ${tfc.tf.h4?.trend==='bullish'?'green':'red'}">${tfc.tf.h4?.trend?.toUpperCase()||'N/A'}</div></div>
+        <div class="metric"><div class="metric-l">1D Trend</div><div class="metric-v ${tfc.tf.d1?.trend==='bullish'?'green':'red'}">${tfc.tf.d1?.trend?.toUpperCase()||'N/A'}</div></div>
       </div>
       <div style="margin-bottom:8px;">
         <div class="score-section">
           <span class="score-label" style="font-size:0.72rem;">Confluence</span>
-          <div class="score-track">
-            <div class="score-fill ${tfc.score >= 5 ? 'high' : tfc.score >= 3 ? 'mid' : 'low'}" style="width:${Math.round(tfc.score/6*100)}%"></div>
-          </div>
-          <span class="score-val">${tfc.score}/6${tfc.aligned ? ' 🎯' : ''}</span>
+          <div class="score-track"><div class="score-fill ${tfc.score>=5?'high':tfc.score>=3?'mid':'low'}" style="width:${Math.round(tfc.score/6*100)}%"></div></div>
+          <span class="score-val">${tfc.score}/6${tfc.aligned?' 🎯':''}</span>
         </div>
       </div>
-      <div class="signals-list">
-        ${tfc.signals.map(s => `
-          <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}">
-            <span style="flex-shrink:0">◈</span><span>${s.text}</span>
-          </div>`).join('')}
-      </div>
+      <div class="signals-list">${tfc.signals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
     </div>` : ''}
-
   </div>` : '';
 
-  const scoreHtml = `
-  <div class="score-section">
-    <span class="score-label">Score</span>
-    <div class="score-track">
-      <div class="score-fill ${scoreData.cls}" style="width:${scoreData.pct}%"></div>
-    </div>
-    <span class="score-val">${scoreData.score}/${scoreData.max}</span>
-  </div>`;
-
+  const scoreHtml   = `<div class="score-section"><span class="score-label">Score</span><div class="score-track"><div class="score-fill ${scoreData.cls}" style="width:${scoreData.pct}%"></div></div><span class="score-val">${scoreData.score}/${scoreData.max}</span></div>`;
   const verdictHtml = `<div class="verdict ${scoreData.verdict.cls}">${scoreData.verdict.text}</div>`;
-
-  // Trade Setup — only for accum/pump mode (not short)
   const tradeSetupHtml = renderTradeSetupHtml(d, sym);
 
   document.getElementById('rpBody').innerHTML =
-    metricsHtml + checkHtml + smartHtml + pumpSetupHtml + scoreHtml + verdictHtml +
-    tradeSetupHtml +
+    metricsHtml + candleHtml + checkHtml + smartHtml + pumpSetupHtml + scoreHtml + verdictHtml + tradeSetupHtml +
     `<a class="chart-link" href="${chart}" target="_blank">↗ Open in TradingView</a>`;
 
   panel.classList.add('show');
@@ -2457,8 +2177,7 @@ function closeResult() { document.getElementById('resultPanel').classList.remove
 async function runQuickScan() {
   const sym = sanitizeSym(document.getElementById('symInput').value);
   if (!sym) return;
-  setDot('loading');
-  closeResult();
+  setDot('loading'); closeResult();
   try {
     const d = await analyzeCoin(sym);
     const s = scoreAccum(d);
@@ -2471,8 +2190,7 @@ async function runQuickScan() {
 async function runShortCheck() {
   const sym = sanitizeSym(document.getElementById('symInput').value);
   if (!sym) return;
-  setDot('loading');
-  closeResult();
+  setDot('loading'); closeResult();
   try {
     const d = await analyzeCoin(sym);
     const s = scoreShort(d);
@@ -2485,8 +2203,7 @@ async function runShortCheck() {
 async function runAccumCheck() {
   const sym = sanitizeSym(document.getElementById('symInput').value);
   if (!sym) return;
-  setDot('loading');
-  closeResult();
+  setDot('loading'); closeResult();
   try {
     const d = await analyzeCoin(sym);
     const s = scoreAccum(d);
@@ -2510,7 +2227,6 @@ function cancelScan() {
   setDot('error');
   hideProgress();
   scanning = false;
-  // Re-enable mode buttons
   ['btnAccumScan','btnPumpScan','btnShortScan','btnTopScan'].forEach(id => {
     const b = document.getElementById(id);
     b.disabled = false;
@@ -2533,11 +2249,8 @@ async function preFilterCoins(mode) {
     const vol    = parseFloat(t.quoteVolume);
     const change = parseFloat(t.priceChangePercent);
     const price  = parseFloat(t.lastPrice);
-
-    // Lowered to 50k — catch small/mid caps being accumulated
     if (vol   < 50000) return false;
     if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
-
     if (mode === 'accum')  return change >= -20 && change <= 35;
     if (mode === 'pump')   return change >= THRESHOLDS.PUMP_GAIN_MIN && change <= THRESHOLDS.PUMP_GAIN_MAX;
     if (mode === 'short')  return change >= -20 && change <= 80;
@@ -2548,7 +2261,6 @@ async function preFilterCoins(mode) {
 
   const sorted = candidates.sort((a, b) => {
     if (mode === 'accum') {
-      // log10 normalization so small caps can compete with large caps
       const volA = Math.log10(parseFloat(a.quoteVolume) + 1);
       const volB = Math.log10(parseFloat(b.quoteVolume) + 1);
       const chgA = Math.abs(parseFloat(a.priceChangePercent)) || 0.1;
@@ -2568,7 +2280,9 @@ async function preFilterCoins(mode) {
   return sorted.map(t => t.symbol.replace('USDT', ''));
 }
 
-// ── MARKET SCAN ORCHESTRATOR ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// MARKET SCAN ORCHESTRATOR
+// ═══════════════════════════════════════════════════════════════════
 let scanning = false;
 const results = { accum: [], pump: [], short: [], top: [] };
 
@@ -2580,8 +2294,6 @@ async function runMarketScan(mode) {
   const btnMap = { accum:'btnAccumScan', pump:'btnPumpScan', short:'btnShortScan', top:'btnTopScan' };
   const btn = document.getElementById(btnMap[mode]);
   btn.classList.add('running');
-
-  // Disable all mode btns during scan, show cancel
   Object.values(btnMap).forEach(id => { document.getElementById(id).disabled = true; });
   document.getElementById('btnCancel').style.display = '';
 
@@ -2589,13 +2301,13 @@ async function runMarketScan(mode) {
   results[mode] = [];
   updateStats();
 
-  const titleMap = { accum:'Accumulation Scan', pump:'Pump Scan (7D)', short:'Short Scan', top:'Top Movers' };
+  const titleMap = { accum:'Accumulation Scan', pump:'Pump Scan (24H)', short:'Short Scan', top:'Top Movers' };
   document.getElementById('sectionTitle').textContent = titleMap[mode];
 
   try {
-    if (mode === 'top')                       await scanTopMovers();
-    else if (mode === 'accum')                await scanAccumulation();
-    else if (mode === 'pump' || mode === 'short') await scanPumpShort(mode);
+    if (mode === 'top')                            await scanTopMovers();
+    else if (mode === 'accum')                     await scanAccumulation();
+    else if (mode === 'pump' || mode === 'short')  await scanPumpShort(mode);
   } catch (e) {
     if (e.message !== 'Cancelled') {
       logMsg(`Fatal error: ${e.message}`, 'bad');
@@ -2605,8 +2317,6 @@ async function runMarketScan(mode) {
   }
 
   scanning = false;
-
-  // Re-enable all buttons
   Object.values(btnMap).forEach(id => {
     const b = document.getElementById(id);
     b.disabled = false;
@@ -2618,13 +2328,10 @@ async function runMarketScan(mode) {
     btn.classList.add('done');
     setTimeout(() => btn.classList.remove('done'), 3000);
     setDot('active');
-    const total = results[mode].length;
-    showToast(`✅ Scan selesai — ${total} signal ditemukan`, 'success');
+    showToast(`✅ Scan selesai — ${results[mode].length} signal ditemukan`, 'success');
   }
 
-  renderCards();
-  updateStats();
-  hideProgress();
+  renderCards(); updateStats(); hideProgress();
   logMsg('─ Scan complete ─', 'ok');
 }
 
@@ -2636,18 +2343,17 @@ async function scanTopMovers() {
 
   const usdt = tickers
     .filter(t => t.symbol.endsWith('USDT') && !['BUSD','USDC','DAI','TUSD'].some(s => t.symbol.includes(s)))
-    .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+    .sort((a,b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
     .slice(0, 20);
 
   showProgress('Top Movers');
-  for (let i = 0; i < usdt.slice(0, 15).length; i++) {
+  for (let i = 0; i < Math.min(usdt.length, 15); i++) {
     if (CancelToken.cancelled) return;
     const t    = usdt[i];
     const sym  = t.symbol.replace('USDT', '');
     const gain = parseFloat(t.priceChangePercent);
     const vol  = parseFloat(t.quoteVolume);
     if (vol < 1000000) continue;
-
     logMsg(`${sym}: ${fmtPct(gain)}`);
     results.top.push({
       sym, price: parseFloat(t.lastPrice), gain24h: gain, vol24h: vol,
@@ -2657,20 +2363,21 @@ async function scanTopMovers() {
         { label: fmtVol(vol),  cls: '' },
       ],
     });
-    setProgress((i + 1) / 15 * 100);
+    setProgress((i+1) / 15 * 100);
     renderCards(); updateStats();
     await sleep(80);
   }
 }
 
-// ── ACCUMULATION SCAN ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// ACCUMULATION SCAN — Parallel Chunked
+// Serial loop (60 coins × 300ms = 18s) → chunked (3 concurrent ≈ 6s)
+// ═══════════════════════════════════════════════════════════════════
 async function scanAccumulation() {
   const candidates = await preFilterCoins('accum');
   if (CancelToken.cancelled || candidates.length === 0) return;
 
-  // ── Stage A: Fast pre-score using only ticker data (no API calls) ──
-  // Fetch klines only for coins that pass this lightweight check.
-  // This cuts deep analysis from 150 → ~60 coins.
+  // Stage A: fast pre-score (ticker data only, no API)
   logMsg(`Stage A: Fast pre-score ${candidates.length} coins...`, 'info');
   const tickers = await binance('ticker/24hr', {}, 1);
   if (CancelToken.cancelled) return;
@@ -2681,53 +2388,47 @@ async function scanAccumulation() {
   const preScored = candidates.map(sym => {
     const t = tickerMap[sym + 'USDT'];
     if (!t) return { sym, preScore: 0 };
-    const vol24h    = parseFloat(t.quoteVolume);
-    const change    = parseFloat(t.priceChangePercent);
-    const high      = parseFloat(t.highPrice);
-    const low       = parseFloat(t.lowPrice);
-    const price     = parseFloat(t.lastPrice);
-    const range     = high > 0 ? (high - low) / high * 100 : 99;
+    const vol24h  = parseFloat(t.quoteVolume);
+    const change  = parseFloat(t.priceChangePercent);
+    const high    = parseFloat(t.highPrice);
+    const low     = parseFloat(t.lowPrice);
+    const price   = parseFloat(t.lastPrice);
+    const range   = high > 0 ? (high - low) / high * 100 : 99;
 
     let preScore = 0;
-    // Volume spike signal (vs rough estimate — no 30d avg yet)
     if (vol24h > 5000000)  preScore += 2;
     else if (vol24h > 1000000) preScore += 1;
-    // Price flat = accumulation
-    if (change >= -5 && change <= 15)  preScore += 2;
+    if (change >= -5 && change <= 15)       preScore += 2;
     else if (change >= -15 && change <= 25) preScore += 1;
-    // Tight intraday range = low volatility accumulation
     if (range < 5)  preScore += 2;
     else if (range < 10) preScore += 1;
-    // Near low of range = potential reversal
     const posInRange = (high - price) / (high - low || 1);
-    if (posInRange > 0.6) preScore += 1; // price near bottom of range
+    if (posInRange > 0.6) preScore += 1;
 
     return { sym, preScore };
-  }).sort((a, b) => b.preScore - a.preScore).slice(0, 60); // top 60 only
+  }).sort((a,b) => b.preScore - a.preScore).slice(0, 60);
 
-  logMsg(`Stage B: Deep analysis on top ${preScored.length} coins...`, 'info');
+  logMsg(`Stage B: Deep analysis on top ${preScored.length} coins (${CONCURRENCY} concurrent)...`, 'info');
   showProgress('Accumulation Scan');
 
-  for (let i = 0; i < preScored.length; i++) {
+  let done = 0;
+
+  // ── PARALLEL CHUNKED LOOP ──
+  await runChunked(preScored, async (item) => {
     if (CancelToken.cancelled) return;
-    const sym = preScored[i].sym;
-    logMsg(`[${i+1}/${preScored.length}] 🔬 ${sym}...`);
-    setProgress((i + 1) / preScored.length * 100);
+    const sym = item.sym;
+    logMsg(`[${done+1}/${preScored.length}] 🔬 ${sym}...`);
 
     try {
-      // FIX: analyzeCoin returns klines — no second fetch needed
-      const d = await analyzeCoin(sym);
+      const d     = await analyzeCoin(sym);
       if (CancelToken.cancelled) return;
 
-      const smart     = detectSmartAccumulation(d, d.klines4h, d.klines1d);
-      const s         = scoreAccum(d);
-      // FIX: s.score is primary gatekeeper — smart signals are bonus only
-      // smart adds up to +1 bonus point if score >= 3 (to boost ranking, not filter)
+      const smart      = detectSmartAccumulation(d, d.klines4h, d.klines1d);
+      const s          = scoreAccum(d);
       const smartBonus = smart.score >= 5 ? 1 : 0;
-      const finalScore = s.score + smartBonus;
 
       if (s.score >= 3) {
-        logMsg(`✅ ${sym}: ${s.score}/${s.max} (smart bonus: +${smartBonus})`, 'ok');
+        logMsg(`✅ ${sym}: ${s.score}/${s.max} (+smart:${smartBonus})`, 'ok');
         results.accum.push({
           sym, price: d.price, score: s.score, scoreMax: s.max,
           scorePct: Math.round(s.score / s.max * 100),
@@ -2739,34 +2440,25 @@ async function scanAccumulation() {
             { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
             d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : '' } : null,
             d.oiChange !== 0 ? { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : d.oiChange < -5 ? 'r' : '' } : null,
+            // Show candle pattern badge if any found
+            d.candlePatterns?.length > 0 ? { label: `🕯 ${d.candlePatterns[0].name.split(' ')[0]}`, cls: 'r' } : null,
           ].filter(Boolean),
         });
         renderCards(); updateStats();
       }
     } catch (e) { logMsg(`❌ ${sym}: ${e.message}`, 'bad'); }
 
-    await sleep(300);
-  }
-  document.getElementById('stScanned').textContent = candidates.length;
+  }, (doneCnt, total) => {
+    done = doneCnt;
+    setProgress(done / total * 100);
+  });
+
+  document.getElementById('stScanned').textContent = preScored.length;
 }
 
-// ── FUTURES SYMBOLS CACHE ──────────────────────────────────────────────
-let futSymbols = new Set();
-async function getFutSymbols() {
-  if (futSymbols.size > 0) return futSymbols;
-  const data = await binance('exchangeInfo', {}, 20);
-  futSymbols = new Set(
-    data.symbols
-      .filter(s => s.status === 'TRADING' && s.quoteAsset === 'USDT')
-      .map(s => s.baseAsset)
-  );
-  return futSymbols;
-}
-
-// ── PUMP SCAN — Early Momentum Detection ────────────────────────────────
-// Logic: Deteksi coin yang SEDANG mulai pump, bukan yang sudah pump tinggi.
-// Source: Binance futures ticker 24H (real-time, no CoinGecko lag)
-// Target: Coin seperti RAVE, CHIP, GWEI — volume spike + harga mulai gerak
+// ═══════════════════════════════════════════════════════════════════
+// PUMP / SHORT SCAN — Parallel Chunked
+// ═══════════════════════════════════════════════════════════════════
 async function scanPumpShort(mode) {
   logMsg('🔍 Fetching 24H futures tickers...', 'info');
   const tickers = await binance('ticker/24hr', {}, 1);
@@ -2774,7 +2466,6 @@ async function scanPumpShort(mode) {
 
   const STABLES = new Set(['USDC','BUSD','DAI','TUSD','USDT','USDP','USDD','FDUSD']);
 
-  // ── Stage A: Filter + pre-score dari ticker data saja ──────────────────
   const prescored = tickers
     .filter(t => {
       if (!t.symbol.endsWith('USDT')) return false;
@@ -2785,15 +2476,8 @@ async function scanPumpShort(mode) {
       const price  = parseFloat(t.lastPrice);
       if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
       if (vol < 50000) return false;
-
-      if (mode === 'pump') {
-        // Pump scan: 24H gain antara +10% s/d +200%
-        // Bawah +10% belum bergerak, atas +200% sudah terlalu terlambat
-        return change >= 10 && change <= 200;
-      } else {
-        // Short scan: sudah pump tapi mulai drop dari high
-        return change >= 15 && change <= 150;
-      }
+      if (mode === 'pump') return change >= 10 && change <= 200;
+      else return change >= 15 && change <= 150;
     })
     .map(t => {
       const vol    = parseFloat(t.quoteVolume);
@@ -2803,81 +2487,64 @@ async function scanPumpShort(mode) {
       const price  = parseFloat(t.lastPrice);
       const trades = parseFloat(t.count) || 1;
 
-      // ── Momentum Score (pure ticker, no API call) ──
       let mScore = 0;
+      if (vol > 100e6)      mScore += 3;
+      else if (vol > 10e6)  mScore += 2;
+      else if (vol > 1e6)   mScore += 1;
 
-      // 1. Volume tier (absolute)
-      if (vol > 100e6)      mScore += 3; // >100M = major move
-      else if (vol > 10e6)  mScore += 2; // >10M  = solid
-      else if (vol > 1e6)   mScore += 1; // >1M   = decent
-
-      // 2. Price gain sweet spot
-      // +15–80% = early pump. >80% = already extended
       if (change >= 15 && change <= 80)       mScore += 3;
       else if (change > 80 && change <= 150)  mScore += 1;
       else if (change >= 10)                  mScore += 1;
 
-      // 3. Price position — near HIGH of day = strong momentum
       const range    = high - low;
       const posInDay = range > 0 ? (price - low) / range : 0.5;
-      if (posInDay > 0.8)       mScore += 2; // near high = buyers in control
-      else if (posInDay > 0.5)  mScore += 1;
+      if (posInDay > 0.8)      mScore += 2;
+      else if (posInDay > 0.5) mScore += 1;
 
-      // 4. Funding rate from ticker (if available)
-      // Low/negative funding = not yet crowded = more room to run
       const funding = parseFloat(t.lastFundingRate || 0) * 100;
-      if (funding < -0.01)       mScore += 2; // negative = squeeze potential
-      else if (funding < 0.05)   mScore += 1; // low positive = ok
+      if (funding < -0.01)       mScore += 2;
+      else if (funding < 0.05)   mScore += 1;
 
-      // 5. Trade count — many small trades = retail FOMO starting
-      if (trades > 50000)       mScore += 1;
+      if (trades > 50000) mScore += 1;
 
-      // Short mode: want price dropping from high
       if (mode === 'short') {
         const dropFromHigh = high > 0 ? (high - price) / high * 100 : 0;
-        if (dropFromHigh >= 5)  mScore += 2;
-        else                    mScore -= 1;
+        if (dropFromHigh >= 5) mScore += 2;
+        else mScore -= 1;
       }
 
-      return {
-        sym: t.symbol.replace('USDT',''),
-        mScore,
-        vol, change, price, high, low, posInDay,
-        funding: parseFloat(t.lastFundingRate || 0) * 100,
-      };
+      return { sym: t.symbol.replace('USDT',''), mScore, vol, change, price, high, low, posInDay, funding: parseFloat(t.lastFundingRate||0)*100 };
     })
-    .filter(t => t.mScore >= 4) // minimum pre-score threshold
-    .sort((a, b) => b.mScore - a.mScore)
-    .slice(0, 40); // top 40 for deep analysis
+    .filter(t => t.mScore >= 4)
+    .sort((a,b) => b.mScore - a.mScore)
+    .slice(0, 40);
 
-  if (prescored.length === 0) {
-    logMsg('Tidak ada kandidat momentum ditemukan', 'warn');
-    return;
-  }
+  if (prescored.length === 0) { logMsg('Tidak ada kandidat momentum ditemukan', 'warn'); return; }
 
-  logMsg(`✅ ${prescored.length} momentum candidates → deep analysis...`, 'info');
+  logMsg(`✅ ${prescored.length} candidates → deep analysis (${CONCURRENCY} concurrent)...`, 'info');
   showProgress(mode === 'pump' ? '🚀 Pump Scan' : '▼ Short Scan');
 
-  for (let i = 0; i < prescored.length; i++) {
+  let done = 0;
+
+  // ── PARALLEL CHUNKED LOOP ──
+  await runChunked(prescored, async (pre) => {
     if (CancelToken.cancelled) return;
-    const pre = prescored[i];
     const sym = pre.sym;
-    setProgress((i + 1) / prescored.length * 100);
-    logMsg(`[${i+1}/${prescored.length}] ${sym}: +${pre.change.toFixed(1)}% vol:${fmtVol(pre.vol)} score:${pre.mScore}`);
+    logMsg(`[${done+1}/${prescored.length}] ${sym}: +${pre.change.toFixed(1)}% vol:${fmtVol(pre.vol)}`);
 
     try {
       const d = await analyzeCoin(sym);
       if (CancelToken.cancelled) return;
 
       if (mode === 'pump') {
-        const s      = scorePump(d, pre);
+        const s = scorePump(d, pre);
         if (s.score >= 4) {
           results.pump.push({
             sym, price: d.price,
             score: s.score, scoreMax: s.max,
             scorePct: Math.round(s.score / s.max * 100),
-            gain24h: d.gain24h,
-            type: 'PUMP', data: d, scoreData: s, signals: s.signals,
+            gain24h: d.gain24h, type: 'PUMP',
+            data: d, scoreData: s, signals: s.signals,
             tags: [
               { label: fmtPct(d.gain24h),               cls: 'g' },
               { label: `Vol ${fmtVol(pre.vol)}`,        cls: pre.vol > 10e6 ? 'g' : '' },
@@ -2889,11 +2556,14 @@ async function scanPumpShort(mode) {
           logMsg(`✅ ${sym} pump score ${s.score}/${s.max}`, 'ok');
         }
       } else {
-        // Short mode
         const pumpEx     = detectPumpExhaustion(d, d.klines4h, d.klines1d);
         const s          = scoreShort(d);
         const finalScore = Math.round((s.score + pumpEx.score / pumpEx.maxScore * s.max) / 2);
         if (finalScore >= 3) {
+          // Add candle pattern tag if found
+          const candleTag = d.candlePatterns?.length > 0
+            ? [{ label: `🕯 ${d.candlePatterns[0].name.split(' ')[0]}`, cls: 'r' }]
+            : [];
           results.short.push({
             sym, price: d.price, score: finalScore, scoreMax: s.max,
             scorePct: Math.round(finalScore / s.max * 100),
@@ -2904,6 +2574,7 @@ async function scanPumpShort(mode) {
               { label: `RSI ${d.rsi4h}`,   cls: d.rsi4h > 65 ? 'r' : '' },
               d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
               { label: `SL $${fmt(d.sl,4)}`, cls: '' },
+              ...candleTag,
             ].filter(Boolean),
           });
           logMsg(`✅ ${sym} short score ${finalScore}/${s.max}`, 'ok');
@@ -2912,19 +2583,20 @@ async function scanPumpShort(mode) {
       renderCards(); updateStats();
     } catch (e) { logMsg(`✗ ${sym}: ${e.message}`, 'bad'); }
 
-    await sleep(350);
-  }
+  }, (doneCnt, total) => {
+    done = doneCnt;
+    setProgress(done / total * 100);
+  });
+
   document.getElementById('stScanned').textContent = prescored.length;
 }
 
 // ── PUMP SCORE ───────────────────────────────────────────────────────────
-// Scoring khusus pump — kombinasi momentum ticker + technical indicator
 function scorePump(d, pre) {
   const checks  = [];
   const signals = [];
   let score     = 0;
 
-  // 1. Volume tier
   if (pre.vol > 50e6) {
     score += 2;
     checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — massive, institutional interest` });
@@ -2935,7 +2607,6 @@ function scorePump(d, pre) {
     checks.push({ warn: true, text: `Volume 24H: ${fmtVol(pre.vol)} — masih kecil` });
   }
 
-  // 2. Gain sweet spot
   if (pre.change >= 15 && pre.change <= 60) {
     score += 2;
     checks.push({ pass: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — early pump, masih ada room` });
@@ -2948,7 +2619,6 @@ function scorePump(d, pre) {
     checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — fase awal gerak` });
   }
 
-  // 3. Price near high of day = buyers in control
   if (pre.posInDay > 0.8) {
     score++;
     checks.push({ pass: true, text: `Harga dekat HIGH hari ini — buyers in control` });
@@ -2959,7 +2629,6 @@ function scorePump(d, pre) {
     checks.push({ fail: true, text: `Harga dekat LOW hari ini — momentum melemah` });
   }
 
-  // 4. Funding rate — negatif atau rendah = lebih banyak room
   if (d.funding !== null && d.funding < 0) {
     score += 2;
     checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, short squeeze fuel 🚀` });
@@ -2971,7 +2640,6 @@ function scorePump(d, pre) {
     checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — longs sudah banyak, hati-hati` });
   }
 
-  // 5. OI naik = fresh money masuk
   if (d.oiChange > 10) {
     score += 2;
     checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk, trend kuat` });
@@ -2985,7 +2653,6 @@ function scorePump(d, pre) {
     checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
   }
 
-  // 6. RSI tidak overbought = masih ada room
   if (d.rsi4h < 60) {
     score++;
     checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — belum overbought, masih bisa lanjut` });
@@ -2995,7 +2662,6 @@ function scorePump(d, pre) {
     checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought, rawan reversal` });
   }
 
-  // 7. TF Confluence — pump lebih kuat kalau 4H + 1D align
   if (d.tfConfluence?.aligned) {
     score += 2;
     checks.push({ pass: true, text: `Triple confluence 1H+4H+1D bullish — pump bisa sustain` });
@@ -3019,7 +2685,6 @@ function scorePump(d, pre) {
   return { score, max, pct, cls, checks, verdict, signals };
 }
 
-
 // ── RENDER CARDS ──────────────────────────────────────────────────────
 function renderCards() {
   const allResults = [
@@ -3031,17 +2696,12 @@ function renderCards() {
   const grid = document.getElementById('cardsGrid');
 
   if (allResults.length === 0 && !scanning) {
-    grid.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">◎</div>
-        <div class="empty-msg">No signals found</div>
-        <div class="empty-sub">Try a different scan mode</div>
-      </div>`;
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a different scan mode</div></div>`;
     document.getElementById('sectionCount').textContent = '';
     return;
   }
 
-  allResults.sort((a, b) => (b.scorePct || 0) - (a.scorePct || 0));
+  allResults.sort((a,b) => (b.scorePct||0) - (a.scorePct||0));
   document.getElementById('sectionCount').textContent = `${allResults.length} result${allResults.length !== 1 ? 's' : ''}`;
 
   const pillMap = {
@@ -3058,7 +2718,7 @@ function renderCards() {
     const chart     = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.sym}USDT.P`;
     const hasDetail = r.data && r.scoreData;
     const tagsHtml  = (r.tags || []).map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
-    const scoreLabel = r.scoreMax && r.scoreMax <= 10 && typeof r.score === 'number'
+    const scoreLabel = r.scoreMax && r.scoreMax <= 15 && typeof r.score === 'number'
       ? `<span style="font-family:var(--mono);font-size:0.63rem;color:var(--muted)">${r.score}/${r.scoreMax}</span>`
       : '';
 
@@ -3066,9 +2726,7 @@ function renderCards() {
     <div class="card" style="animation-delay:${Math.min(i * 0.035, 1)}s">
       <div class="card-type">
         <span class="pill ${pillCls}">${pillLabel}</span>
-        <div class="card-mini-bar">
-          <div class="card-mini-fill" style="width:${pct}%;background:${fillColor(pct)}"></div>
-        </div>
+        <div class="card-mini-bar"><div class="card-mini-fill" style="width:${pct}%;background:${fillColor(pct)}"></div></div>
         ${scoreLabel}
       </div>
       <div class="card-body">
@@ -3077,9 +2735,7 @@ function renderCards() {
       </div>
       <div class="card-right">
         <span class="card-price">$${fmt(r.price, 5)}</span>
-        ${r.data?.oiChange !== undefined
-          ? `<span class="card-oi">OI ${r.data.oiChange >= 0 ? '+' : ''}${r.data.oiChange.toFixed(1)}%</span>`
-          : ''}
+        ${r.data?.oiChange !== undefined ? `<span class="card-oi">OI ${r.data.oiChange>=0?'+':''}${r.data.oiChange.toFixed(1)}%</span>` : ''}
         <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;justify-content:flex-end;">
           ${hasDetail ? `<button class="btn-sm" onclick="showDetail(${i})">Detail</button>` : ''}
           <a class="btn-sm" href="${chart}" target="_blank">Chart ↗</a>
@@ -3100,14 +2756,14 @@ function showDetail(idx) {
 
 function updateStats() {
   const total = results.accum.length + results.pump.length + results.short.length + results.top.length;
-  document.getElementById('stTotal').textContent   = total || '—';
-  document.getElementById('stAccum').textContent   = results.accum.length  || '—';
-  document.getElementById('stPump').textContent    = results.pump.length   || '—';
-  document.getElementById('stShort').textContent   = results.short.length  || '—';
+  document.getElementById('stTotal').textContent  = total || '—';
+  document.getElementById('stAccum').textContent  = results.accum.length  || '—';
+  document.getElementById('stPump').textContent   = results.pump.length   || '—';
+  document.getElementById('stShort').textContent  = results.short.length  || '—';
 }
 
 function showSkeletons() {
-  document.getElementById('cardsGrid').innerHTML = [1, 2, 3].map(() => `
+  document.getElementById('cardsGrid').innerHTML = [1,2,3].map(() => `
     <div class="skel-card">
       <div class="skel" style="width:88px;height:40px;border-radius:6px;flex-shrink:0;"></div>
       <div style="flex:1;display:flex;flex-direction:column;gap:7px;">
@@ -3125,19 +2781,23 @@ function exportResults(mode) {
 
   if (!data.length) { showToast('Tidak ada data untuk di-export', 'warn'); return; }
 
-  const headers = ['Symbol','Price','Score','Type','24h%','7D%','RSI 4H','Funding','OI Change','Vol Ratio','MACD Hist','Signals'];
+  const headers = ['Symbol','Price','Score','Type','24h%','7D%','RSI 4H','Funding','OI Change','Vol Ratio','MACD Hist','Candle Patterns','Signals'];
   const rows = data.map(r => [
     r.sym,
     r.price,
-    `${r.score ?? '-'}/${r.scoreMax ?? '-'}`,
+    `${r.score??'-'}/${r.scoreMax??'-'}`,
     r.type,
-    `${r.gain24h >= 0 ? '+' : ''}${r.gain24h?.toFixed(2) ?? '-'}%`,
-    `${r.data?.priceChg7d >= 0 ? '+' : ''}${r.data?.priceChg7d?.toFixed(1) ?? '-'}%`,
+    `${r.gain24h>=0?'+':''}${r.gain24h?.toFixed(2)??'-'}%`,
+    `${r.data?.priceChg7d>=0?'+':''}${r.data?.priceChg7d?.toFixed(1)??'-'}%`,
     r.data?.rsi4h ?? '-',
-    r.data?.funding != null ? `${r.data.funding >= 0 ? '+' : ''}${r.data.funding.toFixed(4)}%` : 'N/A',
-    r.data?.oiChange != null ? `${r.data.oiChange >= 0 ? '+' : ''}${r.data.oiChange.toFixed(2)}%` : 'N/A',
+    r.data?.funding != null ? `${r.data.funding>=0?'+':''}${r.data.funding.toFixed(4)}%` : 'N/A',
+    r.data?.oiChange != null ? `${r.data.oiChange>=0?'+':''}${r.data.oiChange.toFixed(2)}%` : 'N/A',
     r.data?.volRatio?.toFixed(2) ?? '-',
     r.data?.macd?.hist != null ? r.data.macd.hist.toFixed(6) : 'N/A',
+    // New: candlestick patterns column
+    r.data?.candlePatterns?.length > 0
+      ? r.data.candlePatterns.map(p => `${p.name}(${p.contextValid?'valid':'weak'})`).join('|')
+      : 'none',
     (r.signals?.map(s => s.text.replace(/[,\n]/g, ' ')).join(' | ') || '-'),
   ]);
 
@@ -3146,34 +2806,24 @@ function exportResults(mode) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `hervin_v8_${mode}_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  a.download = `hervin_v9_${mode}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(`📥 Exported ${data.length} rows`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// PORTFOLIO / WATCHLIST MODULE
-// - Persisted in localStorage
-// - Add by symbol + optional entry price + type (hold/fav)
-// - Paste comma-separated list
-// - Scan all at once with accum or short check
-// - PnL shown if entry price was set
+// PORTFOLIO / WATCHLIST MODULE (unchanged from v8)
 // ═══════════════════════════════════════════════════════════════════
 
-const PF_KEY = 'hervin_portfolio_v8';
+const PF_KEY = 'hervin_portfolio_v9';
 
 function pfLoad() {
   try { return JSON.parse(localStorage.getItem(PF_KEY)) || []; }
   catch { return []; }
 }
-function pfSave(coins) {
-  localStorage.setItem(PF_KEY, JSON.stringify(coins));
-}
+function pfSave(coins) { localStorage.setItem(PF_KEY, JSON.stringify(coins)); }
 
-// Toggle collapse
 function togglePortfolio() {
   const body    = document.getElementById('portfolioBody');
   const head    = document.getElementById('portfolioHead');
@@ -3184,18 +2834,16 @@ function togglePortfolio() {
   chevron.classList.toggle('open', !isOpen);
 }
 
-// Render chips
 function pfRenderChips() {
-  const coins   = pfLoad();
-  const wrap    = document.getElementById('pfChips');
-  const badge   = document.getElementById('portfolioBadge');
+  const coins = pfLoad();
+  const wrap  = document.getElementById('pfChips');
+  const badge = document.getElementById('portfolioBadge');
   badge.textContent = `${coins.length} coin${coins.length !== 1 ? 's' : ''}`;
-
   if (coins.length === 0) {
     wrap.innerHTML = `<span class="portfolio-empty">No coins yet — add your first position above</span>`;
     return;
   }
-  wrap.innerHTML = coins.map((c, i) => `
+  wrap.innerHTML = coins.map((c,i) => `
     <div class="portfolio-chip ${c.type}">
       <span>${c.sym}</span>
       ${c.entry ? `<span style="opacity:0.7;font-size:0.65rem">@${c.entry}</span>` : ''}
@@ -3204,25 +2852,21 @@ function pfRenderChips() {
   `).join('');
 }
 
-// Add coin
 function pfAddCoin() {
-  const sym   = (document.getElementById('pfInput').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  const sym   = (document.getElementById('pfInput').value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
   const entry = parseFloat(document.getElementById('pfEntryPrice').value) || null;
   const type  = document.getElementById('pfType').value;
   if (!sym) { showToast('Masukkan symbol coin', 'warn'); return; }
-
   const coins = pfLoad();
   if (coins.find(c => c.sym === sym)) { showToast(`${sym} sudah ada`, 'warn'); return; }
   coins.push({ sym, entry, type });
   pfSave(coins);
   pfRenderChips();
-
   document.getElementById('pfInput').value = '';
   document.getElementById('pfEntryPrice').value = '';
   showToast(`✅ ${sym} ditambahkan`, 'success');
 }
 
-// Paste comma list: "SOL,BTC,ETH" or "SOL BTC ETH"
 function pfImportFromText() {
   const raw = prompt('Paste daftar coin (pisah koma atau spasi):\nContoh: EDU,WLD,BIO,BASED');
   if (!raw) return;
@@ -3234,19 +2878,15 @@ function pfImportFromText() {
     coins.push({ sym, entry: null, type: 'hold' });
     added++;
   }
-  pfSave(coins);
-  pfRenderChips();
+  pfSave(coins); pfRenderChips();
   showToast(`✅ ${added} coin ditambahkan`, 'success');
 }
 
-// Remove one coin
 function pfRemove(idx) {
   const coins = pfLoad();
   const sym   = coins[idx]?.sym;
   coins.splice(idx, 1);
-  pfSave(coins);
-  pfRenderChips();
-  // Remove card from results if visible
+  pfSave(coins); pfRenderChips();
   const card = document.getElementById(`pf-card-${sym}`);
   if (card) card.remove();
   if (document.getElementById('pfCards').children.length === 0) {
@@ -3255,17 +2895,14 @@ function pfRemove(idx) {
   showToast(`Removed ${sym}`, '');
 }
 
-// Clear all
 function pfClearAll() {
   if (!confirm('Hapus semua coins dari portfolio?')) return;
-  pfSave([]);
-  pfRenderChips();
+  pfSave([]); pfRenderChips();
   document.getElementById('pfCards').innerHTML = '';
   document.getElementById('pfResultsWrap').style.display = 'none';
   showToast('Portfolio cleared', '');
 }
 
-// Scan all coins in portfolio
 async function pfScanAll(mode = 'accum') {
   const coins = pfLoad();
   if (coins.length === 0) { showToast('Portfolio kosong — tambah coin dulu', 'warn'); return; }
@@ -3274,17 +2911,15 @@ async function pfScanAll(mode = 'accum') {
   btn.disabled = true;
   btn.textContent = '⏳ Fetching fresh data...';
 
-  const wrap  = document.getElementById('pfResultsWrap');
-  const grid  = document.getElementById('pfCards');
+  const wrap = document.getElementById('pfResultsWrap');
+  const grid = document.getElementById('pfCards');
   wrap.style.display = 'block';
   grid.innerHTML = '';
 
-  // Make sure portfolio panel is open
   const body = document.getElementById('portfolioBody');
   if (!body.classList.contains('open')) togglePortfolio();
 
   setDot('loading');
-  let done = 0;
   logMsg(`🔄 Portfolio scan — force refresh ${coins.length} coins`, 'info');
   showLog();
 
@@ -3292,7 +2927,6 @@ async function pfScanAll(mode = 'accum') {
     const existCard = document.getElementById(`pf-card-${c.sym}`);
     if (existCard) existCard.remove();
 
-    // Insert loading placeholder
     const placeholder = document.createElement('div');
     placeholder.id = `pf-card-${c.sym}`;
     placeholder.className = 'skel-card';
@@ -3305,30 +2939,28 @@ async function pfScanAll(mode = 'accum') {
     grid.appendChild(placeholder);
 
     try {
-      const d = await analyzeCoin(c.sym, true); // force=true: always fresh data
+      const d = await analyzeCoin(c.sym, true);
       const s = mode === 'short' ? scoreShort(d) : scoreAccum(d);
       const signals = mode === 'short'
         ? detectPumpExhaustion(d, d.klines4h, d.klines1d).signals
         : detectSmartAccumulation(d, d.klines4h, d.klines1d).signals;
 
-      // PnL calculation if entry price recorded
       let pnlHtml = '';
       if (c.entry && c.entry > 0) {
         const pnlPct = (d.price - c.entry) / c.entry * 100;
         const pnlCls = pnlPct >= 0 ? 'green' : 'red';
-        pnlHtml = `<div class="portfolio-card-pnl ${pnlCls}">${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}% from entry</div>`;
+        pnlHtml = `<div class="portfolio-card-pnl ${pnlCls}">${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}% from entry</div>`;
       }
 
-      // Verdict color
-      const verdictCls = s.score >= Math.ceil(s.max * 0.65) ? 'g'
-                       : s.score >= Math.ceil(s.max * 0.4)  ? 'a' : 'r';
+      const verdictCls = s.score >= Math.ceil(s.max * 0.65) ? 'g' : s.score >= Math.ceil(s.max * 0.4) ? 'a' : 'r';
 
       const tags = [
-        { label: fmtPct(d.gain24h),               cls: d.gain24h >= 0 ? 'g' : 'r' },
-        { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
-        { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' },
-        d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
-        { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : d.oiChange < -5 ? 'r' : '' },
+        { label: fmtPct(d.gain24h),               cls: d.gain24h>=0?'g':'r' },
+        { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h<40?'g':d.rsi4h>65?'r':'' },
+        { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio>=2?'b':'' },
+        d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding<THRESHOLDS.FUNDING_NEG?'b':d.funding>THRESHOLDS.FUNDING_POS?'r':'' } : null,
+        { label: `OI${d.oiChange>=0?'+':''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange>5?'g':d.oiChange<-5?'r':'' },
+        d.candlePatterns?.length > 0 ? { label: `🕯 ${d.candlePatterns[0].name}`, cls: 'r' } : null,
       ].filter(Boolean);
 
       const tagsHtml  = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
@@ -3348,7 +2980,7 @@ async function pfScanAll(mode = 'accum') {
             ).join('')}
           </div>
           <div class="portfolio-card-right">
-            <div class="portfolio-card-price">$${fmt(d.price, 5)}</div>
+            <div class="portfolio-card-price">$${fmt(d.price,5)}</div>
             <div><span class="tag ${verdictCls}" style="font-size:0.66rem;">${s.score}/${s.max}</span></div>
             ${pnlHtml}
             <div style="display:flex;gap:5px;margin-top:5px;justify-content:flex-end;">
@@ -3358,15 +2990,9 @@ async function pfScanAll(mode = 'accum') {
           </div>
         </div>`;
 
-      // FIX: use insertAdjacentHTML instead of outerHTML
-      // outerHTML on a detached/re-parented element can silently fail
       const existing = document.getElementById(`pf-card-${c.sym}`);
-      if (existing) {
-        existing.insertAdjacentHTML('afterend', cardHtml);
-        existing.remove();
-      } else {
-        grid.insertAdjacentHTML('beforeend', cardHtml);
-      }
+      if (existing) { existing.insertAdjacentHTML('afterend', cardHtml); existing.remove(); }
+      else { grid.insertAdjacentHTML('beforeend', cardHtml); }
 
     } catch (e) {
       const errHtml = `
@@ -3380,18 +3006,16 @@ async function pfScanAll(mode = 'accum') {
       else { grid.insertAdjacentHTML('beforeend', errHtml); }
     }
 
-    done++;
     await sleep(350);
   }
 
   btn.disabled = false;
   btn.textContent = '⚡ Scan All Positions';
   setDot('active');
-  logMsg(`✅ Portfolio scan selesai — data fresh semua`, 'ok');
-  showToast(`✅ Fresh scan selesai — ${done} coins updated`, 'success');
+  logMsg(`✅ Portfolio scan selesai`, 'ok');
+  showToast(`✅ Fresh scan selesai — ${coins.length} coins updated`, 'success');
 }
 
-// Show full detail panel for a portfolio coin
 async function pfShowDetail(sym) {
   setDot('loading');
   try {
@@ -3404,40 +3028,36 @@ async function pfShowDetail(sym) {
   } catch (e) { showToast(`Error: ${e.message}`, 'error'); setDot('error'); }
 }
 
-// Export portfolio results as CSV
 function pfExportCSV() {
   const coins = pfLoad();
   if (!coins.length) { showToast('Portfolio kosong', 'warn'); return; }
-  const headers = ['Symbol','Type','Entry Price','Current Price','PnL%','RSI 4H','24h%','Funding','OI%','Vol Ratio'];
+  const headers = ['Symbol','Type','Entry Price','Current Price','PnL%','RSI 4H','24h%','Funding','OI%','Vol Ratio','Candle Patterns'];
   const rows = coins.map(c => {
-    const cardEl = document.getElementById(`pf-card-${c.sym}`);
-    // Best effort — grab from cache
     const d = Cache.get(c.sym, 'analysis');
-    if (!d) return [c.sym, c.type, c.entry || '', '', '', '', '', '', '', ''];
+    if (!d) return [c.sym, c.type, c.entry||'','','','','','','','',''];
     const pnl = c.entry ? ((d.price - c.entry) / c.entry * 100).toFixed(2) + '%' : '';
     return [
-      c.sym, c.type, c.entry || '', fmt(d.price,5), pnl,
+      c.sym, c.type, c.entry||'', fmt(d.price,5), pnl,
       d.rsi4h, fmtPct(d.gain24h),
       d.funding != null ? `${d.funding.toFixed(4)}%` : 'N/A',
       `${d.oiChange.toFixed(1)}%`,
       d.volRatio.toFixed(2),
+      d.candlePatterns?.length > 0 ? d.candlePatterns.map(p=>p.name).join('|') : 'none',
     ];
   });
-  const csv  = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const csv  = [headers, ...rows].map(r => r.map(v=>`"${v}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href     = url;
+  a.href = url;
   a.download = `hervin_portfolio_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(`📥 Portfolio exported`, 'success');
 }
 
-// Init on load
 pfRenderChips();
 </script>
-
 
 </body>
 </html>
