@@ -542,18 +542,37 @@
     .portfolio-input::placeholder { text-transform: none; font-weight: 300; color: var(--faint); letter-spacing: 0; }
     .portfolio-price-input { font-family: var(--mono); font-size: 0.82rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 8px 10px; color: var(--text); width: 110px; outline: none; transition: border-color 0.15s; }
     .portfolio-price-input:focus { border-color: var(--text); }
-    .type-select { font-family: var(--sans); font-size: 0.75rem; font-weight: 600; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 8px 10px; color: var(--text); outline: none; cursor: pointer; }
+
+    /* ── POSITION TYPE SELECT — LONG/SHORT ─────── */
+    .type-select {
+      font-family: var(--sans); font-size: 0.75rem; font-weight: 700;
+      border-radius: var(--r8); padding: 8px 12px;
+      color: #fff; outline: none; cursor: pointer;
+      border: none; appearance: none; -webkit-appearance: none;
+      background-color: var(--g);
+      min-width: 90px;
+      transition: background-color 0.15s;
+    }
+    .type-select.short-selected { background-color: var(--r); }
+    .type-select option { background: #fff; color: var(--text); font-weight: 600; }
 
     .portfolio-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+
+    /* ── CHIP: LONG = blue, SHORT = red ─────────── */
     .portfolio-chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.72rem; font-weight: 500; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: default; transition: all 0.15s; animation: fadeUp 0.18s ease; }
-    .portfolio-chip.fav  { border-color: var(--a-border); background: var(--a-bg); color: var(--a); }
-    .portfolio-chip.hold { border-color: var(--b-border); background: var(--b-bg); color: var(--b); }
+    .portfolio-chip.long  { border-color: var(--b-border); background: var(--b-bg); color: var(--b); }
+    .portfolio-chip.short { border-color: var(--r-border); background: var(--r-bg); color: var(--r); }
     .chip-remove { background: none; border: none; cursor: pointer; color: var(--faint); font-size: 0.75rem; padding: 0; transition: color 0.15s; }
     .chip-remove:hover { color: var(--r); }
 
     .portfolio-cards { display: flex; flex-direction: column; gap: 6px; }
     .portfolio-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r8); padding: 10px 14px; display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; animation: fadeUp 0.2s ease both; transition: border-color 0.15s, box-shadow 0.15s; }
     .portfolio-card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+
+    /* Border tint by position side */
+    .portfolio-card.pos-long  { border-left: 3px solid var(--b); }
+    .portfolio-card.pos-short { border-left: 3px solid var(--r); }
+
     .portfolio-card-sym { font-family: var(--mono); font-size: 0.88rem; font-weight: 600; }
     .portfolio-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
     .portfolio-card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
@@ -563,6 +582,15 @@
     .portfolio-card-pnl.red   { color: var(--r); }
     .portfolio-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border); }
     .portfolio-empty { font-size: 0.8rem; color: var(--faint); text-align: center; padding: 12px 0 4px; }
+
+    /* Position badge */
+    .pos-badge {
+      font-family: var(--mono); font-size: 0.6rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .pos-badge.long  { background: var(--b-bg); color: var(--b); border: 1px solid var(--b-border); }
+    .pos-badge.short { background: var(--r-bg); color: var(--r); border: 1px solid var(--r-border); }
 
     /* ── RESPONSIVE ──────────────────────────────── */
     @media (max-width: 640px) {
@@ -586,7 +614,7 @@
     <span class="hdr-badge">ULTRA</span>
   </div>
   <div class="hdr-r">
-    <span class="hdr-version">BUILD 9.0.0</span>
+    <span class="hdr-version">BUILD 9.1.0</span>
     <span class="clock" id="clock">--:-- UTC</span>
   </div>
 </header>
@@ -611,29 +639,36 @@
     <div class="portfolio-head" id="portfolioHead" onclick="togglePortfolio()">
       <div class="portfolio-head-l">
         <span style="font-size:1rem">📁</span>
-        <span class="portfolio-head-title">My Portfolio &amp; Watchlist</span>
-        <span class="portfolio-badge" id="portfolioBadge">0 coins</span>
+        <span class="portfolio-head-title">My Positions &amp; Watchlist</span>
+        <span class="portfolio-badge" id="portfolioBadge">0 positions</span>
       </div>
       <span class="portfolio-chevron" id="portfolioChevron">▼</span>
     </div>
     <div class="portfolio-body" id="portfolioBody">
       <div>
-        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Add Coin</div>
+        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Add Position</div>
         <div class="portfolio-input-row">
           <input class="portfolio-input" id="pfInput" placeholder="e.g. BIO" onkeydown="if(event.key==='Enter') pfAddCoin()">
           <input class="portfolio-price-input" id="pfEntryPrice" placeholder="Entry price" type="number" step="any">
-          <select class="type-select" id="pfType">
-            <option value="hold">📦 Hold</option>
-            <option value="fav">⭐ Watchlist</option>
+          <!-- LONG / SHORT selector -->
+          <select class="type-select" id="pfType" onchange="pfTypeChanged(this)">
+            <option value="long">📈 Long</option>
+            <option value="short">📉 Short</option>
           </select>
           <button class="btn primary" onclick="pfAddCoin()">+ Add</button>
           <button class="btn" onclick="pfImportFromText()" title="Paste multiple">📋 Paste List</button>
         </div>
+        <!-- Leverage input shown only when entry price filled -->
+        <div id="pfLevRow" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">Leverage (optional)</span>
+          <input class="portfolio-price-input" id="pfLeverage" placeholder="e.g. 5" type="number" step="1" min="1" max="100" style="width:80px;">
+          <span style="font-size:0.72rem;color:var(--faint);">×</span>
+        </div>
       </div>
       <div>
-        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Coins</div>
+        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Open Positions</div>
         <div class="portfolio-chips" id="pfChips">
-          <span class="portfolio-empty">No coins yet — add your first position above</span>
+          <span class="portfolio-empty">No positions yet — add your first trade above</span>
         </div>
       </div>
       <div id="pfResultsWrap" style="display:none">
@@ -730,76 +765,46 @@ const THRESHOLDS = {
   PARABOLIC_ACC:     0.02,
 };
 
-// ── CANCEL TOKEN ─────────────────────────────────────────────────────
 const CancelToken = { cancelled: false, cancel() { this.cancelled = true; }, reset() { this.cancelled = false; } };
 
-// ═══════════════════════════════════════════════════════════════════
-// OPTIMASI 1: PARALLEL CHUNKING
-// Ganti serial await per-coin dengan concurrent batch processing.
-// CONCURRENCY = 3 → 3 coins diproses bersamaan, bukan satu-satu.
-// Ini yang paling berdampak: 60 coins × 300ms → ~6-7 detik total.
-// ═══════════════════════════════════════════════════════════════════
-const CONCURRENCY = 3; // max concurrent coin analyses
+const CONCURRENCY = 3;
 
-/**
- * runChunked(items, asyncFn, onProgress)
- * Proses array items dengan max CONCURRENCY concurrent tasks.
- * onProgress(done, total) dipanggil setiap kali satu item selesai.
- * Kalau CancelToken.cancelled = true, berhenti setelah batch current.
- */
 async function runChunked(items, asyncFn, onProgress) {
-  const total   = items.length;
-  let   done    = 0;
-  let   idx     = 0;
-
+  const total = items.length;
+  let done = 0, idx = 0;
   async function worker() {
     while (idx < total) {
       if (CancelToken.cancelled) return;
-      const i    = idx++;
-      const item = items[i];
-      await asyncFn(item, i);
+      const i = idx++;
+      await asyncFn(items[i], i);
       done++;
       if (onProgress) onProgress(done, total);
     }
   }
-
-  // Spawn CONCURRENCY workers, let them race through the queue
   const workers = Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker());
   await Promise.all(workers);
 }
 
-// ── RATE LIMITER ─────────────────────────────────────────────────────
 class RateLimiter {
   constructor(maxWeight = 1000, windowMs = 60000) {
-    this.maxWeight   = maxWeight;
-    this.windowMs    = windowMs;
-    this.queue       = [];
-    this.currentWeight = 0;
-    this.windowStart = Date.now();
-    this.processing  = false;
+    this.maxWeight = maxWeight; this.windowMs = windowMs;
+    this.queue = []; this.currentWeight = 0;
+    this.windowStart = Date.now(); this.processing = false;
   }
-
   async request(fn, weight = 1) {
     return new Promise((resolve, reject) => {
       this.queue.push({ fn, weight, resolve, reject });
       this.process();
     });
   }
-
   async process() {
     if (this.processing || this.queue.length === 0) return;
     this.processing = true;
-
-    if (Date.now() - this.windowStart > this.windowMs) {
-      this.currentWeight = 0;
-      this.windowStart   = Date.now();
-    }
-
+    if (Date.now() - this.windowStart > this.windowMs) { this.currentWeight = 0; this.windowStart = Date.now(); }
     const item = this.queue[0];
-
     if (this.currentWeight + item.weight <= this.maxWeight) {
       this.currentWeight += item.weight;
-      try   { const result = await item.fn(); item.resolve(result); }
+      try { const result = await item.fn(); item.resolve(result); }
       catch (e) { item.reject(e); }
       this.queue.shift();
       await sleep(35);
@@ -807,29 +812,19 @@ class RateLimiter {
       const waitTime = this.windowMs - (Date.now() - this.windowStart);
       logMsg(`⏳ Rate limit — waiting ${Math.ceil(waitTime / 1000)}s`, 'warn');
       await sleep(waitTime + 500);
-      this.currentWeight = 0;
-      this.windowStart   = Date.now();
+      this.currentWeight = 0; this.windowStart = Date.now();
     }
-
-    this.processing = false;
-    this.process();
+    this.processing = false; this.process();
   }
-
-  drain() {
-    this.queue.forEach(item => item.reject(new Error('Cancelled')));
-    this.queue = [];
-    this.processing = false;
-  }
+  drain() { this.queue.forEach(item => item.reject(new Error('Cancelled'))); this.queue = []; this.processing = false; }
 }
 const apiLimiter = new RateLimiter(900, 60000);
 
-// ── HELPERS ──────────────────────────────────────────────────────────
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function fmt(n, p = 4) { return Number(n).toPrecision(p); }
 function fmtPct(n, sign = true) { return `${sign && n >= 0 ? '+' : ''}${Number(n).toFixed(2)}%`; }
 function fmtVol(n) { return n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(0)}M` : `$${(n/1e3).toFixed(0)}K`; }
 
-// ── API WRAPPERS ─────────────────────────────────────────────────────
 async function binance(path, params = {}, weight = 1) {
   return apiLimiter.request(async () => {
     const qs  = new URLSearchParams(params).toString();
@@ -846,74 +841,53 @@ async function binance(path, params = {}, weight = 1) {
   }, weight);
 }
 
-// ── CACHE ─────────────────────────────────────────────────────────────
-// L1 = in-memory Map (instant), L2 = localStorage (persisted across reload)
-const MemCache = new Map(); // L1 — clears on page reload
-
+const MemCache = new Map();
 const Cache = {
   prefix: 'hervin_v9_',
-  ttls:   { klines: 3 * 60 * 1000, analysis: 5 * 60 * 1000, oi: 2 * 60 * 1000 },
-
+  // FIX: Extended klines TTL — accum scan needs longer windows
+  ttls: { klines: 5 * 60 * 1000, analysis: 5 * 60 * 1000, oi: 2 * 60 * 1000 },
   _key(sym, type) { return `${this.prefix}${type}_${sym}`; },
-
   get(sym, type) {
-    // L1 first
     const memKey = `${type}_${sym}`;
     if (MemCache.has(memKey)) {
       const { ts, data } = MemCache.get(memKey);
       if (Date.now() - ts <= (this.ttls[type] || this.ttls.analysis)) return data;
       MemCache.delete(memKey);
     }
-    // L2 fallback
     try {
       const raw = localStorage.getItem(this._key(sym, type));
       if (!raw) return null;
       const { ts, data } = JSON.parse(raw);
-      if (Date.now() - ts > (this.ttls[type] || this.ttls.analysis)) {
-        localStorage.removeItem(this._key(sym, type));
-        return null;
-      }
-      // Promote to L1
+      if (Date.now() - ts > (this.ttls[type] || this.ttls.analysis)) { localStorage.removeItem(this._key(sym, type)); return null; }
       MemCache.set(memKey, { ts, data });
       return data;
     } catch { return null; }
   },
-
   set(sym, type, data) {
-    const ts     = Date.now();
-    const memKey = `${type}_${sym}`;
+    const ts = Date.now(), memKey = `${type}_${sym}`;
     MemCache.set(memKey, { ts, data });
-    try {
-      localStorage.setItem(this._key(sym, type), JSON.stringify({ ts, data }));
-    } catch (e) {
-      if (e.name === 'QuotaExceededError') { this.clearOld(); }
-    }
+    try { localStorage.setItem(this._key(sym, type), JSON.stringify({ ts, data })); }
+    catch (e) { if (e.name === 'QuotaExceededError') this.clearOld(); }
   },
-
   clearOld() {
     const now = Date.now();
-    Object.keys(localStorage)
-      .filter(k => k.startsWith(this.prefix))
-      .forEach(k => {
-        try {
-          const { ts } = JSON.parse(localStorage.getItem(k));
-          if (now - ts > 10 * 60 * 1000) localStorage.removeItem(k);
-        } catch { localStorage.removeItem(k); }
-      });
+    Object.keys(localStorage).filter(k => k.startsWith(this.prefix)).forEach(k => {
+      try { const { ts } = JSON.parse(localStorage.getItem(k)); if (now - ts > 10 * 60 * 1000) localStorage.removeItem(k); }
+      catch { localStorage.removeItem(k); }
+    });
   },
 };
 
-// ── KLINES WITH CACHE ─────────────────────────────────────────────────
+// FIX: Increased klines limit from 60→120 for 4H (covers 20 days) and 30→60 for 1D
 async function getKlines(symbol, interval, limit) {
   const cacheKey = `${symbol}_${interval}_${limit}`;
-  const cached   = Cache.get(cacheKey, 'klines');
+  const cached = Cache.get(cacheKey, 'klines');
   if (cached) return cached;
   const data = await binance('klines', { symbol: symbol + 'USDT', interval, limit }, 5);
   Cache.set(cacheKey, 'klines', data);
   return data;
 }
 
-// ── OPEN INTEREST ─────────────────────────────────────────────────────
 async function getOIChange(symbol) {
   const cached = Cache.get(symbol, 'oi');
   if (cached !== null) return cached;
@@ -922,13 +896,12 @@ async function getOIChange(symbol) {
     if (!data || data.length < 2) return 0;
     const oldest = parseFloat(data[0].sumOpenInterestValue);
     const newest = parseFloat(data[data.length - 1].sumOpenInterestValue);
-    const pct    = oldest > 0 ? ((newest - oldest) / oldest * 100) : 0;
+    const pct = oldest > 0 ? ((newest - oldest) / oldest * 100) : 0;
     Cache.set(symbol, 'oi', pct);
     return pct;
   } catch { return 0; }
 }
 
-// ── CLOCK + LOG ───────────────────────────────────────────────────────
 setInterval(() => {
   const n = new Date();
   document.getElementById('clock').textContent =
@@ -936,10 +909,10 @@ setInterval(() => {
 }, 1000);
 
 function logMsg(msg, type = '') {
-  const el   = document.getElementById('logLines');
+  const el = document.getElementById('logLines');
   const line = document.createElement('div');
   line.className = `log-line ${type}`;
-  const ts   = new Date().toUTCString().slice(17, 25);
+  const ts = new Date().toUTCString().slice(17, 25);
   line.textContent = `${ts} — ${msg}`;
   el.appendChild(line);
   while (el.children.length > 120) el.removeChild(el.firstChild);
@@ -953,7 +926,7 @@ function showToast(msg, type = '', duration = 2800) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className = `toast show ${type}`;
-  setTimeout(() => { el.classList.remove('show'); }, duration);
+  setTimeout(() => el.classList.remove('show'), duration);
 }
 
 function setDot(state) { document.getElementById('liveDot').className = 'live-dot ' + state; }
@@ -966,27 +939,23 @@ function showProgress(label) {
 function setProgress(pct) {
   const fill = document.getElementById('progressFill');
   const text = document.getElementById('progressPct');
-  const p    = Math.min(100, Math.max(0, pct));
+  const p = Math.min(100, Math.max(0, pct));
   fill.style.width = p + '%';
   text.textContent = Math.round(p) + '%';
-  fill.className   = 'progress-fill' + (p >= 100 ? ' done' : '');
+  fill.className = 'progress-fill' + (p >= 100 ? ' done' : '');
 }
 function hideProgress() { document.getElementById('progressWrap').classList.remove('show'); }
 
 // ═══════════════════════════════════════════════════════════════════
-// TECHNICAL INDICATORS (unchanged from v8)
+// TECHNICAL INDICATORS
 // ═══════════════════════════════════════════════════════════════════
-
 function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return 50;
   let gains = 0, losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const d = closes[i] - closes[i - 1];
-    if (d > 0) gains += d; else losses -= d;
-  }
+  for (let i = 1; i <= period; i++) { const d = closes[i] - closes[i-1]; if (d > 0) gains += d; else losses -= d; }
   let ag = gains / period, al = losses / period;
   for (let i = period + 1; i < closes.length; i++) {
-    const d = closes[i] - closes[i - 1];
+    const d = closes[i] - closes[i-1];
     ag = (ag * (period - 1) + Math.max(d, 0)) / period;
     al = (al * (period - 1) + Math.max(-d, 0)) / period;
   }
@@ -996,11 +965,9 @@ function calcRSI(closes, period = 14) {
 function calcStochRSI(closes, rsiPeriod = 14, stochPeriod = 14) {
   if (closes.length < rsiPeriod + stochPeriod) return 50;
   const rsiValues = [];
-  for (let i = rsiPeriod; i <= closes.length - 1; i++) {
-    rsiValues.push(calcRSI(closes.slice(0, i + 1), rsiPeriod));
-  }
+  for (let i = rsiPeriod; i <= closes.length - 1; i++) rsiValues.push(calcRSI(closes.slice(0, i + 1), rsiPeriod));
   const recent = rsiValues.slice(-stochPeriod);
-  const minRSI  = Math.min(...recent), maxRSI = Math.max(...recent);
+  const minRSI = Math.min(...recent), maxRSI = Math.max(...recent);
   if (maxRSI === minRSI) return 50;
   return Math.round(((rsiValues[rsiValues.length - 1] - minRSI) / (maxRSI - minRSI)) * 100);
 }
@@ -1009,9 +976,7 @@ function calcATR(klines, period = 14) {
   if (klines.length < period + 1) return 0;
   const trs = [];
   for (let i = 1; i < klines.length; i++) {
-    const h  = parseFloat(klines[i][2]);
-    const l  = parseFloat(klines[i][3]);
-    const pc = parseFloat(klines[i - 1][4]);
+    const h = parseFloat(klines[i][2]), l = parseFloat(klines[i][3]), pc = parseFloat(klines[i-1][4]);
     trs.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
   }
   return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
@@ -1032,15 +997,10 @@ function calcEMA(arr, period) {
 
 function calcMACD(closes) {
   if (closes.length < 26) return { macd: 0, signal: 0, hist: 0 };
-  const ema12 = calcEMA(closes, 12);
-  const ema26 = calcEMA(closes, 26);
-  const macd  = ema12 - ema26;
+  const ema12 = calcEMA(closes, 12), ema26 = calcEMA(closes, 26);
+  const macd = ema12 - ema26;
   const macdArr = [];
-  for (let i = 26; i <= closes.length; i++) {
-    const e12 = calcEMA(closes.slice(0, i), 12);
-    const e26 = calcEMA(closes.slice(0, i), 26);
-    macdArr.push(e12 - e26);
-  }
+  for (let i = 26; i <= closes.length; i++) { const e12 = calcEMA(closes.slice(0, i), 12), e26 = calcEMA(closes.slice(0, i), 26); macdArr.push(e12 - e26); }
   const signal = calcEMA(macdArr, 9);
   return { macd, signal, hist: macd - signal };
 }
@@ -1048,42 +1008,35 @@ function calcMACD(closes) {
 function calcBollingerBands(closes, period = 20, mult = 2) {
   if (closes.length < period) return { upper: 0, mid: 0, lower: 0, width: 0 };
   const slice = closes.slice(-period);
-  const mid   = slice.reduce((a, b) => a + b, 0) / period;
-  const std   = Math.sqrt(slice.reduce((a, b) => a + (b - mid) ** 2, 0) / period);
-  const upper = mid + mult * std;
-  const lower = mid - mult * std;
+  const mid = slice.reduce((a, b) => a + b, 0) / period;
+  const std = Math.sqrt(slice.reduce((a, b) => a + (b - mid) ** 2, 0) / period);
+  const upper = mid + mult * std, lower = mid - mult * std;
   return { upper, mid, lower, width: mid > 0 ? (upper - lower) / mid * 100 : 0 };
 }
 
 function calculateTrend(arr) {
   if (arr.length < 5) return 0;
-  const n = arr.length;
-  const sumX  = n * (n - 1) / 2;
-  const sumY  = arr.reduce((a, b) => a + b, 0);
-  const sumXY = arr.reduce((s, v, i) => s + i * v, 0);
-  const sumX2 = n * (n - 1) * (2 * n - 1) / 6;
+  const n = arr.length, sumX = n * (n-1) / 2, sumY = arr.reduce((a,b) => a+b, 0);
+  const sumXY = arr.reduce((s,v,i) => s + i*v, 0), sumX2 = n * (n-1) * (2*n-1) / 6;
   const denom = n * sumX2 - sumX * sumX;
   if (denom === 0) return 0;
-  const slope = (n * sumXY - sumX * sumY) / denom;
-  const avg   = sumY / n;
+  const slope = (n * sumXY - sumX * sumY) / denom, avg = sumY / n;
   return avg === 0 ? 0 : Math.max(-1, Math.min(1, slope / (avg * 0.1)));
 }
 
 function detectBullishDivergence(klines) {
   if (klines.length < 25) return false;
-  const closes = klines.map(k => parseFloat(k[4]));
-  const lows   = klines.map(k => parseFloat(k[3]));
+  const closes = klines.map(k => parseFloat(k[4])), lows = klines.map(k => parseFloat(k[3]));
   const c1 = closes.slice(-20, -10), c2 = closes.slice(-10);
-  const l1 = lows.slice(-20, -10),   l2 = lows.slice(-10);
+  const l1 = lows.slice(-20, -10), l2 = lows.slice(-10);
   return Math.min(...l2) < Math.min(...l1) && calcRSI(c2) > calcRSI(c1);
 }
 
 function detectBearishDivergence(klines) {
   if (klines.length < 25) return false;
-  const closes = klines.map(k => parseFloat(k[4]));
-  const highs  = klines.map(k => parseFloat(k[2]));
+  const closes = klines.map(k => parseFloat(k[4])), highs = klines.map(k => parseFloat(k[2]));
   const c1 = closes.slice(-20, -10), c2 = closes.slice(-10);
-  const h1 = highs.slice(-20, -10),  h2 = highs.slice(-10);
+  const h1 = highs.slice(-20, -10), h2 = highs.slice(-10);
   return Math.max(...h2) > Math.max(...h1) && calcRSI(c2) < calcRSI(c1);
 }
 
@@ -1091,15 +1044,13 @@ function detectOBVDivergence(closes, volumes) {
   if (closes.length < 20) return null;
   let obv = [0];
   for (let i = 1; i < closes.length; i++) {
-    if (closes[i] > closes[i - 1])      obv.push(obv[i-1] + volumes[i]);
-    else if (closes[i] < closes[i - 1]) obv.push(obv[i-1] - volumes[i]);
-    else                                 obv.push(obv[i-1]);
+    if (closes[i] > closes[i-1]) obv.push(obv[i-1] + volumes[i]);
+    else if (closes[i] < closes[i-1]) obv.push(obv[i-1] - volumes[i]);
+    else obv.push(obv[i-1]);
   }
-  const n          = 10;
-  const priceEnd   = closes[closes.length - 1];
-  const priceStart = Math.min(...closes.slice(-n));
-  const obvStart   = Math.min(...obv.slice(-n));
-  const obvEnd     = obv[obv.length - 1];
+  const n = 10;
+  const priceEnd = closes[closes.length-1], priceStart = Math.min(...closes.slice(-n));
+  const obvStart = Math.min(...obv.slice(-n)), obvEnd = obv[obv.length-1];
   if (priceEnd <= priceStart && obvEnd > obvStart * 1.05) return 'bullish';
   if (priceEnd >= priceStart && obvEnd < obvStart * 0.95) return 'bearish';
   return null;
@@ -1107,12 +1058,10 @@ function detectOBVDivergence(closes, volumes) {
 
 function detectWyckoffPhase(closes, volumes) {
   if (closes.length < 30) return null;
-  const recent   = closes.slice(-30);
-  const minP     = Math.min(...recent), maxP = Math.max(...recent);
-  const range    = maxP - minP;
-  const currPos  = range === 0 ? 0.5 : (recent[recent.length - 1] - minP) / range;
-  const avgVol   = volumes.slice(-10).reduce((a, b) => a + b, 0) / 10;
-  const prevVol  = volumes.slice(-20, -10).reduce((a, b) => a + b, 0) / 10;
+  const recent = closes.slice(-30), minP = Math.min(...recent), maxP = Math.max(...recent);
+  const range = maxP - minP, currPos = range === 0 ? 0.5 : (recent[recent.length-1] - minP) / range;
+  const avgVol = volumes.slice(-10).reduce((a,b) => a+b, 0) / 10;
+  const prevVol = volumes.slice(-20, -10).reduce((a,b) => a+b, 0) / 10;
   if (currPos < 0.3 && avgVol < prevVol * 0.9) return 'accumulation';
   if (currPos > 0.7 && avgVol > prevVol * 1.2) return 'distribution';
   return null;
@@ -1132,7 +1081,7 @@ function detectSupportCluster(klines, currentPrice) {
 
 function detectResistanceCluster(klines, currentPrice) {
   const highs = klines.map(k => parseFloat(k[2]));
-  const seen  = [];
+  const seen = [];
   for (const high of highs) {
     if (!seen.some(c => Math.abs(c - high) / (c || 1) < 0.015)) {
       const count = highs.filter(h => Math.abs(h - high) / (high || 1) < 0.015).length;
@@ -1143,391 +1092,255 @@ function detectResistanceCluster(klines, currentPrice) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// OPTIMASI 2: CANDLESTICK PATTERN DETECTION
-// Menggunakan klines1d yang sudah di-fetch di analyzeCoin() — zero API cost.
-// Context-aware: pattern hanya meaningful kalau RSI/harga mendukung.
-//
-// Pattern yang dideteksi:
-//   Bearish Engulfing   — reversal candle cover full prev bullish body
-//   Evening Star        — 3-candle: bull + doji/small + big bear
-//   Shooting Star       — long upper wick rejection di resistance
-//   Three Black Crows   — 3 consecutive bearish candles, closing near low
+// FIX: PRE-PUMP SILENCE DETECTOR
+// Detect akumulasi diam-diam sebelum pump besar seperti HYPER:
+// - Harga flat/sideways untuk periode panjang
+// - Volume mulai menyusut (sellers exhausted)
+// - Tidak ada distribusi (OBV tidak turun)
 // ═══════════════════════════════════════════════════════════════════
-
-/**
- * detectCandlePatterns(klines1d, rsi1d, price)
- *
- * Returns array of pattern objects:
- * { name, strength ('strong'|'medium'), text, contextValid }
- *
- * contextValid = false kalau pattern muncul tapi kondisi tidak mendukung
- * (misal Shooting Star di RSI 35 = tidak relevan untuk short)
- */
-function detectCandlePatterns(klines1d, rsi1d, price) {
-  const patterns = [];
-  if (!klines1d || klines1d.length < 5) return patterns;
-
-  const len  = klines1d.length;
-  const k    = (i) => ({
-    o: parseFloat(klines1d[i][1]),
-    h: parseFloat(klines1d[i][2]),
-    l: parseFloat(klines1d[i][3]),
-    c: parseFloat(klines1d[i][4]),
-    v: parseFloat(klines1d[i][5]),
-    body: Math.abs(parseFloat(klines1d[i][4]) - parseFloat(klines1d[i][1])),
-    range: parseFloat(klines1d[i][2]) - parseFloat(klines1d[i][3]),
-    isBull: parseFloat(klines1d[i][4]) > parseFloat(klines1d[i][1]),
-    isBear: parseFloat(klines1d[i][4]) < parseFloat(klines1d[i][1]),
-  });
-
-  const c0 = k(len - 1); // current (most recent completed daily)
-  const c1 = k(len - 2); // 1 candle ago
-  const c2 = k(len - 3); // 2 candles ago
-
-  // ── 1. BEARISH ENGULFING ─────────────────────────────────────────
-  // c1 = bullish candle, c0 = bearish candle yang cover full body c1
-  if (
-    c1.isBull &&
-    c0.isBear &&
-    c0.o >= c1.c &&           // open >= prev close
-    c0.c <= c1.o &&           // close <= prev open
-    c0.body >= c1.body * 0.9  // engulf at least 90% of prev body
-  ) {
-    const contextValid = rsi1d > 55; // only meaningful if not already oversold
-    patterns.push({
-      name: 'Bearish Engulfing',
-      strength: contextValid ? 'strong' : 'medium',
-      text: `🕯 Bearish Engulfing (1D) — candle merah telan full body hijau sebelumnya${contextValid ? ' + RSI ' + rsi1d + ' overbought zone' : ' (RSI rendah, low confidence)'}`,
-      contextValid,
-    });
-  }
-
-  // ── 2. EVENING STAR ──────────────────────────────────────────────
-  // c2 = big bullish, c1 = small body (star/doji), c0 = big bearish
-  // c0 close harus masuk ke dalam body c2
-  const starBody = c1.body / (c2.body || 1);
-  if (
-    c2.isBull &&
-    c2.body > 0 &&
-    starBody < 0.35 &&                              // c1 small = star
-    c0.isBear &&
-    c0.body >= c2.body * 0.6 &&                     // c0 substantial bearish
-    c0.c <= (c2.o + c2.c) / 2                       // close into c2 body
-  ) {
-    const contextValid = rsi1d > 60;
-    patterns.push({
-      name: 'Evening Star',
-      strength: contextValid ? 'strong' : 'medium',
-      text: `🌟 Evening Star (1D) — pola 3 candle reversal: bull → doji → bear${contextValid ? ', RSI ' + rsi1d : ' (konfirmasi lemah, RSI tidak overbought)'}`,
-      contextValid,
-    });
-  }
-
-  // ── 3. SHOOTING STAR ─────────────────────────────────────────────
-  // c0 = candle dengan upper wick panjang (2x body), body kecil di bawah
-  // Upper wick harus > 2/3 dari total range
-  const upperWick0  = c0.h - Math.max(c0.o, c0.c);
-  const lowerWick0  = Math.min(c0.o, c0.c) - c0.l;
-  const totalRange0 = c0.range;
-
-  if (
-    totalRange0 > 0 &&
-    upperWick0 >= totalRange0 * 0.60 &&    // upper wick >= 60% range
-    upperWick0 >= c0.body * 2.0 &&         // wick setidaknya 2x body
-    lowerWick0 <= totalRange0 * 0.15       // lower wick kecil
-  ) {
-    const contextValid = rsi1d > 55;
-    patterns.push({
-      name: 'Shooting Star',
-      strength: contextValid ? 'strong' : 'medium',
-      text: `⭐ Shooting Star (1D) — rejection wick panjang di atas, close rendah${contextValid ? ' di resistance zone (RSI ' + rsi1d + ')' : ' (RSI ' + rsi1d + ' belum overbought — low confidence)'}`,
-      contextValid,
-    });
-  }
-
-  // ── 4. THREE BLACK CROWS ─────────────────────────────────────────
-  // 3 candle bearish berturut, masing-masing open dalam body candle sebelumnya
-  // dan close mendekati low (lower wick < 25% body)
-  const c3 = len >= 4 ? k(len - 4) : null;
-  if (c3) {
-    const crow3lw = Math.min(c3.o, c3.c) - c3.l;
-    const crow2lw = Math.min(c2.o, c2.c) - c2.l;
-    const crow1lw = Math.min(c1.o, c1.c) - c1.l;
-
-    if (
-      c3.isBear && c2.isBear && c1.isBear &&
-      c2.o <= Math.max(c3.o, c3.c) && c2.o >= Math.min(c3.o, c3.c) && // c2 open within c3 body
-      c1.o <= Math.max(c2.o, c2.c) && c1.o >= Math.min(c2.o, c2.c) && // c1 open within c2 body
-      crow3lw <= c3.body * 0.25 &&  // close near low
-      crow2lw <= c2.body * 0.25 &&
-      crow1lw <= c1.body * 0.25 &&
-      c3.body > 0 && c2.body > 0 && c1.body > 0
-    ) {
-      // 3 Black Crows di crypto = less reliable, tapi perlu konteks trend
-      const contextValid = rsi1d > 50; // only warn if still above midline
-      patterns.push({
-        name: 'Three Black Crows',
-        strength: contextValid ? 'medium' : 'weak', // deliberately lower in crypto
-        text: `🦅 Three Black Crows (1D) — 3 candle merah berturut close near low${contextValid ? ' — selling pressure kuat' : ' (RSI sudah oversold, reversal bisa datang)'}`,
-        contextValid,
-      });
-    }
-  }
-
-  return patterns;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// BREAKOUT DETECTION (unchanged from v8)
-// ═══════════════════════════════════════════════════════════════════
-function detectBreakout(klines4h, klines1h, currentPrice) {
-  const result = {
-    broke: false, retesting: false, consolidating: false,
-    volConfirmed: false, breakoutPct: 0, level: 0, score: 0, signals: [],
-  };
-  if (!klines4h || klines4h.length < 30) return result;
+function detectPrePumpSilence(klines4h, klines1d) {
+  const result = { detected: false, score: 0, signals: [], consolidationDays: 0, volCompression: false };
+  if (!klines4h || klines4h.length < 40) return result;
 
   const closes4h = klines4h.map(k => parseFloat(k[4]));
   const highs4h  = klines4h.map(k => parseFloat(k[2]));
   const lows4h   = klines4h.map(k => parseFloat(k[3]));
   const vols4h   = klines4h.map(k => parseFloat(k[5]));
 
-  const highsLb     = highs4h.slice(-25, -3);
-  const resistLevel = Math.max(...highsLb);
-  result.level      = resistLevel;
+  // 1. PRICE RANGE COMPRESSION — harga range menyempit selama 10-30 hari
+  const lookback20 = closes4h.slice(-80); // 80 candles 4H = 20 hari
+  const lookback10 = closes4h.slice(-40); // 40 candles 4H = 10 hari
+  const lookback5  = closes4h.slice(-20); // 20 candles 4H = 5 hari
 
-  const breakoutPct = resistLevel > 0 ? (currentPrice - resistLevel) / resistLevel * 100 : 0;
-  result.breakoutPct = breakoutPct;
+  const rangeOf = arr => { const h = Math.max(...arr), l = Math.min(...arr); return h > 0 ? (h - l) / h * 100 : 99; };
+  const range20 = rangeOf(lookback20);
+  const range10 = rangeOf(lookback10);
+  const range5  = rangeOf(lookback5);
 
-  if (breakoutPct > 0.5 && breakoutPct < 25) {
-    result.broke = true;
-    result.score += 2;
-    result.signals.push({ strength: 'strong', text: `🚀 Breakout dari resistance $${fmt(resistLevel, 5)} (+${breakoutPct.toFixed(1)}%)` });
-  }
-
-  const avgVol      = vols4h.slice(-20, -5).reduce((a, b) => a + b, 0) / 15;
-  const breakoutVol = vols4h[vols4h.length - 1];
-  const volMultiple = avgVol > 0 ? breakoutVol / avgVol : 1;
-
-  if (result.broke && volMultiple >= 1.8) {
-    result.volConfirmed = true;
+  // Range semakin menyempit = akumulasi
+  if (range10 < range20 * 0.7 && range5 < range10 * 0.8) {
+    result.score += 3;
+    result.consolidationDays = Math.round(range20 / 4);
+    result.signals.push({ strength: 'strong', text: `🔲 Range compression: ${range20.toFixed(1)}% → ${range10.toFixed(1)}% → ${range5.toFixed(1)}% — coiling ketat` });
+  } else if (range10 < 10) {
     result.score += 1;
-    result.signals.push({ strength: 'strong', text: `📊 Volume breakout ${volMultiple.toFixed(1)}x avg — genuine move` });
-  } else if (result.broke && volMultiple >= 1.2) {
-    result.signals.push({ strength: 'medium', text: `📊 Volume breakout ${volMultiple.toFixed(1)}x — kurang meyakinkan` });
+    result.signals.push({ strength: 'medium', text: `🔲 Konsolidasi 10D dalam range ${range10.toFixed(1)}%` });
   }
 
-  if (result.broke && breakoutPct > 0 && breakoutPct < 5) {
-    result.retesting = true;
+  // 2. VOLUME CONTRACTION — volume mengecil saat harga flat
+  const vol20Avg = vols4h.slice(-80, -40).reduce((a,b) => a+b, 0) / 40;
+  const vol10Avg = vols4h.slice(-40, -20).reduce((a,b) => a+b, 0) / 20;
+  const vol5Avg  = vols4h.slice(-20).reduce((a,b) => a+b, 0) / 20;
+
+  const volDropping = vol5Avg < vol10Avg * 0.75 && vol10Avg < vol20Avg * 0.85;
+  if (volDropping) {
+    result.volCompression = true;
     result.score += 2;
-    result.signals.push({ strength: 'strong', text: `🎯 Retest resistance lama = entry terbaik sebelum pump lanjut` });
+    result.signals.push({ strength: 'strong', text: `📉 Volume contraction: sellers exhausted, akumulasi aktif` });
+  } else if (vol5Avg < vol20Avg * 0.7) {
+    result.score += 1;
+    result.signals.push({ strength: 'medium', text: `📉 Volume drop ${((1 - vol5Avg/vol20Avg)*100).toFixed(0)}% dari rata-rata — diam-diam` });
   }
 
-  if (!result.broke) {
-    const recentHigh = Math.max(...highs4h.slice(-8));
-    const recentLow  = Math.min(...lows4h.slice(-8));
-    const rangeWidth = recentHigh > 0 ? (recentHigh - recentLow) / recentHigh * 100 : 99;
-    const earlyVol   = vols4h.slice(-8, -4).reduce((a, b) => a + b, 0) / 4;
-    const lateVol    = vols4h.slice(-4).reduce((a, b) => a + b, 0) / 4;
-    const volContracting = lateVol < earlyVol * 0.85;
+  // 3. PRICE HOLDING ABOVE KEY SUPPORT — tidak breakdown walau volume sepi
+  const support = Math.min(...lows4h.slice(-80));
+  const current = closes4h[closes4h.length - 1];
+  const distFromSupport = (current - support) / (current || 1) * 100;
+  if (distFromSupport > 2 && distFromSupport < 15) {
+    result.score += 1;
+    result.signals.push({ strength: 'medium', text: `🧱 Harga bertahan ${distFromSupport.toFixed(1)}% di atas support — tidak breakdown` });
+  }
 
-    if (rangeWidth < 6 && volContracting) {
-      result.consolidating = true;
+  // 4. LOWER HIGHS WITH HIGHER LOWS — wedge pattern = spring loaded
+  const highs10 = highs4h.slice(-40);
+  const lows10  = lows4h.slice(-40);
+  const highTrend = calculateTrend(highs10.filter((_, i) => i % 4 === 0));
+  const lowTrend  = calculateTrend(lows10.filter((_, i) => i % 4 === 0));
+  if (highTrend < -0.1 && lowTrend > 0.05) {
+    result.score += 2;
+    result.signals.push({ strength: 'strong', text: `🔺 Descending wedge / symmetrical triangle — spring loaded` });
+  }
+
+  // 5. KLINES 1D: Cek apakah 1D juga flat lama
+  if (klines1d && klines1d.length >= 20) {
+    const closes1d = klines1d.map(k => parseFloat(k[4]));
+    const vols1d   = klines1d.map(k => parseFloat(k[5]));
+    const range1dMonth = rangeOf(closes1d.slice(-30));
+    const avgVol1dEarly = vols1d.slice(-30, -15).reduce((a,b) => a+b, 0) / 15;
+    const avgVol1dLate  = vols1d.slice(-15).reduce((a,b) => a+b, 0) / 15;
+
+    if (range1dMonth < 25 && avgVol1dLate < avgVol1dEarly * 0.8) {
       result.score += 2;
-      result.signals.push({ strength: 'strong', text: `🔲 Konsolidasi ketat ${rangeWidth.toFixed(1)}% + volume menyusut = coiling sebelum pump` });
-    } else if (rangeWidth < 10) {
-      result.score += 1;
-      result.signals.push({ strength: 'medium', text: `🔲 Range sempit ${rangeWidth.toFixed(1)}% — potensi breakout segera` });
-    }
-
-    const distToBreak = resistLevel > 0 ? (resistLevel - currentPrice) / resistLevel * 100 : 99;
-    if (distToBreak < 3 && distToBreak > 0) {
-      result.score += 1;
-      result.signals.push({ strength: 'medium', text: `⚡ Harga hanya ${distToBreak.toFixed(1)}% dari resistance — siap breakout` });
+      result.consolidationDays = 30;
+      result.signals.push({ strength: 'strong', text: `📅 1D chart: konsolidasi ${range1dMonth.toFixed(1)}% selama sebulan + vol menurun — akumulasi institutional` });
     }
   }
 
+  result.detected = result.score >= 4;
   return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// TIMEFRAME CONFLUENCE (unchanged from v8)
-// ═══════════════════════════════════════════════════════════════════
+// ── CANDLESTICK PATTERNS ──────────────────────────────────────────────
+function detectCandlePatterns(klines1d, rsi1d, price) {
+  const patterns = [];
+  if (!klines1d || klines1d.length < 5) return patterns;
+  const len = klines1d.length;
+  const k = (i) => ({
+    o: parseFloat(klines1d[i][1]), h: parseFloat(klines1d[i][2]),
+    l: parseFloat(klines1d[i][3]), c: parseFloat(klines1d[i][4]),
+    v: parseFloat(klines1d[i][5]),
+    body: Math.abs(parseFloat(klines1d[i][4]) - parseFloat(klines1d[i][1])),
+    range: parseFloat(klines1d[i][2]) - parseFloat(klines1d[i][3]),
+    isBull: parseFloat(klines1d[i][4]) > parseFloat(klines1d[i][1]),
+    isBear: parseFloat(klines1d[i][4]) < parseFloat(klines1d[i][1]),
+  });
+  const c0 = k(len-1), c1 = k(len-2), c2 = k(len-3);
+
+  // Bearish Engulfing
+  if (c1.isBull && c0.isBear && c0.o >= c1.c && c0.c <= c1.o && c0.body >= c1.body * 0.9) {
+    const contextValid = rsi1d > 55;
+    patterns.push({ name: 'Bearish Engulfing', strength: contextValid ? 'strong' : 'medium', text: `🕯 Bearish Engulfing (1D) — candle merah telan full body hijau sebelumnya${contextValid ? ' + RSI ' + rsi1d + ' overbought zone' : ' (RSI rendah, low confidence)'}`, contextValid });
+  }
+
+  // Evening Star
+  const starBody = c1.body / (c2.body || 1);
+  if (c2.isBull && c2.body > 0 && starBody < 0.35 && c0.isBear && c0.body >= c2.body * 0.6 && c0.c <= (c2.o + c2.c) / 2) {
+    const contextValid = rsi1d > 60;
+    patterns.push({ name: 'Evening Star', strength: contextValid ? 'strong' : 'medium', text: `🌟 Evening Star (1D) — pola 3 candle reversal: bull → doji → bear${contextValid ? ', RSI ' + rsi1d : ' (konfirmasi lemah)'}`, contextValid });
+  }
+
+  // Shooting Star
+  const upperWick0 = c0.h - Math.max(c0.o, c0.c), lowerWick0 = Math.min(c0.o, c0.c) - c0.l;
+  if (c0.range > 0 && upperWick0 >= c0.range * 0.60 && upperWick0 >= c0.body * 2.0 && lowerWick0 <= c0.range * 0.15) {
+    const contextValid = rsi1d > 55;
+    patterns.push({ name: 'Shooting Star', strength: contextValid ? 'strong' : 'medium', text: `⭐ Shooting Star (1D) — rejection wick panjang di atas${contextValid ? ' (RSI ' + rsi1d + ')' : ' (RSI ' + rsi1d + ' belum overbought)'}`, contextValid });
+  }
+
+  // Three Black Crows
+  const c3 = len >= 4 ? k(len-4) : null;
+  if (c3) {
+    const crow3lw = Math.min(c3.o,c3.c) - c3.l, crow2lw = Math.min(c2.o,c2.c) - c2.l, crow1lw = Math.min(c1.o,c1.c) - c1.l;
+    if (c3.isBear && c2.isBear && c1.isBear &&
+        c2.o <= Math.max(c3.o,c3.c) && c2.o >= Math.min(c3.o,c3.c) &&
+        c1.o <= Math.max(c2.o,c2.c) && c1.o >= Math.min(c2.o,c2.c) &&
+        crow3lw <= c3.body * 0.25 && crow2lw <= c2.body * 0.25 && crow1lw <= c1.body * 0.25 &&
+        c3.body > 0 && c2.body > 0 && c1.body > 0) {
+      const contextValid = rsi1d > 50;
+      patterns.push({ name: 'Three Black Crows', strength: contextValid ? 'medium' : 'weak', text: `🦅 Three Black Crows (1D) — 3 candle merah berturut${contextValid ? ' — selling pressure kuat' : ' (RSI oversold, reversal bisa datang)'}`, contextValid });
+    }
+  }
+  return patterns;
+}
+
+// ── BREAKOUT DETECTION ────────────────────────────────────────────────
+function detectBreakout(klines4h, klines1h, currentPrice) {
+  const result = { broke: false, retesting: false, consolidating: false, volConfirmed: false, breakoutPct: 0, level: 0, score: 0, signals: [] };
+  if (!klines4h || klines4h.length < 30) return result;
+  const closes4h = klines4h.map(k => parseFloat(k[4])), highs4h = klines4h.map(k => parseFloat(k[2]));
+  const lows4h = klines4h.map(k => parseFloat(k[3])), vols4h = klines4h.map(k => parseFloat(k[5]));
+  const highsLb = highs4h.slice(-25, -3), resistLevel = Math.max(...highsLb);
+  result.level = resistLevel;
+  const breakoutPct = resistLevel > 0 ? (currentPrice - resistLevel) / resistLevel * 100 : 0;
+  result.breakoutPct = breakoutPct;
+  if (breakoutPct > 0.5 && breakoutPct < 25) {
+    result.broke = true; result.score += 2;
+    result.signals.push({ strength: 'strong', text: `🚀 Breakout dari resistance $${fmt(resistLevel, 5)} (+${breakoutPct.toFixed(1)}%)` });
+  }
+  const avgVol = vols4h.slice(-20, -5).reduce((a,b) => a+b, 0) / 15;
+  const breakoutVol = vols4h[vols4h.length - 1], volMultiple = avgVol > 0 ? breakoutVol / avgVol : 1;
+  if (result.broke && volMultiple >= 1.8) { result.volConfirmed = true; result.score += 1; result.signals.push({ strength: 'strong', text: `📊 Volume breakout ${volMultiple.toFixed(1)}x avg — genuine move` }); }
+  else if (result.broke && volMultiple >= 1.2) result.signals.push({ strength: 'medium', text: `📊 Volume breakout ${volMultiple.toFixed(1)}x — kurang meyakinkan` });
+  if (result.broke && breakoutPct > 0 && breakoutPct < 5) { result.retesting = true; result.score += 2; result.signals.push({ strength: 'strong', text: `🎯 Retest resistance lama = entry terbaik sebelum pump lanjut` }); }
+  if (!result.broke) {
+    const recentHigh = Math.max(...highs4h.slice(-8)), recentLow = Math.min(...lows4h.slice(-8));
+    const rangeWidth = recentHigh > 0 ? (recentHigh - recentLow) / recentHigh * 100 : 99;
+    const earlyVol = vols4h.slice(-8, -4).reduce((a,b) => a+b, 0) / 4, lateVol = vols4h.slice(-4).reduce((a,b) => a+b, 0) / 4;
+    const volContracting = lateVol < earlyVol * 0.85;
+    if (rangeWidth < 6 && volContracting) { result.consolidating = true; result.score += 2; result.signals.push({ strength: 'strong', text: `🔲 Konsolidasi ketat ${rangeWidth.toFixed(1)}% + volume menyusut = coiling sebelum pump` }); }
+    else if (rangeWidth < 10) { result.score += 1; result.signals.push({ strength: 'medium', text: `🔲 Range sempit ${rangeWidth.toFixed(1)}% — potensi breakout segera` }); }
+    const distToBreak = resistLevel > 0 ? (resistLevel - currentPrice) / resistLevel * 100 : 99;
+    if (distToBreak < 3 && distToBreak > 0) { result.score += 1; result.signals.push({ strength: 'medium', text: `⚡ Harga hanya ${distToBreak.toFixed(1)}% dari resistance — siap breakout` }); }
+  }
+  return result;
+}
+
 function detectTFConfluence(d, klines1h) {
   const result = { score: 0, aligned: false, signals: [], tf: { h1: null, h4: null, d1: null } };
-
   const tf4h = { trend: d.trend4h, rsi: d.rsi4h, macdBull: d.macd && d.macd.hist > 0, aboveMA: d.price > d.ma20_4h };
   const tf1d = { trend: d.trend1d, rsi: d.rsi1d, aboveMA: d.price > d.ma20_1d };
-  result.tf.h4 = tf4h;
-  result.tf.d1 = tf1d;
-
+  result.tf.h4 = tf4h; result.tf.d1 = tf1d;
   let tf1h = { trend: null, rsi: 50, macdBull: false, aboveMA: false };
   if (klines1h && klines1h.length >= 22) {
-    const closes1h = klines1h.map(k => parseFloat(k[4]));
-    const ma20_1h  = calcMA(closes1h, 20);
-    const rsi1h    = calcRSI(closes1h);
-    const macd1h   = calcMACD(closes1h);
+    const closes1h = klines1h.map(k => parseFloat(k[4])), ma20_1h = calcMA(closes1h, 20), rsi1h = calcRSI(closes1h), macd1h = calcMACD(closes1h);
     tf1h = { trend: d.price > ma20_1h ? 'bullish' : 'bearish', rsi: rsi1h, macdBull: macd1h.hist > 0, aboveMA: d.price > ma20_1h };
   }
   result.tf.h1 = tf1h;
-
   if (tf1h.trend === 'bullish') result.score += 1;
-  if (tf1h.macdBull && tf1h.rsi > 40 && tf1h.rsi < 70) {
-    result.score += 1;
-    result.signals.push({ strength: 'medium', text: `⏱ 1H bullish — RSI ${tf1h.rsi}, MACD positif` });
-  } else if (tf1h.trend === 'bullish') {
-    result.signals.push({ strength: 'medium', text: `⏱ 1H trend bullish (RSI ${tf1h.rsi})` });
-  } else {
-    result.signals.push({ strength: 'weak', text: `⏱ 1H masih bearish — belum konfirmasi` });
-  }
-
-  if (tf4h.trend === 'bullish' && tf4h.macdBull) {
-    result.score += 2;
-    result.signals.push({ strength: 'strong', text: `📐 4H bullish + MACD hijau — momentum utama kuat` });
-  } else if (tf4h.trend === 'bullish') {
-    result.score += 1;
-    result.signals.push({ strength: 'medium', text: `📐 4H trend bullish (MACD belum confirm)` });
-  } else {
-    result.signals.push({ strength: 'weak', text: `📐 4H masih bearish — hati-hati` });
-  }
-
-  if (tf1d.trend === 'bullish' && tf1d.rsi < 70) {
-    result.score += 2;
-    result.signals.push({ strength: 'strong', text: `📅 1D bullish + RSI ${tf1d.rsi} — belum overbought, ruang masih ada` });
-  } else if (tf1d.trend === 'bullish') {
-    result.score += 1;
-    result.signals.push({ strength: 'medium', text: `📅 1D bullish tapi RSI ${tf1d.rsi} — mulai tinggi` });
-  } else {
-    result.signals.push({ strength: 'weak', text: `📅 1D bearish — pump akan susah sustain` });
-  }
-
+  if (tf1h.macdBull && tf1h.rsi > 40 && tf1h.rsi < 70) { result.score += 1; result.signals.push({ strength: 'medium', text: `⏱ 1H bullish — RSI ${tf1h.rsi}, MACD positif` }); }
+  else if (tf1h.trend === 'bullish') result.signals.push({ strength: 'medium', text: `⏱ 1H trend bullish (RSI ${tf1h.rsi})` });
+  else result.signals.push({ strength: 'weak', text: `⏱ 1H masih bearish — belum konfirmasi` });
+  if (tf4h.trend === 'bullish' && tf4h.macdBull) { result.score += 2; result.signals.push({ strength: 'strong', text: `📐 4H bullish + MACD hijau — momentum utama kuat` }); }
+  else if (tf4h.trend === 'bullish') { result.score += 1; result.signals.push({ strength: 'medium', text: `📐 4H trend bullish (MACD belum confirm)` }); }
+  else result.signals.push({ strength: 'weak', text: `📐 4H masih bearish — hati-hati` });
+  if (tf1d.trend === 'bullish' && tf1d.rsi < 70) { result.score += 2; result.signals.push({ strength: 'strong', text: `📅 1D bullish + RSI ${tf1d.rsi} — belum overbought` }); }
+  else if (tf1d.trend === 'bullish') { result.score += 1; result.signals.push({ strength: 'medium', text: `📅 1D bullish tapi RSI ${tf1d.rsi} — mulai tinggi` }); }
+  else result.signals.push({ strength: 'weak', text: `📅 1D bearish — pump akan susah sustain` });
   const allBull  = tf1h.trend === 'bullish' && tf4h.trend === 'bullish' && tf1d.trend === 'bullish';
   const noneBull = tf1h.trend === 'bearish' && tf4h.trend === 'bearish' && tf1d.trend === 'bearish';
-
-  if (allBull) {
-    result.aligned = true;
-    result.score   = Math.min(result.score + 1, 6);
-    result.signals.unshift({ strength: 'strong', text: '🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish = high probability pump' });
-  } else if (noneBull) {
-    result.signals.unshift({ strength: 'weak', text: '⛔ Semua TF bearish — hindari long posisi' });
-  }
-
+  if (allBull) { result.aligned = true; result.score = Math.min(result.score + 1, 6); result.signals.unshift({ strength: 'strong', text: '🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish = high probability pump' }); }
+  else if (noneBull) result.signals.unshift({ strength: 'weak', text: '⛔ Semua TF bearish — hindari long posisi' });
   return result;
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// SMART PATTERN DETECTORS (unchanged from v8, candlestick added separately)
-// ═══════════════════════════════════════════════════════════════════
 
 function detectSmartAccumulation(d, klines4h, klines1d) {
   const signals = [];
   let score = 0;
-  const vols4h    = klines4h.map(k => parseFloat(k[5]));
-  const volTrend  = calculateTrend(vols4h.slice(-20));
-  const priceTrend = calculateTrend(d.closes4h.slice(-20));
-
-  if (volTrend > 0.3 && Math.abs(priceTrend) < 0.1) {
-    score += 2;
-    signals.push({ strength: 'strong', text: '📊 Volume ↑ harga flat = akumulasi smart money' });
-  }
+  const vols4h = klines4h.map(k => parseFloat(k[5]));
+  const volTrend = calculateTrend(vols4h.slice(-20)), priceTrend = calculateTrend(d.closes4h.slice(-20));
+  if (volTrend > 0.3 && Math.abs(priceTrend) < 0.1) { score += 2; signals.push({ strength: 'strong', text: '📊 Volume ↑ harga flat = akumulasi smart money' }); }
   const obvDiv = detectOBVDivergence(d.closes4h, vols4h);
-  if (obvDiv === 'bullish') {
-    score += 2;
-    signals.push({ strength: 'strong', text: '📈 OBV bullish divergence = buying pressure tersembunyi' });
-  }
+  if (obvDiv === 'bullish') { score += 2; signals.push({ strength: 'strong', text: '📈 OBV bullish divergence = buying pressure tersembunyi' }); }
   const wyckoff = detectWyckoffPhase(d.closes1d, d.vols1d);
-  if (wyckoff === 'accumulation') {
-    score += 2;
-    signals.push({ strength: 'strong', text: '🔄 Wyckoff Accumulation phase terdeteksi' });
-  }
-  if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG && d.oiChange > 5) {
-    score += 2;
-    signals.push({ strength: 'strong', text: '💥 Funding negatif + OI ↑ = potensi short squeeze' });
-  }
+  if (wyckoff === 'accumulation') { score += 2; signals.push({ strength: 'strong', text: '🔄 Wyckoff Accumulation phase terdeteksi' }); }
+  if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG && d.oiChange > 5) { score += 2; signals.push({ strength: 'strong', text: '💥 Funding negatif + OI ↑ = potensi short squeeze' }); }
   const support = detectSupportCluster(klines4h, d.price);
-  if (support >= 3) {
-    score += 1;
-    signals.push({ strength: 'medium', text: `🧱 ${support} support cluster terkonfirmasi` });
-  }
+  if (support >= 3) { score += 1; signals.push({ strength: 'medium', text: `🧱 ${support} support cluster terkonfirmasi` }); }
   const stochRsi = calcStochRSI(d.closes4h);
-  if (stochRsi < 20) {
-    score += 1;
-    signals.push({ strength: 'medium', text: `📉 Stoch RSI ${stochRsi} — extreme oversold` });
-  }
+  if (stochRsi < 20) { score += 1; signals.push({ strength: 'medium', text: `📉 Stoch RSI ${stochRsi} — extreme oversold` }); }
   const macd = calcMACD(d.closes4h);
-  if (macd.hist > 0 && macd.macd < 0) {
-    score += 1;
-    signals.push({ strength: 'medium', text: '🔀 MACD histogram turning bullish' });
-  }
+  if (macd.hist > 0 && macd.macd < 0) { score += 1; signals.push({ strength: 'medium', text: '🔀 MACD histogram turning bullish' }); }
   return { score, maxScore: 11, signals };
 }
 
 function detectPumpExhaustion(d, klines4h, klines1d) {
   const signals = [];
   let score = 0;
-
   const closes = d.closes4h, accs = [];
-  for (let i = 2; i < closes.length; i++) {
-    accs.push(((closes[i] - closes[i-1]) - (closes[i-1] - closes[i-2])) / (closes[i-2] || 1));
-  }
-  const avgAcc = accs.slice(-5).reduce((a, b) => a + b, 0) / 5;
-  if (avgAcc > THRESHOLDS.PARABOLIC_ACC && d.gain24h > 40) {
-    score += 2;
-    signals.push({ strength: 'strong', text: '🚀 Move parabolik — rawan reversal tajam' });
-  }
-
-  const vols    = klines4h.map(k => parseFloat(k[5]));
-  const avgVol  = vols.slice(-20, -5).reduce((a, b) => a + b, 0) / 15;
-  const recVol  = vols.slice(-5).reduce((a, b) => a + b, 0) / 5;
-  const stall   = Math.abs(d.closes4h.slice(-5).reduce((a, b) => a + b, 0) / 5 - d.price) / (d.price || 1) < 0.02;
-  if (recVol > avgVol * 2 && stall && d.gain24h > 30) {
-    score += 2;
-    signals.push({ strength: 'strong', text: '💥 Volume climax + harga stagnan = distribusi' });
-  }
-
-  if (detectBearishDivergence(klines4h)) {
-    score += 2;
-    signals.push({ strength: 'strong', text: '📉 Bearish divergence RSI (4H)' });
-  }
-  if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS && d.oiChange < -5) {
-    score += 2;
-    signals.push({ strength: 'strong', text: `🔻 Funding +${d.funding.toFixed(4)}% + OI ↓ = longs take profit` });
-  }
-
+  for (let i = 2; i < closes.length; i++) accs.push(((closes[i] - closes[i-1]) - (closes[i-1] - closes[i-2])) / (closes[i-2] || 1));
+  const avgAcc = accs.slice(-5).reduce((a,b) => a+b, 0) / 5;
+  if (avgAcc > THRESHOLDS.PARABOLIC_ACC && d.gain24h > 40) { score += 2; signals.push({ strength: 'strong', text: '🚀 Move parabolik — rawan reversal tajam' }); }
+  const vols = klines4h.map(k => parseFloat(k[5]));
+  const avgVol = vols.slice(-20, -5).reduce((a,b) => a+b, 0) / 15, recVol = vols.slice(-5).reduce((a,b) => a+b, 0) / 5;
+  const stall = Math.abs(d.closes4h.slice(-5).reduce((a,b) => a+b, 0) / 5 - d.price) / (d.price || 1) < 0.02;
+  if (recVol > avgVol * 2 && stall && d.gain24h > 30) { score += 2; signals.push({ strength: 'strong', text: '💥 Volume climax + harga stagnan = distribusi' }); }
+  if (detectBearishDivergence(klines4h)) { score += 2; signals.push({ strength: 'strong', text: '📉 Bearish divergence RSI (4H)' }); }
+  if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS && d.oiChange < -5) { score += 2; signals.push({ strength: 'strong', text: `🔻 Funding +${d.funding.toFixed(4)}% + OI ↓ = longs take profit` }); }
   const resistance = detectResistanceCluster(klines4h, d.price);
-  if (resistance >= 3) {
-    score += 1;
-    signals.push({ strength: 'medium', text: `🧱 ${resistance} resistance cluster di atas` });
-  }
-
+  if (resistance >= 3) { score += 1; signals.push({ strength: 'medium', text: `🧱 ${resistance} resistance cluster di atas` }); }
   const bb = calcBollingerBands(d.closes4h);
-  if (d.price > bb.upper) {
-    score += 1;
-    signals.push({ strength: 'medium', text: '📊 Harga di atas Bollinger Upper Band' });
-  }
-
-  // ── Integrate candlestick patterns ──
-  // Patterns sudah dihitung di analyzeCoin(), tinggal pakai dari d.candlePatterns
+  if (d.price > bb.upper) { score += 1; signals.push({ strength: 'medium', text: '📊 Harga di atas Bollinger Upper Band' }); }
   if (d.candlePatterns && d.candlePatterns.length > 0) {
     for (const p of d.candlePatterns) {
-      if (p.contextValid) {
-        score += p.strength === 'strong' ? 2 : 1;
-      } else {
-        score += 0; // tetap show tapi tidak tambah score kalau konteks buruk
-      }
-      signals.push({
-        strength: p.strength,
-        text: p.text,
-        isBear: true,
-      });
+      if (p.contextValid) score += p.strength === 'strong' ? 2 : 1;
+      signals.push({ strength: p.strength, text: p.text, isBear: true });
     }
   }
-
   return { score, maxScore: 10 + (d.candlePatterns?.length > 0 ? 2 : 0), signals };
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// COIN ANALYSIS — SINGLE SOURCE OF TRUTH
+// COIN ANALYSIS
+// FIX: Extended klines windows — 4H: 60→120, 1D: 30→60
 // ═══════════════════════════════════════════════════════════════════
 async function analyzeCoin(symbol, force = false) {
   if (!force) {
@@ -1538,7 +1351,8 @@ async function analyzeCoin(symbol, force = false) {
     try { localStorage.removeItem(Cache._key(symbol, 'oi')); } catch {}
     MemCache.delete(`analysis_${symbol}`);
     MemCache.delete(`oi_${symbol}`);
-    [['4h',60], ['1d',30], ['1h',48]].forEach(([interval, limit]) => {
+    // Clear all kline caches for this symbol
+    [['4h',120], ['1d',60], ['1h',48]].forEach(([interval, limit]) => {
       const k = `${symbol}_${interval}_${limit}`;
       try { localStorage.removeItem(Cache._key(k, 'klines')); } catch {}
       MemCache.delete(`klines_${k}`);
@@ -1548,12 +1362,12 @@ async function analyzeCoin(symbol, force = false) {
   const sym = symbol.toUpperCase();
 
   const [ticker, klines4h, klines1d, klines1h, ob, premium, oiChange] = await Promise.all([
-    binance('ticker/24hr',  { symbol: sym + 'USDT' },             1),
-    getKlines(sym, '4h', 60),
-    getKlines(sym, '1d', 30),
+    binance('ticker/24hr', { symbol: sym + 'USDT' }, 1),
+    getKlines(sym, '4h', 120),   // FIX: was 60 → 120 (20 days of 4H data)
+    getKlines(sym, '1d', 60),    // FIX: was 30 → 60 (2 months of daily data)
     getKlines(sym, '1h', 48),
-    binance('depth',        { symbol: sym + 'USDT', limit: 20 }, 2),
-    binance('premiumIndex', { symbol: sym + 'USDT' },            1).catch(() => null),
+    binance('depth', { symbol: sym + 'USDT', limit: 20 }, 2),
+    binance('premiumIndex', { symbol: sym + 'USDT' }, 1).catch(() => null),
     getOIChange(sym),
   ]);
 
@@ -1576,17 +1390,18 @@ async function analyzeCoin(symbol, force = false) {
   const macd    = calcMACD(closes4h);
   const bb      = calcBollingerBands(closes4h);
 
-  const vol7dAvg  = vols1d.slice(-7).reduce((a, b) => a + b, 0) / 7;
-  const vol30dAvg = vols1d.reduce((a, b) => a + b, 0) / vols1d.length;
-  const volRatio  = vol30dAvg > 0 ? vol7dAvg / vol30dAvg : 1;
+  // FIX: volRatio now uses 14-day vs 30-day (was 7d vs 30d) — more meaningful window
+  const vol14dAvg = vols1d.slice(-14).reduce((a,b) => a+b, 0) / 14;
+  const vol30dAvg = vols1d.reduce((a,b) => a+b, 0) / vols1d.length;
+  const volRatio  = vol30dAvg > 0 ? vol14dAvg / vol30dAvg : 1;
 
   const price7d    = closes1d.length >= 7 ? closes1d[closes1d.length - 7] : price;
   const priceChg7d = price7d > 0 ? (price - price7d) / price7d * 100 : 0;
-  const priceChg30d = closes1d[0] > 0 ? (price - closes1d[0]) / closes1d[0] * 100 : 0;
+  const price30d   = closes1d[0];
+  const priceChg30d = price30d > 0 ? (price - price30d) / price30d * 100 : 0;
 
   const bids = ob.bids ? ob.bids.slice(0,10).reduce((s,b) => s + parseFloat(b[0])*parseFloat(b[1]), 0) : 0;
   const asks = ob.asks ? ob.asks.slice(0,10).reduce((s,a) => s + parseFloat(a[0])*parseFloat(a[1]), 0) : 0;
-
   const bestBid = ob.bids?.[0]?.[0] ? parseFloat(ob.bids[0][0]) : price;
   const bestAsk = ob.asks?.[0]?.[0] ? parseFloat(ob.asks[0][0]) : price;
   const spread  = bestBid > 0 ? (bestAsk - bestBid) / bestBid * 100 : 99;
@@ -1603,8 +1418,10 @@ async function analyzeCoin(symbol, force = false) {
   const sl = price + atr4h * 1.5;
   const tp = price - atr4h * 3.0;
 
-  // ── CANDLESTICK PATTERNS — computed once here, used everywhere ──
   const candlePatterns = detectCandlePatterns(klines1d, rsi1d, price);
+
+  // FIX: Pre-pump silence detector — new!
+  const prePumpSilence = detectPrePumpSilence(klines4h, klines1d);
 
   const result = {
     symbol, price, gain24h, high24h, vol24h, funding, oiChange,
@@ -1614,12 +1431,10 @@ async function analyzeCoin(symbol, force = false) {
     closes4h, closes1d, vols4h, vols1d,
     obvDiv, wyckoff, macd, bb,
     klines4h, klines1d, klines1h,
-    candlePatterns,  // NEW: computed once, zero extra API cost
+    candlePatterns,
+    prePumpSilence,  // NEW
     breakout:     detectBreakout(klines4h, klines1h, price),
-    tfConfluence: detectTFConfluence(
-      { trend4h, trend1d, rsi4h, rsi1d, macd, ma20_4h, ma20_1d, price },
-      klines1h
-    ),
+    tfConfluence: detectTFConfluence({ trend4h, trend1d, rsi4h, rsi1d, macd, ma20_4h, ma20_1d, price }, klines1h),
   };
 
   Cache.set(symbol, 'analysis', result);
@@ -1632,113 +1447,67 @@ async function analyzeCoin(symbol, force = false) {
 // SCORING, UI RENDERING, SCANNER LOGIC
 // ═══════════════════════════════════════════════════════════════════
 
-// ── ACCUM SCORE ──────────────────────────────────────────────────────
 function scoreAccum(d) {
   const checks = [];
   let score = 0;
 
-  if (d.volRatio >= THRESHOLDS.VOLUME_SPIKE) {
-    score++;
-    checks.push({ pass: true, text: `Volume 7D: ${d.volRatio.toFixed(1)}x avg — silent buying detected` });
-  } else if (d.volRatio >= THRESHOLDS.VOLUME_MODERATE) {
-    checks.push({ warn: true, text: `Volume 7D: ${d.volRatio.toFixed(1)}x avg — sedikit naik` });
-  } else {
-    checks.push({ fail: true, text: `Volume 7D: ${d.volRatio.toFixed(1)}x avg — normal` });
-  }
+  if (d.volRatio >= THRESHOLDS.VOLUME_SPIKE) { score++; checks.push({ pass: true, text: `Volume 14D: ${d.volRatio.toFixed(1)}x avg — silent buying detected` }); }
+  else if (d.volRatio >= THRESHOLDS.VOLUME_MODERATE) checks.push({ warn: true, text: `Volume 14D: ${d.volRatio.toFixed(1)}x avg — sedikit naik` });
+  else checks.push({ fail: true, text: `Volume 14D: ${d.volRatio.toFixed(1)}x avg — normal` });
 
-  if (d.priceChg7d >= THRESHOLDS.PRICE_FLAT_MIN && d.priceChg7d <= THRESHOLDS.PRICE_FLAT_MAX) {
-    score++;
-    checks.push({ pass: true, text: `Harga 7D flat: ${fmtPct(d.priceChg7d)} — akumulasi diam-diam` });
-  } else if (d.priceChg7d > THRESHOLDS.PRICE_FLAT_MAX) {
-    checks.push({ warn: true, text: `Harga 7D pump: ${fmtPct(d.priceChg7d)} — mungkin terlambat` });
-  } else {
-    checks.push({ fail: true, text: `Harga 7D turun: ${fmtPct(d.priceChg7d)} — hati-hati distribution` });
-  }
+  if (d.priceChg7d >= THRESHOLDS.PRICE_FLAT_MIN && d.priceChg7d <= THRESHOLDS.PRICE_FLAT_MAX) { score++; checks.push({ pass: true, text: `Harga 7D flat: ${fmtPct(d.priceChg7d)} — akumulasi diam-diam` }); }
+  else if (d.priceChg7d > THRESHOLDS.PRICE_FLAT_MAX) checks.push({ warn: true, text: `Harga 7D pump: ${fmtPct(d.priceChg7d)} — mungkin terlambat` });
+  else checks.push({ fail: true, text: `Harga 7D turun: ${fmtPct(d.priceChg7d)} — hati-hati distribution` });
 
-  if (d.bullDiv) {
-    score++;
-    checks.push({ pass: true, text: `RSI Bullish Divergence (4H) — momentum naik diam-diam` });
-  } else {
-    checks.push({ fail: true, text: `Tidak ada RSI bullish divergence (4H)` });
-  }
+  if (d.bullDiv) { score++; checks.push({ pass: true, text: `RSI Bullish Divergence (4H) — momentum naik diam-diam` }); }
+  else checks.push({ fail: true, text: `Tidak ada RSI bullish divergence (4H)` });
 
-  if (d.rsi4h < THRESHOLDS.RSI_OVERSOLD) {
-    score++;
-    checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — masih murah` });
-  } else if (d.rsi4h < THRESHOLDS.RSI_OVERBOUGHT) {
-    checks.push({ warn: true, text: `RSI 4H: ${d.rsi4h} — neutral` });
-  } else {
-    checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought` });
-  }
+  if (d.rsi4h < THRESHOLDS.RSI_OVERSOLD) { score++; checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — masih murah` }); }
+  else if (d.rsi4h < THRESHOLDS.RSI_OVERBOUGHT) checks.push({ warn: true, text: `RSI 4H: ${d.rsi4h} — neutral` });
+  else checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought` });
 
-  if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG) {
-    score++;
-    checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, squeeze fuel 🚀` });
-  } else if (d.funding !== null) {
-    checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — tidak negatif` });
-  } else {
-    checks.push({ fail: true, text: `Funding: N/A` });
-  }
+  if (d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG) { score++; checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, squeeze fuel 🚀` }); }
+  else if (d.funding !== null) checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — tidak negatif` });
+  else checks.push({ fail: true, text: `Funding: N/A` });
 
-  if (d.bids >= THRESHOLDS.BID_DEPTH_STRONG) {
-    score++;
-    checks.push({ pass: true, text: `Bid wall kuat: $${(d.bids/1000).toFixed(0)}K` });
-  } else if (d.bids >= THRESHOLDS.BID_DEPTH_OK) {
-    checks.push({ warn: true, text: `Bid cukup: $${(d.bids/1000).toFixed(0)}K` });
-  } else {
-    checks.push({ fail: true, text: `Bid tipis: $${(d.bids/1000).toFixed(0)}K` });
-  }
+  if (d.bids >= THRESHOLDS.BID_DEPTH_STRONG) { score++; checks.push({ pass: true, text: `Bid wall kuat: $${(d.bids/1000).toFixed(0)}K` }); }
+  else if (d.bids >= THRESHOLDS.BID_DEPTH_OK) checks.push({ warn: true, text: `Bid cukup: $${(d.bids/1000).toFixed(0)}K` });
+  else checks.push({ fail: true, text: `Bid tipis: $${(d.bids/1000).toFixed(0)}K` });
 
-  if (d.macd && d.macd.hist > 0) {
-    score++;
-    checks.push({ pass: true, text: `MACD histogram positif — bullish momentum` });
-  } else {
-    checks.push({ fail: true, text: `MACD histogram negatif` });
-  }
+  if (d.macd && d.macd.hist > 0) { score++; checks.push({ pass: true, text: `MACD histogram positif — bullish momentum` }); }
+  else checks.push({ fail: true, text: `MACD histogram negatif` });
 
-  if (d.oiChange > 5) {
-    score++;
-    checks.push({ pass: true, text: `Open Interest ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk` });
-  } else if (d.oiChange < -5) {
-    checks.push({ warn: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — hati-hati deleveraging` });
-  } else {
-    checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat / data belum update` });
-  }
+  if (d.oiChange > 5) { score++; checks.push({ pass: true, text: `Open Interest ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk` }); }
+  else if (d.oiChange < -5) checks.push({ warn: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — hati-hati deleveraging` });
+  else checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
 
   if (d.breakout) {
-    if (d.breakout.broke && d.breakout.volConfirmed) {
-      score += 2;
-      checks.push({ pass: true, text: `🚀 Breakout terkonfirmasi volume (+${d.breakout.breakoutPct.toFixed(1)}%)` });
-    } else if (d.breakout.retesting) {
-      score += 2;
-      checks.push({ pass: true, text: `🎯 Retest level breakout — entry ideal` });
-    } else if (d.breakout.consolidating) {
-      score++;
-      checks.push({ pass: true, text: `🔲 Konsolidasi ketat — coiling sebelum breakout` });
-    } else if (d.breakout.broke) {
-      checks.push({ warn: true, text: `🚀 Breakout tapi volume lemah — hati-hati fakeout` });
-    } else {
-      checks.push({ warn: true, text: `Belum breakout — masih akumulasi / ranging` });
-    }
+    if (d.breakout.broke && d.breakout.volConfirmed) { score += 2; checks.push({ pass: true, text: `🚀 Breakout terkonfirmasi volume (+${d.breakout.breakoutPct.toFixed(1)}%)` }); }
+    else if (d.breakout.retesting) { score += 2; checks.push({ pass: true, text: `🎯 Retest level breakout — entry ideal` }); }
+    else if (d.breakout.consolidating) { score++; checks.push({ pass: true, text: `🔲 Konsolidasi ketat — coiling sebelum breakout` }); }
+    else if (d.breakout.broke) checks.push({ warn: true, text: `🚀 Breakout tapi volume lemah — hati-hati fakeout` });
+    else checks.push({ warn: true, text: `Belum breakout — masih akumulasi / ranging` });
   }
 
   if (d.tfConfluence) {
-    if (d.tfConfluence.aligned) {
-      score += 2;
-      checks.push({ pass: true, text: `🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish` });
-    } else if (d.tfConfluence.score >= 4) {
-      score++;
-      checks.push({ pass: true, text: `📐 TF Confluence kuat (${d.tfConfluence.score}/6) — 2 dari 3 TF bullish` });
-    } else if (d.tfConfluence.score >= 2) {
-      checks.push({ warn: true, text: `📐 TF Confluence partial (${d.tfConfluence.score}/6) — belum align semua` });
-    } else {
-      checks.push({ warn: true, text: `📐 TF mayoritas bearish — timing belum tepat` });
-    }
+    if (d.tfConfluence.aligned) { score += 2; checks.push({ pass: true, text: `🎯 TRIPLE CONFLUENCE — 1H + 4H + 1D semua bullish` }); }
+    else if (d.tfConfluence.score >= 4) { score++; checks.push({ pass: true, text: `📐 TF Confluence kuat (${d.tfConfluence.score}/6)` }); }
+    else if (d.tfConfluence.score >= 2) checks.push({ warn: true, text: `📐 TF Confluence partial (${d.tfConfluence.score}/6)` });
+    else checks.push({ warn: true, text: `📐 TF mayoritas bearish — timing belum tepat` });
   }
 
-  const max     = 12;
-  const pct     = Math.round(score / max * 100);
-  const cls     = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
+  // FIX: Pre-pump silence integrated into accum score
+  if (d.prePumpSilence && d.prePumpSilence.detected) {
+    score += 2;
+    checks.push({ pass: true, text: `🤫 Pre-pump silence terdeteksi — konsolidasi ${d.prePumpSilence.consolidationDays || '?'} hari${d.prePumpSilence.volCompression ? ' + vol compression' : ''}` });
+  } else if (d.prePumpSilence && d.prePumpSilence.score >= 2) {
+    score += 1;
+    checks.push({ warn: true, text: `🤫 Tanda-tanda pre-pump silence (score ${d.prePumpSilence.score}/9)` });
+  }
+
+  const max = 14; // increased from 12 to account for pre-pump silence
+  const pct = Math.round(score / max * 100);
+  const cls = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
   const verdict = score >= 9
     ? { cls: 'strong', text: '🟢 PUMP SETUP KUAT — High probability, siap entry' }
     : score >= 6
@@ -1748,89 +1517,48 @@ function scoreAccum(d) {
   return { score, max, pct, cls, checks, verdict };
 }
 
-// ── SHORT SCORE — Candlestick patterns integrated ─────────────────────
 function scoreShort(d) {
   const checks = [];
   let score = 0;
   const drop = d.high24h > 0 ? (d.high24h - d.price) / d.high24h * 100 : 0;
 
-  if (d.gain24h >= THRESHOLDS.PUMP_GAIN_MIN) {
-    score++;
-    checks.push({ pass: true, text: `Pump hari ini: ${fmtPct(d.gain24h)}` });
-  } else {
-    checks.push({ fail: true, text: `Gain 24H: ${fmtPct(d.gain24h)} — belum cukup` });
-  }
+  if (d.gain24h >= THRESHOLDS.PUMP_GAIN_MIN) { score++; checks.push({ pass: true, text: `Pump hari ini: ${fmtPct(d.gain24h)}` }); }
+  else checks.push({ fail: true, text: `Gain 24H: ${fmtPct(d.gain24h)} — belum cukup` });
 
-  if (drop >= THRESHOLDS.SHORT_DROP_MIN) {
-    score++;
-    checks.push({ pass: true, text: `Drop dari high: -${drop.toFixed(1)}% — mulai reversal` });
-  } else {
-    checks.push({ fail: true, text: `Drop dari high: -${drop.toFixed(1)}% — belum reversal` });
-  }
+  if (drop >= THRESHOLDS.SHORT_DROP_MIN) { score++; checks.push({ pass: true, text: `Drop dari high: -${drop.toFixed(1)}% — mulai reversal` }); }
+  else checks.push({ fail: true, text: `Drop dari high: -${drop.toFixed(1)}% — belum reversal` });
 
-  if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS) {
-    score++;
-    checks.push({ pass: true, text: `Funding: +${d.funding.toFixed(4)}% — longs paying heavy` });
-  } else if (d.funding !== null && d.funding < -THRESHOLDS.FUNDING_POS) {
-    checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — NEGATIF, hati-hati squeeze!` });
-  } else {
-    checks.push({ fail: true, text: `Funding: ${d.funding !== null ? d.funding.toFixed(4) : 'N/A'}%` });
-  }
+  if (d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS) { score++; checks.push({ pass: true, text: `Funding: +${d.funding.toFixed(4)}% — longs paying heavy` }); }
+  else if (d.funding !== null && d.funding < -THRESHOLDS.FUNDING_POS) checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — NEGATIF, hati-hati squeeze!` });
+  else checks.push({ fail: true, text: `Funding: ${d.funding !== null ? d.funding.toFixed(4) : 'N/A'}%` });
 
-  if (d.liquid) {
-    score++;
-    checks.push({ pass: true, text: `Liquid — spread ${d.spread.toFixed(2)}%` });
-  } else {
-    checks.push({ warn: true, text: `Liquidity rendah — spread ${d.spread.toFixed(2)}%` });
-  }
+  if (d.liquid) { score++; checks.push({ pass: true, text: `Liquid — spread ${d.spread.toFixed(2)}%` }); }
+  else checks.push({ warn: true, text: `Liquidity rendah — spread ${d.spread.toFixed(2)}%` });
 
-  if (d.rsi4h > THRESHOLDS.RSI_OVERBOUGHT) {
-    score++;
-    checks.push({ pass: true, text: `RSI 4H overbought: ${d.rsi4h}` });
-  } else {
-    checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — belum overbought` });
-  }
+  if (d.rsi4h > THRESHOLDS.RSI_OVERBOUGHT) { score++; checks.push({ pass: true, text: `RSI 4H overbought: ${d.rsi4h}` }); }
+  else checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — belum overbought` });
 
-  if (d.bearDiv) {
-    score++;
-    checks.push({ pass: true, text: `RSI Bearish Divergence (4H) terkonfirmasi` });
-  } else {
-    checks.push({ fail: true, text: `Tidak ada bearish divergence (4H)` });
-  }
+  if (d.bearDiv) { score++; checks.push({ pass: true, text: `RSI Bearish Divergence (4H) terkonfirmasi` }); }
+  else checks.push({ fail: true, text: `Tidak ada bearish divergence (4H)` });
 
-  if (d.trend1d === 'bearish') {
-    score++;
-    checks.push({ pass: true, text: `Trend 1D bearish — angin mendukung` });
-  } else {
-    checks.push({ fail: true, text: `Trend 1D masih bullish — counter-trend risk` });
-  }
+  if (d.trend1d === 'bearish') { score++; checks.push({ pass: true, text: `Trend 1D bearish — angin mendukung` }); }
+  else checks.push({ fail: true, text: `Trend 1D masih bullish — counter-trend risk` });
 
-  if (d.oiChange < -5) {
-    score++;
-    checks.push({ pass: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — longs keluar` });
-  } else {
-    checks.push({ fail: true, text: `OI: ${d.oiChange.toFixed(1)}% — belum turun signifikan` });
-  }
+  if (d.oiChange < -5) { score++; checks.push({ pass: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — longs keluar` }); }
+  else checks.push({ fail: true, text: `OI: ${d.oiChange.toFixed(1)}% — belum turun signifikan` });
 
-  // ── CANDLESTICK PATTERNS — integrated ke short score ──
-  // Hanya pattern dengan contextValid = true yang tambah score
-  // Pattern yang tidak valid tetap muncul sebagai warning
   let candleBonus = 0;
   if (d.candlePatterns && d.candlePatterns.length > 0) {
     for (const p of d.candlePatterns) {
-      if (p.contextValid) {
-        candleBonus += p.strength === 'strong' ? 2 : 1;
-        checks.push({ pass: true, text: p.text });
-      } else {
-        checks.push({ warn: true, text: p.text + ' ⚠ konteks lemah' });
-      }
+      if (p.contextValid) { candleBonus += p.strength === 'strong' ? 2 : 1; checks.push({ pass: true, text: p.text }); }
+      else checks.push({ warn: true, text: p.text + ' ⚠ konteks lemah' });
     }
-    score += Math.min(candleBonus, 3); // cap candle bonus at 3 points
+    score += Math.min(candleBonus, 3);
   }
 
-  const max  = 8 + 3; // base 8 + max candle bonus 3
-  const pct  = Math.round(score / max * 100);
-  const cls  = score >= 7 ? 'high' : score >= 4 ? 'mid' : 'low';
+  const max = 11;
+  const pct = Math.round(score / max * 100);
+  const cls = score >= 7 ? 'high' : score >= 4 ? 'mid' : 'low';
   const verdict = score >= 7
     ? { cls: 'strong', text: `🟢 LAYAK SHORT — SL $${fmt(d.sl,5)} | TP $${fmt(d.tp,5)}` }
     : score >= 4
@@ -1840,103 +1568,62 @@ function scoreShort(d) {
   return { score, max, pct, cls, checks, verdict };
 }
 
-// ── TRADE SETUP CALCULATOR (unchanged) ─────────────────────────────
 function calcTradeSetup(d) {
-  const price  = d.price;
-  const atr    = d.atr4h;
-  const klines = d.klines4h;
+  const price = d.price, atr = d.atr4h, klines = d.klines4h;
   if (!klines || klines.length < 20 || atr <= 0) return null;
-
-  const highs  = klines.map(k => parseFloat(k[2]));
-  const lows   = klines.map(k => parseFloat(k[3]));
-
+  const highs = klines.map(k => parseFloat(k[2])), lows = klines.map(k => parseFloat(k[3]));
   const lowClusters = [];
   for (const low of lows) {
     const existing = lowClusters.find(c => Math.abs(c.price - low) / low < 0.02);
     if (existing) { existing.count++; existing.prices.push(low); }
     else lowClusters.push({ price: low, count: 1, prices: [low] });
   }
-  const supports = lowClusters
-    .map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
-    .filter(c => c.price < price * 0.995)
-    .sort((a,b) => b.price - a.price);
-
+  const supports = lowClusters.map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
+    .filter(c => c.price < price * 0.995).sort((a,b) => b.price - a.price);
   const highClusters = [];
   for (const high of highs) {
     const existing = highClusters.find(c => Math.abs(c.price - high) / high < 0.015);
     if (existing) { existing.count++; existing.prices.push(high); }
     else highClusters.push({ price: high, count: 1, prices: [high] });
   }
-  const resistances = highClusters
-    .map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
-    .filter(c => c.price > price * 1.005)
-    .sort((a,b) => a.price - b.price);
-
+  const resistances = highClusters.map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
+    .filter(c => c.price > price * 1.005).sort((a,b) => a.price - b.price);
   let entryLow, entryHigh;
-  if (supports.length > 0 && supports[0].price > price * 0.93) {
-    entryLow  = supports[0].price * 0.995;
-    entryHigh = supports[0].price * 1.015;
-  } else {
-    entryLow  = price - atr * 0.5;
-    entryHigh = price + atr * 0.2;
-  }
-  if (d.breakout?.retesting && d.breakout.level > 0) {
-    entryLow  = d.breakout.level * 0.995;
-    entryHigh = d.breakout.level * 1.02;
-  }
+  if (supports.length > 0 && supports[0].price > price * 0.93) { entryLow = supports[0].price * 0.995; entryHigh = supports[0].price * 1.015; }
+  else { entryLow = price - atr * 0.5; entryHigh = price + atr * 0.2; }
+  if (d.breakout?.retesting && d.breakout.level > 0) { entryLow = d.breakout.level * 0.995; entryHigh = d.breakout.level * 1.02; }
   const entryMid = (entryLow + entryHigh) / 2;
-
   let sl;
   const supportBelow = supports.find(s => s.price < entryLow * 0.99);
-  if (supportBelow && supportBelow.count >= 2) { sl = supportBelow.price * 0.985; }
-  else { sl = entryLow - atr * 1.5; }
+  if (supportBelow && supportBelow.count >= 2) sl = supportBelow.price * 0.985;
+  else sl = entryLow - atr * 1.5;
   sl = Math.max(sl, entryMid * 0.80);
-
-  const slPct = (entryMid - sl) / entryMid * 100;
-  const risk  = entryMid - sl;
-
+  const slPct = (entryMid - sl) / entryMid * 100, risk = entryMid - sl;
   let tp1 = resistances.length >= 1 ? resistances[0].price : entryMid + risk * 1.5;
   let tp2 = resistances.length >= 2 ? resistances[1].price : entryMid + risk * 3.0;
-
-  const consolidationHigh = Math.max(...highs.slice(-15));
-  const consolidationLow  = Math.min(...lows.slice(-15));
-  const measuredMove      = consolidationHigh - consolidationLow;
+  const consolidationHigh = Math.max(...highs.slice(-15)), consolidationLow = Math.min(...lows.slice(-15));
+  const measuredMove = consolidationHigh - consolidationLow;
   let tp3 = consolidationHigh + measuredMove * 1.2;
   if (tp3 <= tp2 * 1.05) tp3 = entryMid + risk * 5.0;
-
   const rr1 = risk > 0 ? (tp1 - entryMid) / risk : 0;
   const rr2 = risk > 0 ? (tp2 - entryMid) / risk : 0;
   const rr3 = risk > 0 ? (tp3 - entryMid) / risk : 0;
-
-  const isGoodSetup  = rr2 >= 2.0 && slPct <= 15 && slPct >= 1;
-  const setupRating  = rr2 >= 3 ? 'excellent' : rr2 >= 2 ? 'good' : rr2 >= 1.5 ? 'fair' : 'poor';
-  const maxLevSafe   = slPct > 0 ? Math.floor(15 / slPct) : 1;
+  const isGoodSetup = rr2 >= 2.0 && slPct <= 15 && slPct >= 1;
+  const setupRating = rr2 >= 3 ? 'excellent' : rr2 >= 2 ? 'good' : rr2 >= 1.5 ? 'fair' : 'poor';
+  const maxLevSafe = slPct > 0 ? Math.floor(15 / slPct) : 1;
   const levSuggested = Math.min(Math.max(maxLevSafe, 1), 10);
-  const levRange     = `${levSuggested}x – ${Math.min(levSuggested + 2, 10)}x`;
-
-  return {
-    entryLow, entryHigh, entryMid, sl, slPct,
-    tp1, tp2, tp3,
-    tp1Pct: (tp1 - entryMid) / entryMid * 100,
-    tp2Pct: (tp2 - entryMid) / entryMid * 100,
-    tp3Pct: (tp3 - entryMid) / entryMid * 100,
-    rr1, rr2, rr3,
-    isGoodSetup, setupRating, levRange,
-    supports: supports.slice(0,3), resistances: resistances.slice(0,3),
-  };
+  const levRange = `${levSuggested}x – ${Math.min(levSuggested + 2, 10)}x`;
+  return { entryLow, entryHigh, entryMid, sl, slPct, tp1, tp2, tp3, tp1Pct: (tp1 - entryMid) / entryMid * 100, tp2Pct: (tp2 - entryMid) / entryMid * 100, tp3Pct: (tp3 - entryMid) / entryMid * 100, rr1, rr2, rr3, isGoodSetup, setupRating, levRange, supports: supports.slice(0,3), resistances: resistances.slice(0,3) };
 }
 
 function renderTradeSetupHtml(d, sym) {
   const setup = calcTradeSetup(d);
   if (!setup) return '';
-
-  const rrLabel    = setup.rr2 >= 2 ? `RR 1:${setup.rr2.toFixed(1)} ✅` : `RR 1:${setup.rr2.toFixed(1)} ⚠`;
-  const headBg     = setup.isGoodSetup ? '' : 'no-setup';
-  const maxPct     = setup.tp3Pct;
-  const tp1W       = Math.round(setup.tp1Pct / maxPct * 100);
-  const tp2W       = Math.round(setup.tp2Pct / maxPct * 100);
+  const rrLabel = setup.rr2 >= 2 ? `RR 1:${setup.rr2.toFixed(1)} ✅` : `RR 1:${setup.rr2.toFixed(1)} ⚠`;
+  const headBg = setup.isGoodSetup ? '' : 'no-setup';
+  const maxPct = setup.tp3Pct;
+  const tp1W = Math.round(setup.tp1Pct / maxPct * 100), tp2W = Math.round(setup.tp2Pct / maxPct * 100);
   const ratingColor = { excellent:'var(--g)', good:'var(--b)', fair:'var(--a)', poor:'var(--r)' }[setup.setupRating];
-
   return `
   <div class="trade-setup ${headBg}">
     <div class="trade-setup-head">
@@ -1956,54 +1643,25 @@ function renderTradeSetupHtml(d, sym) {
         <span class="setup-note">Invalidasi setup</span>
       </div>
       <div>
-        <div class="setup-row" style="margin-bottom:8px;">
-          <span class="setup-row-label">Take Profit</span>
-          <span style="font-size:0.7rem;color:var(--muted);">Saran: TP1 50% → TP2 30% → TP3 20%</span>
-        </div>
+        <div class="setup-row" style="margin-bottom:8px;"><span class="setup-row-label">Take Profit</span><span style="font-size:0.7rem;color:var(--muted);">Saran: TP1 50% → TP2 30% → TP3 20%</span></div>
         <div class="tp-levels">
-          <div class="tp-level">
-            <span class="tp-level-tag">TP1</span>
-            <div class="tp-bar-wrap"><div class="tp-bar-fill" style="width:${tp1W}%"></div></div>
-            <span class="tp-level-price">$${fmt(setup.tp1,5)}</span>
-            <span class="tp-level-pct">+${setup.tp1Pct.toFixed(1)}%</span>
-          </div>
-          <div class="tp-level">
-            <span class="tp-level-tag">TP2</span>
-            <div class="tp-bar-wrap"><div class="tp-bar-fill tp2" style="width:${tp2W}%"></div></div>
-            <span class="tp-level-price">$${fmt(setup.tp2,5)}</span>
-            <span class="tp-level-pct" style="color:var(--b)">+${setup.tp2Pct.toFixed(1)}%</span>
-          </div>
-          <div class="tp-level">
-            <span class="tp-level-tag">TP3</span>
-            <div class="tp-bar-wrap"><div class="tp-bar-fill tp3" style="width:100%"></div></div>
-            <span class="tp-level-price">$${fmt(setup.tp3,5)}</span>
-            <span class="tp-level-pct" style="color:var(--a)">+${setup.tp3Pct.toFixed(1)}%</span>
-          </div>
+          <div class="tp-level"><span class="tp-level-tag">TP1</span><div class="tp-bar-wrap"><div class="tp-bar-fill" style="width:${tp1W}%"></div></div><span class="tp-level-price">$${fmt(setup.tp1,5)}</span><span class="tp-level-pct">+${setup.tp1Pct.toFixed(1)}%</span></div>
+          <div class="tp-level"><span class="tp-level-tag">TP2</span><div class="tp-bar-wrap"><div class="tp-bar-fill tp2" style="width:${tp2W}%"></div></div><span class="tp-level-price">$${fmt(setup.tp2,5)}</span><span class="tp-level-pct" style="color:var(--b)">+${setup.tp2Pct.toFixed(1)}%</span></div>
+          <div class="tp-level"><span class="tp-level-tag">TP3</span><div class="tp-bar-wrap"><div class="tp-bar-fill tp3" style="width:100%"></div></div><span class="tp-level-price">$${fmt(setup.tp3,5)}</span><span class="tp-level-pct" style="color:var(--a)">+${setup.tp3Pct.toFixed(1)}%</span></div>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <div class="metric" style="flex:1;min-width:120px;">
-          <div class="metric-l">Setup Quality</div>
-          <div class="metric-v" style="color:${ratingColor};text-transform:capitalize;">${setup.setupRating}</div>
-        </div>
-        <div class="metric" style="flex:1;min-width:120px;">
-          <div class="metric-l">Leverage Saran</div>
-          <div class="metric-v amber">${setup.levRange}</div>
-        </div>
-        <div class="metric" style="flex:1;min-width:120px;">
-          <div class="metric-l">RR Terbaik</div>
-          <div class="metric-v ${setup.rr2 >= 2 ? 'green' : 'red'}">1 : ${setup.rr2.toFixed(1)}</div>
-        </div>
+        <div class="metric" style="flex:1;min-width:120px;"><div class="metric-l">Setup Quality</div><div class="metric-v" style="color:${ratingColor};text-transform:capitalize;">${setup.setupRating}</div></div>
+        <div class="metric" style="flex:1;min-width:120px;"><div class="metric-l">Leverage Saran</div><div class="metric-v amber">${setup.levRange}</div></div>
+        <div class="metric" style="flex:1;min-width:120px;"><div class="metric-l">RR Terbaik</div><div class="metric-v ${setup.rr2 >= 2 ? 'green' : 'red'}">1 : ${setup.rr2.toFixed(1)}</div></div>
       </div>
       <div class="possize-wrap">
         <div class="possize-title">💰 Position Size Calculator</div>
         <div class="possize-row">
           <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">Modal (USDT)</span>
-          <input class="possize-input" id="psCapital" type="number" placeholder="e.g. 100"
-            oninput="calcPosSize('${sym}', ${setup.entryMid}, ${setup.sl})">
+          <input class="possize-input" id="psCapital" type="number" placeholder="e.g. 100" oninput="calcPosSize('${sym}', ${setup.entryMid}, ${setup.sl})">
           <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">Risk %</span>
-          <input class="possize-input" id="psRisk" type="number" placeholder="1–3" value="2" style="width:70px"
-            oninput="calcPosSize('${sym}', ${setup.entryMid}, ${setup.sl})">
+          <input class="possize-input" id="psRisk" type="number" placeholder="1–3" value="2" style="width:70px" oninput="calcPosSize('${sym}', ${setup.entryMid}, ${setup.sl})">
         </div>
         <div class="possize-result" id="psResult" style="display:none">
           <div class="possize-stat"><div class="possize-stat-l">Position Size</div><div class="possize-stat-v" id="psSize">—</div></div>
@@ -2011,7 +1669,7 @@ function renderTradeSetupHtml(d, sym) {
           <div class="possize-stat"><div class="possize-stat-l">Profit @ TP2</div><div class="possize-stat-v" id="psProfit" style="color:var(--g)">—</div></div>
         </div>
       </div>
-      ${!setup.isGoodSetup ? `<div style="font-size:0.78rem;color:var(--a);background:var(--a-bg);border:1px solid var(--a-border);border-radius:var(--r8);padding:10px 14px;">⚠ Setup kurang ideal (RR ${setup.rr2.toFixed(1)}x) — tunggu kondisi lebih baik atau adjust entry lebih rendah</div>` : ''}
+      ${!setup.isGoodSetup ? `<div style="font-size:0.78rem;color:var(--a);background:var(--a-bg);border:1px solid var(--a-border);border-radius:var(--r8);padding:10px 14px;">⚠ Setup kurang ideal (RR ${setup.rr2.toFixed(1)}x) — tunggu kondisi lebih baik</div>` : ''}
     </div>
   </div>`;
 }
@@ -2020,21 +1678,18 @@ function calcPosSize(sym, entryMid, sl) {
   const capital = parseFloat(document.getElementById('psCapital')?.value) || 0;
   const riskPct = parseFloat(document.getElementById('psRisk')?.value) || 2;
   if (capital <= 0) return;
-  const riskAmt   = capital * riskPct / 100;
-  const slDist    = Math.abs(entryMid - sl) / entryMid;
+  const riskAmt = capital * riskPct / 100;
+  const slDist  = Math.abs(entryMid - sl) / entryMid;
   if (slDist <= 0) return;
-  const posSize   = riskAmt / slDist;
-  const resultEl  = document.getElementById('psResult');
+  const posSize = riskAmt / slDist;
+  const resultEl = document.getElementById('psResult');
   if (resultEl) resultEl.style.display = 'grid';
-  const sizeEl    = document.getElementById('psSize');
-  const lossEl    = document.getElementById('psLoss');
-  const profitEl  = document.getElementById('psProfit');
-  if (sizeEl)   sizeEl.textContent   = `$${posSize.toFixed(2)}`;
-  if (lossEl)   lossEl.textContent   = `-$${riskAmt.toFixed(2)}`;
+  const sizeEl = document.getElementById('psSize'), lossEl = document.getElementById('psLoss'), profitEl = document.getElementById('psProfit');
+  if (sizeEl) sizeEl.textContent = `$${posSize.toFixed(2)}`;
+  if (lossEl) lossEl.textContent = `-$${riskAmt.toFixed(2)}`;
   if (profitEl) profitEl.textContent = `+$${(riskAmt * 3).toFixed(2)}`;
 }
 
-// ── RENDER RESULT PANEL ───────────────────────────────────────────────
 function renderResult(sym, d, scoreData, smartSignals = []) {
   const panel = document.getElementById('resultPanel');
   document.getElementById('rpSym').textContent   = `${sym}/USDT`;
@@ -2043,96 +1698,60 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
 
   const metricsHtml = `
   <div class="metrics">
-    <div class="metric">
-      <div class="metric-l">Price 24H</div>
-      <div class="metric-v ${d.gain24h >= 0 ? 'green' : 'red'}">${fmtPct(d.gain24h)}</div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">RSI 4H</div>
-      <div class="metric-v ${d.rsi4h > 70 ? 'red' : d.rsi4h < 35 ? 'green' : ''}">${d.rsi4h}</div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">Vol 7D/30D</div>
-      <div class="metric-v ${d.volRatio >= 2 ? 'green' : ''}">${d.volRatio.toFixed(2)}x</div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">Price 7D</div>
-      <div class="metric-v ${d.priceChg7d >= 0 ? 'green' : 'red'}">${fmtPct(d.priceChg7d)}</div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">Funding</div>
-      <div class="metric-v ${d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG ? 'blue' : d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS ? 'red' : ''}">
-        ${d.funding !== null ? (d.funding >= 0 ? '+' : '') + d.funding.toFixed(4) + '%' : 'N/A'}
-      </div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">OI Change</div>
-      <div class="metric-v ${d.oiChange > 5 ? 'green' : d.oiChange < -5 ? 'red' : ''}">
-        ${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%
-      </div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">Bid Depth</div>
-      <div class="metric-v ${d.bids >= THRESHOLDS.BID_DEPTH_STRONG ? 'green' : d.bids < THRESHOLDS.BID_DEPTH_OK ? 'red' : ''}">
-        $${(d.bids/1000).toFixed(0)}K
-      </div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">MACD Hist</div>
-      <div class="metric-v ${d.macd && d.macd.hist > 0 ? 'green' : 'red'}">
-        ${d.macd ? (d.macd.hist >= 0 ? '+' : '') + d.macd.hist.toFixed(4) : 'N/A'}
-      </div>
-    </div>
-    <div class="metric">
-      <div class="metric-l">BB Width</div>
-      <div class="metric-v">${d.bb ? d.bb.width.toFixed(1) + '%' : 'N/A'}</div>
-    </div>
+    <div class="metric"><div class="metric-l">Price 24H</div><div class="metric-v ${d.gain24h >= 0 ? 'green' : 'red'}">${fmtPct(d.gain24h)}</div></div>
+    <div class="metric"><div class="metric-l">RSI 4H</div><div class="metric-v ${d.rsi4h > 70 ? 'red' : d.rsi4h < 35 ? 'green' : ''}">${d.rsi4h}</div></div>
+    <div class="metric"><div class="metric-l">Vol 14D/30D</div><div class="metric-v ${d.volRatio >= 2 ? 'green' : ''}">${d.volRatio.toFixed(2)}x</div></div>
+    <div class="metric"><div class="metric-l">Price 7D</div><div class="metric-v ${d.priceChg7d >= 0 ? 'green' : 'red'}">${fmtPct(d.priceChg7d)}</div></div>
+    <div class="metric"><div class="metric-l">Funding</div><div class="metric-v ${d.funding !== null && d.funding < THRESHOLDS.FUNDING_NEG ? 'blue' : d.funding !== null && d.funding > THRESHOLDS.FUNDING_POS ? 'red' : ''}">
+      ${d.funding !== null ? (d.funding >= 0 ? '+' : '') + d.funding.toFixed(4) + '%' : 'N/A'}</div></div>
+    <div class="metric"><div class="metric-l">OI Change</div><div class="metric-v ${d.oiChange > 5 ? 'green' : d.oiChange < -5 ? 'red' : ''}">${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%</div></div>
+    <div class="metric"><div class="metric-l">Bid Depth</div><div class="metric-v ${d.bids >= THRESHOLDS.BID_DEPTH_STRONG ? 'green' : d.bids < THRESHOLDS.BID_DEPTH_OK ? 'red' : ''}">$${(d.bids/1000).toFixed(0)}K</div></div>
+    <div class="metric"><div class="metric-l">MACD Hist</div><div class="metric-v ${d.macd && d.macd.hist > 0 ? 'green' : 'red'}">${d.macd ? (d.macd.hist >= 0 ? '+' : '') + d.macd.hist.toFixed(4) : 'N/A'}</div></div>
+    <div class="metric"><div class="metric-l">BB Width</div><div class="metric-v">${d.bb ? d.bb.width.toFixed(1) + '%' : 'N/A'}</div></div>
   </div>`;
 
-  // ── Candlestick pattern section ──
+  // Pre-pump silence section
+  const silenceHtml = d.prePumpSilence && d.prePumpSilence.score >= 2 ? `
+  <div>
+    <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;">🤫 Pre-Pump Silence Analysis</div>
+    <div class="signals-list">
+      ${d.prePumpSilence.signals.map(s => `
+        <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}">
+          <span style="flex-shrink:0">◈</span><span>${s.text}</span>
+        </div>`).join('')}
+    </div>
+  </div>` : '';
+
   const candleHtml = d.candlePatterns && d.candlePatterns.length > 0 ? `
   <div>
     <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;">🕯 Candlestick Patterns (1D)</div>
     <div class="signals-list">
       ${d.candlePatterns.map(p => `
         <div class="signal-row ${p.contextValid ? 'bear' : 'warn'}">
-          <span style="flex-shrink:0">◈</span>
-          <span>${p.text}</span>
-        </div>
-      `).join('')}
+          <span style="flex-shrink:0">◈</span><span>${p.text}</span>
+        </div>`).join('')}
     </div>
   </div>` : '';
 
-  const checkHtml = `
-  <div class="checklist">
-    ${scoreData.checks.map(c => `
-      <div class="check-row ${c.pass ? 'pass' : c.fail ? 'fail' : 'warn'}">
-        <span class="check-icon">${c.pass ? '✓' : c.fail ? '✗' : '⚠'}</span>
-        <span>${c.text}</span>
-      </div>
-    `).join('')}
-  </div>`;
+  const checkHtml = `<div class="checklist">${scoreData.checks.map(c => `
+    <div class="check-row ${c.pass ? 'pass' : c.fail ? 'fail' : 'warn'}">
+      <span class="check-icon">${c.pass ? '✓' : c.fail ? '✗' : '⚠'}</span>
+      <span>${c.text}</span>
+    </div>`).join('')}</div>`;
 
   const smartHtml = smartSignals.length > 0 ? `
   <div>
     <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:7px;">Smart Signals</div>
     <div class="signals-list">
-      ${smartSignals.map(s => `
-        <div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''} ${s.isBear ? 'bear' : ''}">
-          <span style="flex-shrink:0">◈</span><span>${s.text}</span>
-        </div>
-      `).join('')}
+      ${smartSignals.map(s => `<div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''} ${s.isBear ? 'bear' : ''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}
     </div>
   </div>` : '';
 
-  const bo  = d.breakout;
-  const tfc = d.tfConfluence;
-
+  const bo = d.breakout, tfc = d.tfConfluence;
   const pumpSetupHtml = (bo || tfc) ? `
   <div>
     <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">🚀 Pump Setup Analysis</div>
-    ${bo ? `
-    <div style="margin-bottom:10px;">
+    ${bo ? `<div style="margin-bottom:10px;">
       <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Breakout Detection</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
         <div class="metric"><div class="metric-l">Status</div><div class="metric-v ${bo.broke ? 'green' : bo.consolidating ? 'amber' : ''}">${bo.broke ? (bo.retesting ? 'RETEST' : 'BROKE') : bo.consolidating ? 'COILING' : 'RANGING'}</div></div>
@@ -2141,21 +1760,14 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
       </div>
       <div class="signals-list">${bo.signals.map(s => `<div class="signal-row ${s.strength !== 'strong' ? 'warn' : ''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
     </div>` : ''}
-    ${tfc ? `
-    <div>
+    ${tfc ? `<div>
       <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Timeframe Confluence</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
         <div class="metric"><div class="metric-l">1H Trend</div><div class="metric-v ${tfc.tf.h1?.trend==='bullish'?'green':'red'}">${tfc.tf.h1?.trend?.toUpperCase()||'N/A'}</div></div>
         <div class="metric"><div class="metric-l">4H Trend</div><div class="metric-v ${tfc.tf.h4?.trend==='bullish'?'green':'red'}">${tfc.tf.h4?.trend?.toUpperCase()||'N/A'}</div></div>
         <div class="metric"><div class="metric-l">1D Trend</div><div class="metric-v ${tfc.tf.d1?.trend==='bullish'?'green':'red'}">${tfc.tf.d1?.trend?.toUpperCase()||'N/A'}</div></div>
       </div>
-      <div style="margin-bottom:8px;">
-        <div class="score-section">
-          <span class="score-label" style="font-size:0.72rem;">Confluence</span>
-          <div class="score-track"><div class="score-fill ${tfc.score>=5?'high':tfc.score>=3?'mid':'low'}" style="width:${Math.round(tfc.score/6*100)}%"></div></div>
-          <span class="score-val">${tfc.score}/6${tfc.aligned?' 🎯':''}</span>
-        </div>
-      </div>
+      <div style="margin-bottom:8px;"><div class="score-section"><span class="score-label" style="font-size:0.72rem;">Confluence</span><div class="score-track"><div class="score-fill ${tfc.score>=5?'high':tfc.score>=3?'mid':'low'}" style="width:${Math.round(tfc.score/6*100)}%"></div></div><span class="score-val">${tfc.score}/6${tfc.aligned?' 🎯':''}</span></div></div>
       <div class="signals-list">${tfc.signals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
     </div>` : ''}
   </div>` : '';
@@ -2165,7 +1777,7 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
   const tradeSetupHtml = renderTradeSetupHtml(d, sym);
 
   document.getElementById('rpBody').innerHTML =
-    metricsHtml + candleHtml + checkHtml + smartHtml + pumpSetupHtml + scoreHtml + verdictHtml + tradeSetupHtml +
+    metricsHtml + silenceHtml + candleHtml + checkHtml + smartHtml + pumpSetupHtml + scoreHtml + verdictHtml + tradeSetupHtml +
     `<a class="chart-link" href="${chart}" target="_blank">↗ Open in TradingView</a>`;
 
   panel.classList.add('show');
@@ -2173,7 +1785,6 @@ function renderResult(sym, d, scoreData, smartSignals = []) {
 
 function closeResult() { document.getElementById('resultPanel').classList.remove('show'); }
 
-// ── QUICK SCAN BUTTONS ────────────────────────────────────────────────
 async function runQuickScan() {
   const sym = sanitizeSym(document.getElementById('symInput').value);
   if (!sym) return;
@@ -2213,28 +1824,20 @@ async function runAccumCheck() {
   } catch (e) { showToast(`Error: ${e.message}`, 'error'); setDot('error'); }
 }
 
-function sanitizeSym(raw) {
-  return (raw || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
-}
+function sanitizeSym(raw) { return (raw || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12); }
 
-// ── CANCEL SCAN ────────────────────────────────────────────────────────
 function cancelScan() {
-  CancelToken.cancel();
-  apiLimiter.drain();
+  CancelToken.cancel(); apiLimiter.drain();
   logMsg('🛑 Scan dibatalkan oleh user', 'warn');
   showToast('Scan dibatalkan', 'warn');
   document.getElementById('btnCancel').style.display = 'none';
-  setDot('error');
-  hideProgress();
-  scanning = false;
+  setDot('error'); hideProgress(); scanning = false;
   ['btnAccumScan','btnPumpScan','btnShortScan','btnTopScan'].forEach(id => {
-    const b = document.getElementById(id);
-    b.disabled = false;
-    b.classList.remove('running');
+    const b = document.getElementById(id); b.disabled = false; b.classList.remove('running');
   });
 }
 
-// ── PRE-FILTER PIPELINE ──────────────────────────────────────────────
+// ─── FIX: Improved pre-filter — no longer punishes low-volume accum coins
 async function preFilterCoins(mode) {
   logMsg('🔍 Stage 1: Fetching all futures tickers...');
   const tickers = await binance('ticker/24hr', {}, 1);
@@ -2246,12 +1849,12 @@ async function preFilterCoins(mode) {
     if (!t.symbol.endsWith('USDT')) return false;
     const base = t.symbol.replace('USDT', '');
     if ([...STABLES].some(s => base.includes(s))) return false;
-    const vol    = parseFloat(t.quoteVolume);
-    const change = parseFloat(t.priceChangePercent);
-    const price  = parseFloat(t.lastPrice);
-    if (vol   < 50000) return false;
+    const vol = parseFloat(t.quoteVolume), change = parseFloat(t.priceChangePercent), price = parseFloat(t.lastPrice);
+    // FIX: Lowered vol minimum for accum scan — accumulation happens in low-vol coins
+    if (mode === 'accum' && vol < 10000) return false;   // was 50000
+    if (mode !== 'accum' && vol < 50000) return false;
     if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
-    if (mode === 'accum')  return change >= -20 && change <= 35;
+    if (mode === 'accum')  return change >= -30 && change <= 35; // FIX: was -20, now -30 to catch more
     if (mode === 'pump')   return change >= THRESHOLDS.PUMP_GAIN_MIN && change <= THRESHOLDS.PUMP_GAIN_MAX;
     if (mode === 'short')  return change >= -20 && change <= 80;
     return true;
@@ -2261,11 +1864,19 @@ async function preFilterCoins(mode) {
 
   const sorted = candidates.sort((a, b) => {
     if (mode === 'accum') {
-      const volA = Math.log10(parseFloat(a.quoteVolume) + 1);
-      const volB = Math.log10(parseFloat(b.quoteVolume) + 1);
-      const chgA = Math.abs(parseFloat(a.priceChangePercent)) || 0.1;
-      const chgB = Math.abs(parseFloat(b.priceChangePercent)) || 0.1;
-      return (volB / chgB) - (volA / chgA);
+      // FIX: New scoring — flat price + medium vol = best accum candidate
+      const volA = parseFloat(a.quoteVolume), volB = parseFloat(b.quoteVolume);
+      const chgA = parseFloat(a.priceChangePercent), chgB = parseFloat(b.priceChangePercent);
+      const highA = parseFloat(a.highPrice), lowA = parseFloat(a.lowPrice);
+      const highB = parseFloat(b.highPrice), lowB = parseFloat(b.lowPrice);
+      const priceA = parseFloat(a.lastPrice), priceB = parseFloat(b.lastPrice);
+      // Range as % of price — smaller range = more interesting for accum
+      const rangeA = highA > 0 ? (highA - lowA) / highA * 100 : 99;
+      const rangeB = highB > 0 ? (highB - lowB) / highB * 100 : 99;
+      // Score: flat price + decent vol
+      const scoreA = (volA > 500000 ? 2 : volA > 100000 ? 1 : 0) + (Math.abs(chgA) < 10 ? 2 : Math.abs(chgA) < 20 ? 1 : 0) + (rangeA < 10 ? 2 : rangeA < 20 ? 1 : 0);
+      const scoreB = (volB > 500000 ? 2 : volB > 100000 ? 1 : 0) + (Math.abs(chgB) < 10 ? 2 : Math.abs(chgB) < 20 ? 1 : 0) + (rangeB < 10 ? 2 : rangeB < 20 ? 1 : 0);
+      return scoreB - scoreA;
     }
     if (mode === 'pump')  return parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent);
     if (mode === 'short') {
@@ -2274,418 +1885,229 @@ async function preFilterCoins(mode) {
       return dB - dA;
     }
     return 0;
-  }).slice(0, mode === 'accum' ? 150 : 80);
+  // FIX: Increased candidate limit for accum (200 → was 150) to not miss slow accum coins
+  }).slice(0, mode === 'accum' ? 200 : 80);
 
   logMsg(`🎯 Stage 3: Top ${sorted.length} selected for deep analysis`);
   return sorted.map(t => t.symbol.replace('USDT', ''));
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// MARKET SCAN ORCHESTRATOR
-// ═══════════════════════════════════════════════════════════════════
 let scanning = false;
 const results = { accum: [], pump: [], short: [], top: [] };
 
 async function runMarketScan(mode) {
   if (scanning) return;
-  scanning = true;
-  CancelToken.reset();
-
+  scanning = true; CancelToken.reset();
   const btnMap = { accum:'btnAccumScan', pump:'btnPumpScan', short:'btnShortScan', top:'btnTopScan' };
   const btn = document.getElementById(btnMap[mode]);
   btn.classList.add('running');
   Object.values(btnMap).forEach(id => { document.getElementById(id).disabled = true; });
   document.getElementById('btnCancel').style.display = '';
-
   showLog(); clearLog(); setDot('loading'); showSkeletons();
-  results[mode] = [];
-  updateStats();
-
+  results[mode] = []; updateStats();
   const titleMap = { accum:'Accumulation Scan', pump:'Pump Scan (24H)', short:'Short Scan', top:'Top Movers' };
   document.getElementById('sectionTitle').textContent = titleMap[mode];
-
   try {
-    if (mode === 'top')                            await scanTopMovers();
-    else if (mode === 'accum')                     await scanAccumulation();
-    else if (mode === 'pump' || mode === 'short')  await scanPumpShort(mode);
+    if (mode === 'top')                           await scanTopMovers();
+    else if (mode === 'accum')                    await scanAccumulation();
+    else if (mode === 'pump' || mode === 'short') await scanPumpShort(mode);
   } catch (e) {
-    if (e.message !== 'Cancelled') {
-      logMsg(`Fatal error: ${e.message}`, 'bad');
-      showToast(`Scan error: ${e.message}`, 'error');
-    }
+    if (e.message !== 'Cancelled') { logMsg(`Fatal error: ${e.message}`, 'bad'); showToast(`Scan error: ${e.message}`, 'error'); }
     setDot('error');
   }
-
   scanning = false;
-  Object.values(btnMap).forEach(id => {
-    const b = document.getElementById(id);
-    b.disabled = false;
-    b.classList.remove('running');
-  });
+  Object.values(btnMap).forEach(id => { const b = document.getElementById(id); b.disabled = false; b.classList.remove('running'); });
   document.getElementById('btnCancel').style.display = 'none';
-
   if (!CancelToken.cancelled) {
-    btn.classList.add('done');
-    setTimeout(() => btn.classList.remove('done'), 3000);
-    setDot('active');
-    showToast(`✅ Scan selesai — ${results[mode].length} signal ditemukan`, 'success');
+    btn.classList.add('done'); setTimeout(() => btn.classList.remove('done'), 3000);
+    setDot('active'); showToast(`✅ Scan selesai — ${results[mode].length} signal ditemukan`, 'success');
   }
-
   renderCards(); updateStats(); hideProgress();
   logMsg('─ Scan complete ─', 'ok');
 }
 
-// ── TOP MOVERS ─────────────────────────────────────────────────────────
 async function scanTopMovers() {
   logMsg('Fetching 24h tickers...');
   const tickers = await binance('ticker/24hr', {}, 1);
   if (CancelToken.cancelled) return;
-
-  const usdt = tickers
-    .filter(t => t.symbol.endsWith('USDT') && !['BUSD','USDC','DAI','TUSD'].some(s => t.symbol.includes(s)))
-    .sort((a,b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
-    .slice(0, 20);
-
+  const usdt = tickers.filter(t => t.symbol.endsWith('USDT') && !['BUSD','USDC','DAI','TUSD'].some(s => t.symbol.includes(s)))
+    .sort((a,b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent)).slice(0, 20);
   showProgress('Top Movers');
   for (let i = 0; i < Math.min(usdt.length, 15); i++) {
     if (CancelToken.cancelled) return;
-    const t    = usdt[i];
-    const sym  = t.symbol.replace('USDT', '');
-    const gain = parseFloat(t.priceChangePercent);
-    const vol  = parseFloat(t.quoteVolume);
+    const t = usdt[i], sym = t.symbol.replace('USDT', ''), gain = parseFloat(t.priceChangePercent), vol = parseFloat(t.quoteVolume);
     if (vol < 1000000) continue;
     logMsg(`${sym}: ${fmtPct(gain)}`);
-    results.top.push({
-      sym, price: parseFloat(t.lastPrice), gain24h: gain, vol24h: vol,
-      type: 'TOP', scorePct: Math.min(Math.abs(gain) * 1.5, 100),
-      tags: [
-        { label: fmtPct(gain), cls: gain > 0 ? 'g' : 'r' },
-        { label: fmtVol(vol),  cls: '' },
-      ],
-    });
-    setProgress((i+1) / 15 * 100);
-    renderCards(); updateStats();
+    results.top.push({ sym, price: parseFloat(t.lastPrice), gain24h: gain, vol24h: vol, type: 'TOP', scorePct: Math.min(Math.abs(gain) * 1.5, 100), tags: [{ label: fmtPct(gain), cls: gain > 0 ? 'g' : 'r' }, { label: fmtVol(vol), cls: '' }] });
+    setProgress((i+1) / 15 * 100); renderCards(); updateStats();
     await sleep(80);
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// ACCUMULATION SCAN — Parallel Chunked
-// Serial loop (60 coins × 300ms = 18s) → chunked (3 concurrent ≈ 6s)
-// ═══════════════════════════════════════════════════════════════════
 async function scanAccumulation() {
   const candidates = await preFilterCoins('accum');
   if (CancelToken.cancelled || candidates.length === 0) return;
-
-  // Stage A: fast pre-score (ticker data only, no API)
   logMsg(`Stage A: Fast pre-score ${candidates.length} coins...`, 'info');
   const tickers = await binance('ticker/24hr', {}, 1);
   if (CancelToken.cancelled) return;
-
   const tickerMap = {};
   tickers.forEach(t => { tickerMap[t.symbol] = t; });
 
   const preScored = candidates.map(sym => {
     const t = tickerMap[sym + 'USDT'];
     if (!t) return { sym, preScore: 0 };
-    const vol24h  = parseFloat(t.quoteVolume);
-    const change  = parseFloat(t.priceChangePercent);
-    const high    = parseFloat(t.highPrice);
-    const low     = parseFloat(t.lowPrice);
-    const price   = parseFloat(t.lastPrice);
-    const range   = high > 0 ? (high - low) / high * 100 : 99;
-
+    const vol24h = parseFloat(t.quoteVolume), change = parseFloat(t.priceChangePercent);
+    const high = parseFloat(t.highPrice), low = parseFloat(t.lowPrice), price = parseFloat(t.lastPrice);
+    const range = high > 0 ? (high - low) / high * 100 : 99;
     let preScore = 0;
-    if (vol24h > 5000000)  preScore += 2;
-    else if (vol24h > 1000000) preScore += 1;
-    if (change >= -5 && change <= 15)       preScore += 2;
-    else if (change >= -15 && change <= 25) preScore += 1;
-    if (range < 5)  preScore += 2;
-    else if (range < 10) preScore += 1;
+    if (vol24h > 5000000) preScore += 2; else if (vol24h > 1000000) preScore += 1;
+    // FIX: Flat price is best signal for accum, not volume size
+    if (Math.abs(change) < 5) preScore += 3;       // very flat = most interesting
+    else if (Math.abs(change) < 10) preScore += 2;
+    else if (Math.abs(change) < 20) preScore += 1;
+    // Tight range = accumulation box
+    if (range < 5) preScore += 3; else if (range < 10) preScore += 2; else if (range < 20) preScore += 1;
+    // Price in lower half of range = not yet pumped
     const posInRange = (high - price) / (high - low || 1);
-    if (posInRange > 0.6) preScore += 1;
-
+    if (posInRange > 0.5) preScore += 1;
     return { sym, preScore };
-  }).sort((a,b) => b.preScore - a.preScore).slice(0, 60);
+  }).sort((a,b) => b.preScore - a.preScore).slice(0, 80);
 
   logMsg(`Stage B: Deep analysis on top ${preScored.length} coins (${CONCURRENCY} concurrent)...`, 'info');
   showProgress('Accumulation Scan');
-
   let done = 0;
 
-  // ── PARALLEL CHUNKED LOOP ──
   await runChunked(preScored, async (item) => {
     if (CancelToken.cancelled) return;
     const sym = item.sym;
     logMsg(`[${done+1}/${preScored.length}] 🔬 ${sym}...`);
-
     try {
-      const d     = await analyzeCoin(sym);
+      const d = await analyzeCoin(sym);
       if (CancelToken.cancelled) return;
-
-      const smart      = detectSmartAccumulation(d, d.klines4h, d.klines1d);
-      const s          = scoreAccum(d);
+      const smart = detectSmartAccumulation(d, d.klines4h, d.klines1d);
+      const s = scoreAccum(d);
       const smartBonus = smart.score >= 5 ? 1 : 0;
-
       if (s.score >= 3) {
         logMsg(`✅ ${sym}: ${s.score}/${s.max} (+smart:${smartBonus})`, 'ok');
         results.accum.push({
           sym, price: d.price, score: s.score, scoreMax: s.max,
           scorePct: Math.round(s.score / s.max * 100),
-          gain24h: d.gain24h, type: 'ACCUM',
-          data: d, scoreData: s, signals: smart.signals,
+          gain24h: d.gain24h, type: 'ACCUM', data: d, scoreData: s, signals: smart.signals,
           tags: [
             { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' },
             { label: `7D ${fmtPct(d.priceChg7d)}`,   cls: '' },
             { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
             d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : '' } : null,
             d.oiChange !== 0 ? { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : d.oiChange < -5 ? 'r' : '' } : null,
-            // Show candle pattern badge if any found
+            // FIX: Show pre-pump silence badge
+            d.prePumpSilence?.detected ? { label: `🤫 Silence`, cls: 'b' } : null,
             d.candlePatterns?.length > 0 ? { label: `🕯 ${d.candlePatterns[0].name.split(' ')[0]}`, cls: 'r' } : null,
           ].filter(Boolean),
         });
         renderCards(); updateStats();
       }
     } catch (e) { logMsg(`❌ ${sym}: ${e.message}`, 'bad'); }
-
-  }, (doneCnt, total) => {
-    done = doneCnt;
-    setProgress(done / total * 100);
-  });
+  }, (doneCnt, total) => { done = doneCnt; setProgress(done / total * 100); });
 
   document.getElementById('stScanned').textContent = preScored.length;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// PUMP / SHORT SCAN — Parallel Chunked
-// ═══════════════════════════════════════════════════════════════════
 async function scanPumpShort(mode) {
   logMsg('🔍 Fetching 24H futures tickers...', 'info');
   const tickers = await binance('ticker/24hr', {}, 1);
   if (CancelToken.cancelled) return;
-
   const STABLES = new Set(['USDC','BUSD','DAI','TUSD','USDT','USDP','USDD','FDUSD']);
+  const prescored = tickers.filter(t => {
+    if (!t.symbol.endsWith('USDT')) return false;
+    const base = t.symbol.replace('USDT','');
+    if ([...STABLES].some(s => base.includes(s))) return false;
+    const vol = parseFloat(t.quoteVolume), change = parseFloat(t.priceChangePercent), price = parseFloat(t.lastPrice);
+    if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
+    if (vol < 50000) return false;
+    if (mode === 'pump') return change >= 10 && change <= 200;
+    else return change >= 15 && change <= 150;
+  }).map(t => {
+    const vol = parseFloat(t.quoteVolume), change = parseFloat(t.priceChangePercent);
+    const high = parseFloat(t.highPrice), low = parseFloat(t.lowPrice), price = parseFloat(t.lastPrice), trades = parseFloat(t.count) || 1;
+    let mScore = 0;
+    if (vol > 100e6) mScore += 3; else if (vol > 10e6) mScore += 2; else if (vol > 1e6) mScore += 1;
+    if (change >= 15 && change <= 80) mScore += 3; else if (change > 80 && change <= 150) mScore += 1; else if (change >= 10) mScore += 1;
+    const range = high - low, posInDay = range > 0 ? (price - low) / range : 0.5;
+    if (posInDay > 0.8) mScore += 2; else if (posInDay > 0.5) mScore += 1;
+    const funding = parseFloat(t.lastFundingRate || 0) * 100;
+    if (funding < -0.01) mScore += 2; else if (funding < 0.05) mScore += 1;
+    if (trades > 50000) mScore += 1;
+    if (mode === 'short') { const dropFromHigh = high > 0 ? (high - price) / high * 100 : 0; if (dropFromHigh >= 5) mScore += 2; else mScore -= 1; }
+    return { sym: t.symbol.replace('USDT',''), mScore, vol, change, price, high, low, posInDay, funding };
+  }).filter(t => t.mScore >= 4).sort((a,b) => b.mScore - a.mScore).slice(0, 40);
 
-  const prescored = tickers
-    .filter(t => {
-      if (!t.symbol.endsWith('USDT')) return false;
-      const base = t.symbol.replace('USDT','');
-      if ([...STABLES].some(s => base.includes(s))) return false;
-      const vol    = parseFloat(t.quoteVolume);
-      const change = parseFloat(t.priceChangePercent);
-      const price  = parseFloat(t.lastPrice);
-      if (price < THRESHOLDS.MIN_PRICE || price > THRESHOLDS.MAX_PRICE) return false;
-      if (vol < 50000) return false;
-      if (mode === 'pump') return change >= 10 && change <= 200;
-      else return change >= 15 && change <= 150;
-    })
-    .map(t => {
-      const vol    = parseFloat(t.quoteVolume);
-      const change = parseFloat(t.priceChangePercent);
-      const high   = parseFloat(t.highPrice);
-      const low    = parseFloat(t.lowPrice);
-      const price  = parseFloat(t.lastPrice);
-      const trades = parseFloat(t.count) || 1;
-
-      let mScore = 0;
-      if (vol > 100e6)      mScore += 3;
-      else if (vol > 10e6)  mScore += 2;
-      else if (vol > 1e6)   mScore += 1;
-
-      if (change >= 15 && change <= 80)       mScore += 3;
-      else if (change > 80 && change <= 150)  mScore += 1;
-      else if (change >= 10)                  mScore += 1;
-
-      const range    = high - low;
-      const posInDay = range > 0 ? (price - low) / range : 0.5;
-      if (posInDay > 0.8)      mScore += 2;
-      else if (posInDay > 0.5) mScore += 1;
-
-      const funding = parseFloat(t.lastFundingRate || 0) * 100;
-      if (funding < -0.01)       mScore += 2;
-      else if (funding < 0.05)   mScore += 1;
-
-      if (trades > 50000) mScore += 1;
-
-      if (mode === 'short') {
-        const dropFromHigh = high > 0 ? (high - price) / high * 100 : 0;
-        if (dropFromHigh >= 5) mScore += 2;
-        else mScore -= 1;
-      }
-
-      return { sym: t.symbol.replace('USDT',''), mScore, vol, change, price, high, low, posInDay, funding: parseFloat(t.lastFundingRate||0)*100 };
-    })
-    .filter(t => t.mScore >= 4)
-    .sort((a,b) => b.mScore - a.mScore)
-    .slice(0, 40);
-
-  if (prescored.length === 0) { logMsg('Tidak ada kandidat momentum ditemukan', 'warn'); return; }
-
+  if (prescored.length === 0) { logMsg('Tidak ada kandidat ditemukan', 'warn'); return; }
   logMsg(`✅ ${prescored.length} candidates → deep analysis (${CONCURRENCY} concurrent)...`, 'info');
   showProgress(mode === 'pump' ? '🚀 Pump Scan' : '▼ Short Scan');
-
   let done = 0;
 
-  // ── PARALLEL CHUNKED LOOP ──
   await runChunked(prescored, async (pre) => {
     if (CancelToken.cancelled) return;
     const sym = pre.sym;
     logMsg(`[${done+1}/${prescored.length}] ${sym}: +${pre.change.toFixed(1)}% vol:${fmtVol(pre.vol)}`);
-
     try {
       const d = await analyzeCoin(sym);
       if (CancelToken.cancelled) return;
-
       if (mode === 'pump') {
         const s = scorePump(d, pre);
         if (s.score >= 4) {
-          results.pump.push({
-            sym, price: d.price,
-            score: s.score, scoreMax: s.max,
-            scorePct: Math.round(s.score / s.max * 100),
-            gain24h: d.gain24h, type: 'PUMP',
-            data: d, scoreData: s, signals: s.signals,
-            tags: [
-              { label: fmtPct(d.gain24h),               cls: 'g' },
-              { label: `Vol ${fmtVol(pre.vol)}`,        cls: pre.vol > 10e6 ? 'g' : '' },
-              { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h > 70 ? 'r' : d.rsi4h < 40 ? 'g' : '' },
-              d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < 0 ? 'b' : d.funding > 0.05 ? 'r' : '' } : null,
-              { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : '' },
-            ].filter(Boolean),
-          });
+          results.pump.push({ sym, price: d.price, score: s.score, scoreMax: s.max, scorePct: Math.round(s.score/s.max*100), gain24h: d.gain24h, type: 'PUMP', data: d, scoreData: s, signals: s.signals,
+            tags: [{ label: fmtPct(d.gain24h), cls: 'g' }, { label: `Vol ${fmtVol(pre.vol)}`, cls: pre.vol > 10e6 ? 'g' : '' }, { label: `RSI ${d.rsi4h}`, cls: d.rsi4h > 70 ? 'r' : d.rsi4h < 40 ? 'g' : '' }, d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < 0 ? 'b' : d.funding > 0.05 ? 'r' : '' } : null, { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : '' }].filter(Boolean) });
           logMsg(`✅ ${sym} pump score ${s.score}/${s.max}`, 'ok');
         }
       } else {
-        const pumpEx     = detectPumpExhaustion(d, d.klines4h, d.klines1d);
-        const s          = scoreShort(d);
+        const pumpEx = detectPumpExhaustion(d, d.klines4h, d.klines1d);
+        const s = scoreShort(d);
         const finalScore = Math.round((s.score + pumpEx.score / pumpEx.maxScore * s.max) / 2);
         if (finalScore >= 3) {
-          // Add candle pattern tag if found
-          const candleTag = d.candlePatterns?.length > 0
-            ? [{ label: `🕯 ${d.candlePatterns[0].name.split(' ')[0]}`, cls: 'r' }]
-            : [];
-          results.short.push({
-            sym, price: d.price, score: finalScore, scoreMax: s.max,
-            scorePct: Math.round(finalScore / s.max * 100),
-            gain24h: d.gain24h, type: 'SHORT',
-            data: d, scoreData: s, signals: pumpEx.signals,
-            tags: [
-              { label: fmtPct(d.gain24h),  cls: 'r' },
-              { label: `RSI ${d.rsi4h}`,   cls: d.rsi4h > 65 ? 'r' : '' },
-              d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
-              { label: `SL $${fmt(d.sl,4)}`, cls: '' },
-              ...candleTag,
-            ].filter(Boolean),
-          });
+          const candleTag = d.candlePatterns?.length > 0 ? [{ label: `🕯 ${d.candlePatterns[0].name.split(' ')[0]}`, cls: 'r' }] : [];
+          results.short.push({ sym, price: d.price, score: finalScore, scoreMax: s.max, scorePct: Math.round(finalScore/s.max*100), gain24h: d.gain24h, type: 'SHORT', data: d, scoreData: s, signals: pumpEx.signals,
+            tags: [{ label: fmtPct(d.gain24h), cls: 'r' }, { label: `RSI ${d.rsi4h}`, cls: d.rsi4h > 65 ? 'r' : '' }, d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null, { label: `SL $${fmt(d.sl,4)}`, cls: '' }, ...candleTag].filter(Boolean) });
           logMsg(`✅ ${sym} short score ${finalScore}/${s.max}`, 'ok');
         }
       }
       renderCards(); updateStats();
     } catch (e) { logMsg(`✗ ${sym}: ${e.message}`, 'bad'); }
-
-  }, (doneCnt, total) => {
-    done = doneCnt;
-    setProgress(done / total * 100);
-  });
+  }, (doneCnt, total) => { done = doneCnt; setProgress(done/total*100); });
 
   document.getElementById('stScanned').textContent = prescored.length;
 }
 
-// ── PUMP SCORE ───────────────────────────────────────────────────────────
 function scorePump(d, pre) {
-  const checks  = [];
-  const signals = [];
-  let score     = 0;
-
-  if (pre.vol > 50e6) {
-    score += 2;
-    checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — massive, institutional interest` });
-  } else if (pre.vol > 5e6) {
-    score++;
-    checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — solid volume` });
-  } else {
-    checks.push({ warn: true, text: `Volume 24H: ${fmtVol(pre.vol)} — masih kecil` });
-  }
-
-  if (pre.change >= 15 && pre.change <= 60) {
-    score += 2;
-    checks.push({ pass: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — early pump, masih ada room` });
-    signals.push({ strength: 'strong', text: `🚀 +${pre.change.toFixed(1)}% dalam 24H — early stage momentum` });
-  } else if (pre.change > 60 && pre.change <= 120) {
-    score++;
-    checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — sudah naik signifikan, hati-hati` });
-    signals.push({ strength: 'medium', text: `⚡ +${pre.change.toFixed(1)}% — momentum kuat tapi extended` });
-  } else {
-    checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — fase awal gerak` });
-  }
-
-  if (pre.posInDay > 0.8) {
-    score++;
-    checks.push({ pass: true, text: `Harga dekat HIGH hari ini — buyers in control` });
-    signals.push({ strength: 'strong', text: `📈 Price holding near daily high — no seller pressure` });
-  } else if (pre.posInDay > 0.5) {
-    checks.push({ warn: true, text: `Harga di tengah range — momentum moderat` });
-  } else {
-    checks.push({ fail: true, text: `Harga dekat LOW hari ini — momentum melemah` });
-  }
-
-  if (d.funding !== null && d.funding < 0) {
-    score += 2;
-    checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, short squeeze fuel 🚀` });
-    signals.push({ strength: 'strong', text: `💥 Funding negatif saat harga naik = short squeeze aktif` });
-  } else if (d.funding !== null && d.funding < 0.05) {
-    score++;
-    checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — masih rendah, belum crowded` });
-  } else if (d.funding !== null) {
-    checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — longs sudah banyak, hati-hati` });
-  }
-
-  if (d.oiChange > 10) {
-    score += 2;
-    checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk, trend kuat` });
-    signals.push({ strength: 'strong', text: `📊 OI +${d.oiChange.toFixed(1)}% — new money entering` });
-  } else if (d.oiChange > 3) {
-    score++;
-    checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}% — ada fresh positioning` });
-  } else if (d.oiChange < -5) {
-    checks.push({ fail: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — longs keluar, hati-hati` });
-  } else {
-    checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
-  }
-
-  if (d.rsi4h < 60) {
-    score++;
-    checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — belum overbought, masih bisa lanjut` });
-  } else if (d.rsi4h < 75) {
-    checks.push({ warn: true, text: `RSI 4H: ${d.rsi4h} — mulai panas, monitor ketat` });
-  } else {
-    checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought, rawan reversal` });
-  }
-
-  if (d.tfConfluence?.aligned) {
-    score += 2;
-    checks.push({ pass: true, text: `Triple confluence 1H+4H+1D bullish — pump bisa sustain` });
-    signals.push({ strength: 'strong', text: `🎯 All timeframes aligned — high probability continuation` });
-  } else if (d.tfConfluence?.score >= 4) {
-    score++;
-    checks.push({ pass: true, text: `TF confluence ${d.tfConfluence.score}/6 — majority bullish` });
-  } else {
-    checks.push({ warn: true, text: `TF confluence lemah — pump mungkin tidak sustain lama` });
-  }
-
-  const max  = 12;
-  const pct  = Math.round(score / max * 100);
-  const cls  = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
-  const verdict = score >= 9
-    ? { cls: 'strong', text: `🟢 MOMENTUM KUAT — Entry sekarang, target +${Math.min(pre.change * 0.8, 50).toFixed(0)}% lagi` }
-    : score >= 6
-    ? { cls: 'medium', text: '🟡 MOMENTUM BAGUS — Monitor, set alert di breakout level' }
-    : { cls: 'weak',   text: '⚪ Momentum lemah — terlalu berisiko' };
-
+  const checks = [], signals = [];
+  let score = 0;
+  if (pre.vol > 50e6) { score += 2; checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — massive` }); signals.push({ strength: 'strong', text: `📊 ${fmtVol(pre.vol)} volume — institutional interest` }); }
+  else if (pre.vol > 5e6) { score++; checks.push({ pass: true, text: `Volume 24H: ${fmtVol(pre.vol)} — solid` }); }
+  else checks.push({ warn: true, text: `Volume 24H: ${fmtVol(pre.vol)} — masih kecil` });
+  if (pre.change >= 15 && pre.change <= 60) { score += 2; checks.push({ pass: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — early pump` }); signals.push({ strength: 'strong', text: `🚀 +${pre.change.toFixed(1)}% dalam 24H — early stage` }); }
+  else if (pre.change > 60 && pre.change <= 120) { score++; checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}% — extended` }); signals.push({ strength: 'medium', text: `⚡ +${pre.change.toFixed(1)}% — momentum kuat tapi extended` }); }
+  else checks.push({ warn: true, text: `Gain 24H: +${pre.change.toFixed(1)}%` });
+  if (pre.posInDay > 0.8) { score++; checks.push({ pass: true, text: `Harga dekat HIGH hari ini` }); signals.push({ strength: 'strong', text: `📈 Price holding near daily high` }); }
+  else if (pre.posInDay > 0.5) checks.push({ warn: true, text: `Harga di tengah range` });
+  else checks.push({ fail: true, text: `Harga dekat LOW hari ini — momentum melemah` });
+  if (d.funding !== null && d.funding < 0) { score += 2; checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — negatif, short squeeze fuel 🚀` }); signals.push({ strength: 'strong', text: `💥 Funding negatif saat harga naik = short squeeze` }); }
+  else if (d.funding !== null && d.funding < 0.05) { score++; checks.push({ pass: true, text: `Funding: ${d.funding.toFixed(4)}% — masih rendah` }); }
+  else if (d.funding !== null) checks.push({ warn: true, text: `Funding: ${d.funding.toFixed(4)}% — longs sudah banyak` });
+  if (d.oiChange > 10) { score += 2; checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}% — fresh longs masuk` }); signals.push({ strength: 'strong', text: `📊 OI +${d.oiChange.toFixed(1)}% — new money entering` }); }
+  else if (d.oiChange > 3) { score++; checks.push({ pass: true, text: `OI ↑ ${d.oiChange.toFixed(1)}%` }); }
+  else if (d.oiChange < -5) checks.push({ fail: true, text: `OI ↓ ${d.oiChange.toFixed(1)}% — longs keluar` });
+  else checks.push({ warn: true, text: `OI: ${d.oiChange.toFixed(1)}% — flat` });
+  if (d.rsi4h < 60) { score++; checks.push({ pass: true, text: `RSI 4H: ${d.rsi4h} — belum overbought` }); }
+  else if (d.rsi4h < 75) checks.push({ warn: true, text: `RSI 4H: ${d.rsi4h} — mulai panas` });
+  else checks.push({ fail: true, text: `RSI 4H: ${d.rsi4h} — overbought` });
+  if (d.tfConfluence?.aligned) { score += 2; checks.push({ pass: true, text: `Triple confluence — pump bisa sustain` }); signals.push({ strength: 'strong', text: `🎯 All TF aligned — high probability continuation` }); }
+  else if (d.tfConfluence?.score >= 4) { score++; checks.push({ pass: true, text: `TF confluence ${d.tfConfluence.score}/6` }); }
+  else checks.push({ warn: true, text: `TF confluence lemah` });
+  const max = 12, pct = Math.round(score/max*100), cls = score >= 9 ? 'high' : score >= 6 ? 'mid' : 'low';
+  const verdict = score >= 9 ? { cls:'strong', text:`🟢 MOMENTUM KUAT — Entry sekarang` } : score >= 6 ? { cls:'medium', text:'🟡 MOMENTUM BAGUS — Monitor' } : { cls:'weak', text:'⚪ Lemah' };
   return { score, max, pct, cls, checks, verdict, signals };
 }
 
-// ── RENDER CARDS ──────────────────────────────────────────────────────
 function renderCards() {
   const allResults = [
     ...results.accum.map(r => ({ ...r, _type: 'ACCUM' })),
@@ -2694,36 +2116,23 @@ function renderCards() {
     ...results.top.map(r   => ({ ...r, _type: 'TOP' })),
   ];
   const grid = document.getElementById('cardsGrid');
-
   if (allResults.length === 0 && !scanning) {
     grid.innerHTML = `<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a different scan mode</div></div>`;
     document.getElementById('sectionCount').textContent = '';
     return;
   }
-
   allResults.sort((a,b) => (b.scorePct||0) - (a.scorePct||0));
   document.getElementById('sectionCount').textContent = `${allResults.length} result${allResults.length !== 1 ? 's' : ''}`;
-
-  const pillMap = {
-    ACCUM: ['pill-accum', 'Accum'],
-    PUMP:  ['pill-pump',  'Pump 24H'],
-    SHORT: ['pill-short', 'Short'],
-    TOP:   ['pill-top',   'Top Mover'],
-  };
+  const pillMap = { ACCUM:['pill-accum','Accum'], PUMP:['pill-pump','Pump 24H'], SHORT:['pill-short','Short'], TOP:['pill-top','Top Mover'] };
   const fillColor = pct => pct >= 70 ? 'var(--g)' : pct >= 40 ? 'var(--a)' : 'var(--r)';
-
   grid.innerHTML = allResults.map((r, i) => {
     const [pillCls, pillLabel] = pillMap[r._type] || ['pill-top', r._type];
-    const pct       = r.scorePct || 0;
-    const chart     = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.sym}USDT.P`;
+    const pct = r.scorePct || 0, chart = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.sym}USDT.P`;
     const hasDetail = r.data && r.scoreData;
-    const tagsHtml  = (r.tags || []).map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
-    const scoreLabel = r.scoreMax && r.scoreMax <= 15 && typeof r.score === 'number'
-      ? `<span style="font-family:var(--mono);font-size:0.63rem;color:var(--muted)">${r.score}/${r.scoreMax}</span>`
-      : '';
-
+    const tagsHtml = (r.tags || []).map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
+    const scoreLabel = r.scoreMax && r.scoreMax <= 15 && typeof r.score === 'number' ? `<span style="font-family:var(--mono);font-size:0.63rem;color:var(--muted)">${r.score}/${r.scoreMax}</span>` : '';
     return `
-    <div class="card" style="animation-delay:${Math.min(i * 0.035, 1)}s">
+    <div class="card" style="animation-delay:${Math.min(i*0.035,1)}s">
       <div class="card-type">
         <span class="pill ${pillCls}">${pillLabel}</span>
         <div class="card-mini-bar"><div class="card-mini-fill" style="width:${pct}%;background:${fillColor(pct)}"></div></div>
@@ -2743,7 +2152,6 @@ function renderCards() {
       </div>
     </div>`;
   }).join('');
-
   window._scanResults = allResults;
 }
 
@@ -2773,205 +2181,208 @@ function showSkeletons() {
     </div>`).join('');
 }
 
-// ── EXPORT CSV ─────────────────────────────────────────────────────────
 function exportResults(mode) {
-  const data = mode === 'all'
-    ? [...results.accum, ...results.pump, ...results.short, ...results.top]
-    : (results[mode] || []);
-
+  const data = mode === 'all' ? [...results.accum,...results.pump,...results.short,...results.top] : (results[mode]||[]);
   if (!data.length) { showToast('Tidak ada data untuk di-export', 'warn'); return; }
-
-  const headers = ['Symbol','Price','Score','Type','24h%','7D%','RSI 4H','Funding','OI Change','Vol Ratio','MACD Hist','Candle Patterns','Signals'];
+  const headers = ['Symbol','Price','Score','Type','24h%','7D%','RSI 4H','Funding','OI Change','Vol Ratio','MACD Hist','Pre-Pump Silence','Candle Patterns','Signals'];
   const rows = data.map(r => [
-    r.sym,
-    r.price,
-    `${r.score??'-'}/${r.scoreMax??'-'}`,
-    r.type,
+    r.sym, r.price, `${r.score??'-'}/${r.scoreMax??'-'}`, r.type,
     `${r.gain24h>=0?'+':''}${r.gain24h?.toFixed(2)??'-'}%`,
     `${r.data?.priceChg7d>=0?'+':''}${r.data?.priceChg7d?.toFixed(1)??'-'}%`,
-    r.data?.rsi4h ?? '-',
-    r.data?.funding != null ? `${r.data.funding>=0?'+':''}${r.data.funding.toFixed(4)}%` : 'N/A',
-    r.data?.oiChange != null ? `${r.data.oiChange>=0?'+':''}${r.data.oiChange.toFixed(2)}%` : 'N/A',
-    r.data?.volRatio?.toFixed(2) ?? '-',
-    r.data?.macd?.hist != null ? r.data.macd.hist.toFixed(6) : 'N/A',
-    // New: candlestick patterns column
-    r.data?.candlePatterns?.length > 0
-      ? r.data.candlePatterns.map(p => `${p.name}(${p.contextValid?'valid':'weak'})`).join('|')
-      : 'none',
-    (r.signals?.map(s => s.text.replace(/[,\n]/g, ' ')).join(' | ') || '-'),
+    r.data?.rsi4h??'-',
+    r.data?.funding!=null?`${r.data.funding>=0?'+':''}${r.data.funding.toFixed(4)}%`:'N/A',
+    r.data?.oiChange!=null?`${r.data.oiChange>=0?'+':''}${r.data.oiChange.toFixed(2)}%`:'N/A',
+    r.data?.volRatio?.toFixed(2)??'-',
+    r.data?.macd?.hist!=null?r.data.macd.hist.toFixed(6):'N/A',
+    r.data?.prePumpSilence?.detected?`yes(score:${r.data.prePumpSilence.score})`:'no',
+    r.data?.candlePatterns?.length>0?r.data.candlePatterns.map(p=>`${p.name}(${p.contextValid?'valid':'weak'})`).join('|'):'none',
+    (r.signals?.map(s=>s.text.replace(/[,\n]/g,' ')).join(' | ')||'-'),
   ]);
-
-  const csv  = [headers, ...rows].map(row => row.map(v => `"${v}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `hervin_v9_${mode}_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  const csv = [headers,...rows].map(row=>row.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`hervin_v9_${mode}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(`📥 Exported ${data.length} rows`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// PORTFOLIO / WATCHLIST MODULE (unchanged from v8)
+// PORTFOLIO MODULE — PATCHED: Long / Short positions
 // ═══════════════════════════════════════════════════════════════════
 
 const PF_KEY = 'hervin_portfolio_v9';
 
-function pfLoad() {
-  try { return JSON.parse(localStorage.getItem(PF_KEY)) || []; }
-  catch { return []; }
-}
+function pfLoad() { try { return JSON.parse(localStorage.getItem(PF_KEY)) || []; } catch { return []; } }
 function pfSave(coins) { localStorage.setItem(PF_KEY, JSON.stringify(coins)); }
 
+// Update select color when user changes type
+function pfTypeChanged(sel) {
+  sel.classList.toggle('short-selected', sel.value === 'short');
+}
+
 function togglePortfolio() {
-  const body    = document.getElementById('portfolioBody');
-  const head    = document.getElementById('portfolioHead');
-  const chevron = document.getElementById('portfolioChevron');
-  const isOpen  = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  head.classList.toggle('open', !isOpen);
-  chevron.classList.toggle('open', !isOpen);
+  const body = document.getElementById('portfolioBody'), head = document.getElementById('portfolioHead'), chevron = document.getElementById('portfolioChevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen); head.classList.toggle('open', !isOpen); chevron.classList.toggle('open', !isOpen);
 }
 
 function pfRenderChips() {
-  const coins = pfLoad();
-  const wrap  = document.getElementById('pfChips');
-  const badge = document.getElementById('portfolioBadge');
-  badge.textContent = `${coins.length} coin${coins.length !== 1 ? 's' : ''}`;
-  if (coins.length === 0) {
-    wrap.innerHTML = `<span class="portfolio-empty">No coins yet — add your first position above</span>`;
-    return;
-  }
-  wrap.innerHTML = coins.map((c,i) => `
-    <div class="portfolio-chip ${c.type}">
-      <span>${c.sym}</span>
-      ${c.entry ? `<span style="opacity:0.7;font-size:0.65rem">@${c.entry}</span>` : ''}
-      <button class="chip-remove" onclick="pfRemove(${i})" title="Remove">✕</button>
-    </div>
-  `).join('');
+  const coins = pfLoad(), wrap = document.getElementById('pfChips'), badge = document.getElementById('portfolioBadge');
+  badge.textContent = `${coins.length} position${coins.length !== 1 ? 's' : ''}`;
+  if (coins.length === 0) { wrap.innerHTML = `<span class="portfolio-empty">No positions yet — add your first trade above</span>`; return; }
+  wrap.innerHTML = coins.map((c, i) => {
+    // PATCHED: long = blue chip, short = red chip
+    const side = c.type || 'long';
+    const icon = side === 'short' ? '📉' : '📈';
+    const levLabel = c.leverage && c.leverage > 1 ? ` ${c.leverage}×` : '';
+    return `
+      <div class="portfolio-chip ${side}">
+        <span>${icon} ${c.sym}</span>
+        ${c.entry ? `<span style="opacity:0.7;font-size:0.65rem">@${c.entry}${levLabel}</span>` : ''}
+        <button class="chip-remove" onclick="pfRemove(${i})" title="Remove">✕</button>
+      </div>`;
+  }).join('');
 }
 
 function pfAddCoin() {
-  const sym   = (document.getElementById('pfInput').value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
+  const sym = (document.getElementById('pfInput').value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
   const entry = parseFloat(document.getElementById('pfEntryPrice').value) || null;
-  const type  = document.getElementById('pfType').value;
+  const type  = document.getElementById('pfType').value; // 'long' or 'short'
+  const lev   = parseFloat(document.getElementById('pfLeverage').value) || 1;
   if (!sym) { showToast('Masukkan symbol coin', 'warn'); return; }
   const coins = pfLoad();
   if (coins.find(c => c.sym === sym)) { showToast(`${sym} sudah ada`, 'warn'); return; }
-  coins.push({ sym, entry, type });
-  pfSave(coins);
-  pfRenderChips();
+  coins.push({ sym, entry, type, leverage: lev > 1 ? lev : null });
+  pfSave(coins); pfRenderChips();
   document.getElementById('pfInput').value = '';
   document.getElementById('pfEntryPrice').value = '';
-  showToast(`✅ ${sym} ditambahkan`, 'success');
+  document.getElementById('pfLeverage').value = '';
+  showToast(`✅ ${type.toUpperCase()} ${sym} ditambahkan`, 'success');
 }
 
 function pfImportFromText() {
-  const raw = prompt('Paste daftar coin (pisah koma atau spasi):\nContoh: EDU,WLD,BIO,BASED');
+  const raw = prompt('Paste daftar coin (pisah koma atau spasi):\nContoh: EDU,WLD,BIO');
   if (!raw) return;
-  const syms  = raw.toUpperCase().split(/[\s,;]+/).map(s => s.replace(/[^A-Z0-9]/g,'')).filter(Boolean);
+  const syms = raw.toUpperCase().split(/[\s,;]+/).map(s => s.replace(/[^A-Z0-9]/g,'')).filter(Boolean);
   const coins = pfLoad();
-  let added   = 0;
+  let added = 0;
   for (const sym of syms) {
     if (!sym || coins.find(c => c.sym === sym)) continue;
-    coins.push({ sym, entry: null, type: 'hold' });
+    coins.push({ sym, entry: null, type: 'long', leverage: null });
     added++;
   }
   pfSave(coins); pfRenderChips();
-  showToast(`✅ ${added} coin ditambahkan`, 'success');
+  showToast(`✅ ${added} positions ditambahkan (sebagai Long)`, 'success');
 }
 
 function pfRemove(idx) {
-  const coins = pfLoad();
-  const sym   = coins[idx]?.sym;
-  coins.splice(idx, 1);
-  pfSave(coins); pfRenderChips();
+  const coins = pfLoad(), sym = coins[idx]?.sym;
+  coins.splice(idx, 1); pfSave(coins); pfRenderChips();
   const card = document.getElementById(`pf-card-${sym}`);
   if (card) card.remove();
-  if (document.getElementById('pfCards').children.length === 0) {
-    document.getElementById('pfResultsWrap').style.display = 'none';
-  }
+  if (document.getElementById('pfCards').children.length === 0) document.getElementById('pfResultsWrap').style.display = 'none';
   showToast(`Removed ${sym}`, '');
 }
 
 function pfClearAll() {
-  if (!confirm('Hapus semua coins dari portfolio?')) return;
+  if (!confirm('Hapus semua positions?')) return;
   pfSave([]); pfRenderChips();
   document.getElementById('pfCards').innerHTML = '';
   document.getElementById('pfResultsWrap').style.display = 'none';
-  showToast('Portfolio cleared', '');
+  showToast('Positions cleared', '');
 }
 
 async function pfScanAll(mode = 'accum') {
   const coins = pfLoad();
-  if (coins.length === 0) { showToast('Portfolio kosong — tambah coin dulu', 'warn'); return; }
-
+  if (coins.length === 0) { showToast('Tidak ada posisi — tambah dulu', 'warn'); return; }
   const btn = document.getElementById('pfScanBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Fetching fresh data...';
-
-  const wrap = document.getElementById('pfResultsWrap');
-  const grid = document.getElementById('pfCards');
-  wrap.style.display = 'block';
-  grid.innerHTML = '';
-
+  btn.disabled = true; btn.textContent = '⏳ Fetching...';
+  const wrap = document.getElementById('pfResultsWrap'), grid = document.getElementById('pfCards');
+  wrap.style.display = 'block'; grid.innerHTML = '';
   const body = document.getElementById('portfolioBody');
   if (!body.classList.contains('open')) togglePortfolio();
-
-  setDot('loading');
-  logMsg(`🔄 Portfolio scan — force refresh ${coins.length} coins`, 'info');
-  showLog();
+  setDot('loading'); logMsg(`🔄 Portfolio scan — force refresh ${coins.length} positions`, 'info'); showLog();
 
   for (const c of coins) {
+    const side = c.type || 'long'; // 'long' or 'short'
     const existCard = document.getElementById(`pf-card-${c.sym}`);
     if (existCard) existCard.remove();
-
     const placeholder = document.createElement('div');
     placeholder.id = `pf-card-${c.sym}`;
     placeholder.className = 'skel-card';
-    placeholder.innerHTML = `
-      <div class="skel" style="width:80px;height:36px;border-radius:6px;flex-shrink:0;"></div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-        <div class="skel" style="height:13px;width:80px;"></div>
-        <div class="skel" style="height:11px;width:140px;"></div>
-      </div>`;
+    placeholder.innerHTML = `<div class="skel" style="width:80px;height:36px;border-radius:6px;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="skel" style="height:13px;width:80px;"></div><div class="skel" style="height:11px;width:140px;"></div></div>`;
     grid.appendChild(placeholder);
 
     try {
       const d = await analyzeCoin(c.sym, true);
-      const s = mode === 'short' ? scoreShort(d) : scoreAccum(d);
-      const signals = mode === 'short'
-        ? detectPumpExhaustion(d, d.klines4h, d.klines1d).signals
-        : detectSmartAccumulation(d, d.klines4h, d.klines1d).signals;
 
+      // PATCHED: Choose score based on position side
+      // If user has a SHORT position, use short scoring logic
+      // If user has a LONG position, use accum scoring
+      let s, signals;
+      if (side === 'short') {
+        s = scoreShort(d);
+        signals = detectPumpExhaustion(d, d.klines4h, d.klines1d).signals;
+      } else {
+        s = mode === 'short' ? scoreShort(d) : scoreAccum(d);
+        signals = mode === 'short'
+          ? detectPumpExhaustion(d, d.klines4h, d.klines1d).signals
+          : detectSmartAccumulation(d, d.klines4h, d.klines1d).signals;
+      }
+
+      // PATCHED: PnL calculation per position side
       let pnlHtml = '';
       if (c.entry && c.entry > 0) {
-        const pnlPct = (d.price - c.entry) / c.entry * 100;
-        const pnlCls = pnlPct >= 0 ? 'green' : 'red';
-        pnlHtml = `<div class="portfolio-card-pnl ${pnlCls}">${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}% from entry</div>`;
+        let pnlPct;
+        if (side === 'short') {
+          // Short PnL = (entry - current) / entry × 100 × leverage
+          pnlPct = (c.entry - d.price) / c.entry * 100;
+        } else {
+          // Long PnL = (current - entry) / entry × 100 × leverage
+          pnlPct = (d.price - c.entry) / c.entry * 100;
+        }
+        const levMultiplier = c.leverage && c.leverage > 1 ? c.leverage : 1;
+        const pnlLevered = pnlPct * levMultiplier;
+        const pnlCls = pnlLevered >= 0 ? 'green' : 'red';
+        const levLabel = levMultiplier > 1 ? ` (${levMultiplier}× lev)` : '';
+        pnlHtml = `
+          <div class="portfolio-card-pnl ${pnlCls}">
+            ${pnlLevered >= 0 ? '+' : ''}${pnlLevered.toFixed(2)}%${levLabel}
+          </div>
+          <div style="font-family:var(--mono);font-size:0.62rem;color:var(--faint);">
+            from entry $${c.entry}
+          </div>`;
       }
 
       const verdictCls = s.score >= Math.ceil(s.max * 0.65) ? 'g' : s.score >= Math.ceil(s.max * 0.4) ? 'a' : 'r';
 
       const tags = [
-        { label: fmtPct(d.gain24h),               cls: d.gain24h>=0?'g':'r' },
-        { label: `RSI ${d.rsi4h}`,                cls: d.rsi4h<40?'g':d.rsi4h>65?'r':'' },
-        { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio>=2?'b':'' },
-        d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding<THRESHOLDS.FUNDING_NEG?'b':d.funding>THRESHOLDS.FUNDING_POS?'r':'' } : null,
-        { label: `OI${d.oiChange>=0?'+':''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange>5?'g':d.oiChange<-5?'r':'' },
+        { label: fmtPct(d.gain24h), cls: d.gain24h >= 0 ? 'g' : 'r' },
+        { label: `RSI ${d.rsi4h}`,  cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 65 ? 'r' : '' },
+        { label: `Vol ${d.volRatio.toFixed(1)}x`, cls: d.volRatio >= 2 ? 'b' : '' },
+        d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < THRESHOLDS.FUNDING_NEG ? 'b' : d.funding > THRESHOLDS.FUNDING_POS ? 'r' : '' } : null,
+        { label: `OI${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'g' : d.oiChange < -5 ? 'r' : '' },
+        d.prePumpSilence?.detected ? { label: `🤫 Silence`, cls: 'b' } : null,
         d.candlePatterns?.length > 0 ? { label: `🕯 ${d.candlePatterns[0].name}`, cls: 'r' } : null,
       ].filter(Boolean);
 
-      const tagsHtml  = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
-      const chart     = `https://www.tradingview.com/chart/?symbol=BINANCE:${c.sym}USDT.P`;
-      const typeLabel = c.type === 'fav' ? '⭐' : '📦';
+      const tagsHtml = tags.map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
+      const chart = `https://www.tradingview.com/chart/?symbol=BINANCE:${c.sym}USDT.P`;
+
+      // PATCHED: Icon and badge based on position side
+      const sideIcon  = side === 'short' ? '📉' : '📈';
+      const sideBadge = `<span class="pos-badge ${side}">${side.toUpperCase()}</span>`;
+      const levLabel  = c.leverage && c.leverage > 1 ? ` ${c.leverage}×` : '';
 
       const cardHtml = `
-        <div class="portfolio-card" id="pf-card-${c.sym}">
+        <div class="portfolio-card pos-${side}" id="pf-card-${c.sym}">
           <div>
-            <div class="portfolio-card-sym">${typeLabel} ${c.sym}/USDT</div>
-            ${c.entry ? `<div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-top:2px;">Entry: $${c.entry}</div>` : ''}
+            <div class="portfolio-card-sym">${sideIcon} ${c.sym}/USDT</div>
+            <div style="display:flex;gap:5px;align-items:center;margin-top:4px;">
+              ${sideBadge}
+              ${c.entry ? `<span style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);">@${c.entry}${levLabel}</span>` : ''}
+            </div>
           </div>
           <div>
             <div class="portfolio-card-tags">${tagsHtml}</div>
@@ -2984,7 +2395,7 @@ async function pfScanAll(mode = 'accum') {
             <div><span class="tag ${verdictCls}" style="font-size:0.66rem;">${s.score}/${s.max}</span></div>
             ${pnlHtml}
             <div style="display:flex;gap:5px;margin-top:5px;justify-content:flex-end;">
-              <button class="btn-sm" onclick="pfShowDetail('${c.sym}')">Detail</button>
+              <button class="btn-sm" onclick="pfShowDetail('${c.sym}', '${side}')">Detail</button>
               <a class="btn-sm" href="${chart}" target="_blank">Chart ↗</a>
             </div>
           </div>
@@ -3005,24 +2416,28 @@ async function pfScanAll(mode = 'accum') {
       if (existing) { existing.insertAdjacentHTML('afterend', errHtml); existing.remove(); }
       else { grid.insertAdjacentHTML('beforeend', errHtml); }
     }
-
     await sleep(350);
   }
 
-  btn.disabled = false;
-  btn.textContent = '⚡ Scan All Positions';
-  setDot('active');
-  logMsg(`✅ Portfolio scan selesai`, 'ok');
-  showToast(`✅ Fresh scan selesai — ${coins.length} coins updated`, 'success');
+  btn.disabled = false; btn.textContent = '⚡ Scan All Positions';
+  setDot('active'); logMsg(`✅ Portfolio scan selesai`, 'ok');
+  showToast(`✅ Fresh scan selesai — ${coins.length} positions updated`, 'success');
 }
 
-async function pfShowDetail(sym) {
+// PATCHED: pfShowDetail uses position side to pick correct score
+async function pfShowDetail(sym, side = 'long') {
   setDot('loading');
   try {
     const d = await analyzeCoin(sym);
-    const s = scoreAccum(d);
-    const smart = detectSmartAccumulation(d, d.klines4h, d.klines1d);
-    renderResult(sym, d, s, smart.signals);
+    let s, signals;
+    if (side === 'short') {
+      s = scoreShort(d);
+      signals = detectPumpExhaustion(d, d.klines4h, d.klines1d).signals;
+    } else {
+      s = scoreAccum(d);
+      signals = detectSmartAccumulation(d, d.klines4h, d.klines1d).signals;
+    }
+    renderResult(sym, d, s, signals);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setDot('active');
   } catch (e) { showToast(`Error: ${e.message}`, 'error'); setDot('error'); }
@@ -3030,30 +2445,35 @@ async function pfShowDetail(sym) {
 
 function pfExportCSV() {
   const coins = pfLoad();
-  if (!coins.length) { showToast('Portfolio kosong', 'warn'); return; }
-  const headers = ['Symbol','Type','Entry Price','Current Price','PnL%','RSI 4H','24h%','Funding','OI%','Vol Ratio','Candle Patterns'];
+  if (!coins.length) { showToast('Tidak ada posisi', 'warn'); return; }
+  const headers = ['Symbol','Side','Leverage','Entry Price','Current Price','PnL%','PnL% Levered','RSI 4H','24h%','Funding','OI%','Vol Ratio','Pre-Pump Silence','Candle Patterns'];
   const rows = coins.map(c => {
     const d = Cache.get(c.sym, 'analysis');
-    if (!d) return [c.sym, c.type, c.entry||'','','','','','','','',''];
-    const pnl = c.entry ? ((d.price - c.entry) / c.entry * 100).toFixed(2) + '%' : '';
+    const side = c.type || 'long';
+    const lev = c.leverage || 1;
+    if (!d) return [c.sym, side, lev, c.entry||'','','','','','','','','','',''];
+    let pnlPct = '', pnlLevered = '';
+    if (c.entry && c.entry > 0) {
+      const raw = side === 'short' ? (c.entry - d.price) / c.entry * 100 : (d.price - c.entry) / c.entry * 100;
+      pnlPct = raw.toFixed(2) + '%';
+      pnlLevered = (raw * lev).toFixed(2) + '%';
+    }
     return [
-      c.sym, c.type, c.entry||'', fmt(d.price,5), pnl,
+      c.sym, side, lev, c.entry||'', fmt(d.price,5), pnlPct, pnlLevered,
       d.rsi4h, fmtPct(d.gain24h),
       d.funding != null ? `${d.funding.toFixed(4)}%` : 'N/A',
-      `${d.oiChange.toFixed(1)}%`,
-      d.volRatio.toFixed(2),
+      `${d.oiChange.toFixed(1)}%`, d.volRatio.toFixed(2),
+      d.prePumpSilence?.detected ? `yes(score:${d.prePumpSilence.score})` : 'no',
       d.candlePatterns?.length > 0 ? d.candlePatterns.map(p=>p.name).join('|') : 'none',
     ];
   });
-  const csv  = [headers, ...rows].map(r => r.map(v=>`"${v}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = `hervin_portfolio_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
-  showToast(`📥 Portfolio exported`, 'success');
+  const csv = [headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`hervin_positions_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast(`📥 Positions exported`, 'success');
 }
 
 pfRenderChips();
