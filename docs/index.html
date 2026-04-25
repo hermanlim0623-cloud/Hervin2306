@@ -1084,93 +1084,352 @@ function scoreShort(d){
   return{score,max,pct,cls,checks,verdict};
 }
 
-function calcTradeSetup(d){
-  const price=d.price,atr=d.atr4h,klines=d.klines4h;
-  if(!klines||klines.length<20||atr<=0)return null;
-  const highs=klines.map(k=>parseFloat(k[2])),lows=klines.map(k=>parseFloat(k[3]));
-  const lc=[];for(const low of lows){const ex=lc.find(c=>Math.abs(c.price-low)/low<0.02);if(ex){ex.count++;ex.prices.push(low);}else lc.push({price:low,count:1,prices:[low]});}
-  const supports=lc.map(c=>({price:c.prices.reduce((a,b)=>a+b,0)/c.prices.length,count:c.count})).filter(c=>c.price<price*0.995).sort((a,b)=>b.price-a.price);
-  const hc=[];for(const h of highs){const ex=hc.find(c=>Math.abs(c.price-h)/h<0.015);if(ex){ex.count++;ex.prices.push(h);}else hc.push({price:h,count:1,prices:[h]});}
-  const resistances=hc.map(c=>({price:c.prices.reduce((a,b)=>a+b,0)/c.prices.length,count:c.count})).filter(c=>c.price>price*1.005).sort((a,b)=>a.price-b.price);
-  let el,eh;
-  if(supports.length>0&&supports[0].price>price*0.93){el=supports[0].price*0.995;eh=supports[0].price*1.015;}
-  else{el=price-atr*0.5;eh=price+atr*0.2;}
-  if(d.breakout?.retesting&&d.breakout.level>0){el=d.breakout.level*0.995;eh=d.breakout.level*1.02;}
-  const em=(el+eh)/2;
-  let sl;const sb=supports.find(s=>s.price<el*0.99);
-  if(sb&&sb.count>=2)sl=sb.price*0.985;else sl=el-atr*1.5;
-  sl=Math.max(sl,em*0.80);
-  const slPct=(em-sl)/em*100,risk=em-sl;
-  let tp1=resistances.length>=1?resistances[0].price:em+risk*1.5;
-  let tp2=resistances.length>=2?resistances[1].price:em+risk*3.0;
-  const cH=Math.max(...highs.slice(-15)),cL=Math.min(...lows.slice(-15));
-  let tp3=cH+(cH-cL)*1.2;if(tp3<=tp2*1.05)tp3=em+risk*5.0;
-  const rr1=risk>0?(tp1-em)/risk:0,rr2=risk>0?(tp2-em)/risk:0,rr3=risk>0?(tp3-em)/risk:0;
-  const isGood=rr2>=2.0&&slPct<=15&&slPct>=1;
-  const rating=rr2>=3?'excellent':rr2>=2?'good':rr2>=1.5?'fair':'poor';
-  const ml=slPct>0?Math.floor(15/slPct):1,ls=Math.min(Math.max(ml,1),10);
-  return{entryLow:el,entryHigh:eh,entryMid:em,sl,slPct,tp1,tp2,tp3,tp1Pct:(tp1-em)/em*100,tp2Pct:(tp2-em)/em*100,tp3Pct:(tp3-em)/em*100,rr1,rr2,rr3,isGoodSetup:isGood,setupRating:rating,levRange:`${ls}x – ${Math.min(ls+2,10)}x`,supports:supports.slice(0,3),resistances:resistances.slice(0,3)};
+// ═══════════════════════════════════════════════════════════════════
+// TRADE SETUP v9.3 — Entry-aware, Long/Short, Real TP/SL dari entry
+// Kalau entryPrice diisi (dari posisi), semua level dihitung dari sana.
+// Kalau tidak ada entry, pakai estimasi dari support/resistance chart.
+// ═══════════════════════════════════════════════════════════════════
+
+function calcTradeSetup(d, entryPrice = null, side = 'long', leverage = 1) {
+  const price = d.price, atr = d.atr4h, klines = d.klines4h;
+  if (!klines || klines.length < 20 || atr <= 0) return null;
+
+  const highs = klines.map(k => parseFloat(k[2]));
+  const lows  = klines.map(k => parseFloat(k[3]));
+
+  // ── BUILD SUPPORT CLUSTERS ──────────────────────────────────────
+  const lc = [];
+  for (const low of lows) {
+    const ex = lc.find(c => Math.abs(c.price - low) / low < 0.02);
+    if (ex) { ex.count++; ex.prices.push(low); }
+    else lc.push({ price: low, count: 1, prices: [low] });
+  }
+  const supports = lc
+    .map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
+    .filter(c => c.price < price * 0.999)
+    .sort((a,b) => b.price - a.price);
+
+  // ── BUILD RESISTANCE CLUSTERS ───────────────────────────────────
+  const hc = [];
+  for (const h of highs) {
+    const ex = hc.find(c => Math.abs(c.price - h) / h < 0.015);
+    if (ex) { ex.count++; ex.prices.push(h); }
+    else hc.push({ price: h, count: 1, prices: [h] });
+  }
+  const resistances = hc
+    .map(c => ({ price: c.prices.reduce((a,b)=>a+b,0)/c.prices.length, count: c.count }))
+    .filter(c => c.price > price * 1.001)
+    .sort((a,b) => a.price - b.price);
+
+  // ── ENTRY — use actual entry if provided, else estimate ─────────
+  const em = entryPrice && entryPrice > 0 ? entryPrice : (() => {
+    let el, eh;
+    if (supports.length > 0 && supports[0].price > price * 0.93) {
+      el = supports[0].price * 0.995; eh = supports[0].price * 1.015;
+    } else {
+      el = price - atr * 0.5; eh = price + atr * 0.2;
+    }
+    if (d.breakout?.retesting && d.breakout.level > 0) {
+      el = d.breakout.level * 0.995; eh = d.breakout.level * 1.02;
+    }
+    return (el + eh) / 2;
+  })();
+
+  const hasRealEntry = entryPrice && entryPrice > 0;
+  const lev = leverage && leverage > 1 ? leverage : 1;
+
+  if (side === 'long') {
+    // ── LONG SETUP ────────────────────────────────────────────────
+    // SL = nearest support below entry, or ATR-based
+    let sl;
+    const supBelow = supports.find(s => s.price < em * 0.99);
+    if (supBelow && supBelow.count >= 2) sl = supBelow.price * 0.985;
+    else sl = em - atr * 1.5;
+    sl = Math.max(sl, em * 0.78); // cap max loss at 22%
+
+    const slPct = (em - sl) / em * 100;
+    const risk  = em - sl;
+
+    // TP = resistance clusters above entry, then measured move
+    const resAbove = resistances.filter(r => r.price > em * 1.005);
+    let tp1 = resAbove.length >= 1 ? resAbove[0].price : em + risk * 1.5;
+    let tp2 = resAbove.length >= 2 ? resAbove[1].price : em + risk * 3.0;
+    let tp3 = resAbove.length >= 3 ? resAbove[2].price : em + risk * 5.0;
+
+    // Make sure TPs are ordered and spaced
+    if (tp2 <= tp1 * 1.01) tp2 = tp1 * 1.06;
+    if (tp3 <= tp2 * 1.01) tp3 = tp2 * 1.15;
+
+    const tp1Pct = (tp1 - em) / em * 100;
+    const tp2Pct = (tp2 - em) / em * 100;
+    const tp3Pct = (tp3 - em) / em * 100;
+    const rr1 = risk > 0 ? (tp1 - em) / risk : 0;
+    const rr2 = risk > 0 ? (tp2 - em) / risk : 0;
+    const rr3 = risk > 0 ? (tp3 - em) / risk : 0;
+
+    // PnL with leverage from actual entry
+    const pnlTP1 = tp1Pct * lev;
+    const pnlTP2 = tp2Pct * lev;
+    const pnlTP3 = tp3Pct * lev;
+    const pnlSL  = -slPct  * lev;
+
+    // Current PnL if entry already filled
+    const currentPnl = hasRealEntry ? (price - em) / em * 100 * lev : null;
+
+    const isGood   = rr2 >= 2.0 && slPct <= 20 && slPct >= 0.5;
+    const rating   = rr2 >= 3 ? 'excellent' : rr2 >= 2 ? 'good' : rr2 >= 1.5 ? 'fair' : 'poor';
+    const maxLevSafe = slPct > 0 ? Math.floor(20 / slPct) : 1;
+    const levSugg  = Math.min(Math.max(maxLevSafe, 1), 20);
+
+    return {
+      side: 'long', em, sl, slPct, risk,
+      tp1, tp2, tp3, tp1Pct, tp2Pct, tp3Pct,
+      pnlTP1, pnlTP2, pnlTP3, pnlSL,
+      rr1, rr2, rr3, lev,
+      isGoodSetup: isGood, setupRating: rating,
+      levSugg: `${levSugg}x – ${Math.min(levSugg+3,20)}x`,
+      hasRealEntry, currentPnl,
+      supports: supports.slice(0, 4),
+      resistances: resAbove.slice(0, 4),
+    };
+
+  } else {
+    // ── SHORT SETUP ───────────────────────────────────────────────
+    // For short: profit when price goes DOWN
+    // SL = above entry (resistance / ATR)
+    let sl;
+    const resAboveEntry = resistances.filter(r => r.price > em * 1.005);
+    if (resAboveEntry.length > 0 && resAboveEntry[0].price < em * 1.20) {
+      sl = resAboveEntry[0].price * 1.015;
+    } else {
+      sl = em + atr * 1.5;
+    }
+    sl = Math.min(sl, em * 1.22); // cap max loss at 22%
+
+    const slPct = (sl - em) / em * 100; // positive %
+    const risk  = sl - em;
+
+    // TP for short = support clusters BELOW entry
+    const supBelow = supports.filter(s => s.price < em * 0.995);
+    let tp1 = supBelow.length >= 1 ? supBelow[0].price : em - risk * 1.5;
+    let tp2 = supBelow.length >= 2 ? supBelow[1].price : em - risk * 3.0;
+    let tp3 = supBelow.length >= 3 ? supBelow[2].price : em - risk * 5.0;
+
+    // Make sure TPs go lower and spaced
+    if (tp2 >= tp1 * 0.99) tp2 = tp1 * 0.94;
+    if (tp3 >= tp2 * 0.99) tp3 = tp2 * 0.88;
+    tp3 = Math.max(tp3, em * 0.50); // don't go below 50% of entry
+
+    const tp1Pct = (em - tp1) / em * 100; // positive = profit for short
+    const tp2Pct = (em - tp2) / em * 100;
+    const tp3Pct = (em - tp3) / em * 100;
+    const rr1 = risk > 0 ? (em - tp1) / risk : 0;
+    const rr2 = risk > 0 ? (em - tp2) / risk : 0;
+    const rr3 = risk > 0 ? (em - tp3) / risk : 0;
+
+    // PnL with leverage
+    const pnlTP1 = tp1Pct * lev;
+    const pnlTP2 = tp2Pct * lev;
+    const pnlTP3 = tp3Pct * lev;
+    const pnlSL  = -slPct  * lev;
+
+    // Current PnL for short (profit if price < entry)
+    const currentPnl = hasRealEntry ? (em - price) / em * 100 * lev : null;
+
+    const isGood   = rr2 >= 2.0 && slPct <= 20 && slPct >= 0.5;
+    const rating   = rr2 >= 3 ? 'excellent' : rr2 >= 2 ? 'good' : rr2 >= 1.5 ? 'fair' : 'poor';
+    const maxLevSafe = slPct > 0 ? Math.floor(20 / slPct) : 1;
+    const levSugg  = Math.min(Math.max(maxLevSafe, 1), 20);
+
+    return {
+      side: 'short', em, sl, slPct, risk,
+      tp1, tp2, tp3, tp1Pct, tp2Pct, tp3Pct,
+      pnlTP1, pnlTP2, pnlTP3, pnlSL,
+      rr1, rr2, rr3, lev,
+      isGoodSetup: isGood, setupRating: rating,
+      levSugg: `${levSugg}x – ${Math.min(levSugg+3,20)}x`,
+      hasRealEntry, currentPnl,
+      supports: supBelow.slice(0, 4),
+      resistances: resAboveEntry.slice(0, 4),
+    };
+  }
 }
 
-function renderTradeSetupHtml(d,sym){
-  const setup=calcTradeSetup(d);if(!setup)return '';
-  const rrL=setup.rr2>=2?`RR 1:${setup.rr2.toFixed(1)} ✅`:`RR 1:${setup.rr2.toFixed(1)} ⚠`;
-  const hb=setup.isGoodSetup?'':'no-setup';
-  const mp=setup.tp3Pct,t1w=Math.round(setup.tp1Pct/mp*100),t2w=Math.round(setup.tp2Pct/mp*100);
-  const rc={excellent:'var(--g)',good:'var(--b)',fair:'var(--a)',poor:'var(--r)'}[setup.setupRating];
-  return `<div class="trade-setup ${hb}">
-    <div class="trade-setup-head"><span class="trade-setup-head-title">📐 Trade Setup — Long ${sym}/USDT</span><span class="trade-setup-rr">${rrL}</span></div>
+// ═══════════════════════════════════════════════════════════════════
+// RENDER TRADE SETUP — Long & Short aware, entry-price based
+// ═══════════════════════════════════════════════════════════════════
+function renderTradeSetupHtml(d, sym, entryPrice = null, side = 'long', leverage = 1) {
+  const setup = calcTradeSetup(d, entryPrice, side, leverage);
+  if (!setup) return '';
+
+  const isLong   = setup.side === 'long';
+  const sideIcon = isLong ? '📈' : '📉';
+  const sideClr  = isLong ? 'var(--g)' : 'var(--r)';
+  const sideLbl  = isLong ? 'LONG' : 'SHORT';
+  const rrLabel  = `RR 1:${setup.rr2.toFixed(1)} ${setup.rr2 >= 2 ? '✅' : '⚠'}`;
+  const hb       = setup.isGoodSetup ? '' : 'no-setup';
+  const rc       = { excellent:'var(--g)', good:'var(--b)', fair:'var(--a)', poor:'var(--r)' }[setup.setupRating];
+
+  // TP bar widths — relative to TP3
+  const maxPct = setup.tp3Pct || 1;
+  const t1w = Math.max(5, Math.round(setup.tp1Pct / maxPct * 100));
+  const t2w = Math.max(10, Math.round(setup.tp2Pct / maxPct * 100));
+
+  // Current position PnL display
+  const currentPnlHtml = setup.currentPnl !== null ? (() => {
+    const cls = setup.currentPnl >= 0 ? 'green' : 'red';
+    const dist = isLong
+      ? (d.price > setup.em ? `+${((d.price-setup.em)/setup.em*100).toFixed(2)}% dari entry` : `-${((setup.em-d.price)/setup.em*100).toFixed(2)}% dari entry`)
+      : (d.price < setup.em ? `+${((setup.em-d.price)/setup.em*100).toFixed(2)}% dari entry` : `-${((d.price-setup.em)/setup.em*100).toFixed(2)}% dari entry`);
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:3px;">Current PnL (${setup.lev}× lev)</div>
+        <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--${cls});">${setup.currentPnl>=0?'+':''}${setup.currentPnl.toFixed(2)}%</div>
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--faint);">${dist}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.66rem;color:var(--muted);margin-bottom:3px;">Harga sekarang</div>
+        <div style="font-family:var(--mono);font-size:0.85rem;font-weight:600;">$${fmt(d.price,6)}</div>
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--faint);">Entry: $${fmt(setup.em,6)}</div>
+      </div>
+    </div>`;
+  })() : '';
+
+  // TP rows — direction-aware labels and colors
+  const tpColor = ['var(--g)', 'var(--b)', 'var(--a)'];
+  const tpRows = [
+    { tag:'TP1', price:setup.tp1, pct:setup.tp1Pct, pnl:setup.pnlTP1, w:t1w, cls:'', rr:setup.rr1 },
+    { tag:'TP2', price:setup.tp2, pct:setup.tp2Pct, pnl:setup.pnlTP2, w:t2w, cls:'tp2', rr:setup.rr2 },
+    { tag:'TP3', price:setup.tp3, pct:setup.tp3Pct, pnl:setup.pnlTP3, w:100, cls:'tp3', rr:setup.rr3 },
+  ].map((tp,i) => `
+    <div class="tp-level">
+      <span class="tp-level-tag">${tp.tag}</span>
+      <div class="tp-bar-wrap"><div class="tp-bar-fill ${tp.cls}" style="width:${tp.w}%"></div></div>
+      <span class="tp-level-price" style="color:${tpColor[i]}">$${fmt(tp.price, 5)}</span>
+      <span style="font-family:var(--mono);font-size:0.65rem;color:${tpColor[i]};min-width:40px;text-align:right;">${isLong?'+':'−'}${tp.pct.toFixed(1)}%</span>
+      ${setup.lev > 1 ? `<span style="font-family:var(--mono);font-size:0.65rem;color:${tpColor[i]};min-width:52px;text-align:right;font-weight:700;">${tp.pnl>=0?'+':''}${tp.pnl.toFixed(1)}% lev</span>` : ''}
+      <span style="font-family:var(--mono);font-size:0.6rem;color:var(--faint);min-width:38px;text-align:right;">RR 1:${tp.rr.toFixed(1)}</span>
+    </div>`).join('');
+
+  // Support / Resistance key levels for reference
+  const keyLevelsHtml = (() => {
+    if (!setup.resistances.length && !setup.supports.length) return '';
+    const resRows = setup.resistances.slice(0,3).map(r =>
+      `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;padding:3px 0;border-bottom:1px solid var(--border);">
+        <span style="color:var(--r);">↑ Resistance (${r.count}×)</span>
+        <span style="font-weight:600;">$${fmt(r.price,5)}</span>
+        <span style="color:var(--muted);">${isLong?'+':'-'}${Math.abs((r.price-setup.em)/setup.em*100).toFixed(1)}%</span>
+      </div>`).join('');
+    const supRows = setup.supports.slice(0,3).map(s =>
+      `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.68rem;padding:3px 0;border-bottom:1px solid var(--border);">
+        <span style="color:var(--g);">↓ Support (${s.count}×)</span>
+        <span style="font-weight:600;">$${fmt(s.price,5)}</span>
+        <span style="color:var(--muted);">-${Math.abs((s.price-setup.em)/setup.em*100).toFixed(1)}%</span>
+      </div>`).join('');
+    return `<div>
+      <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px;">Key Levels dari Chart</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:8px 12px;">
+        ${resRows}${supRows}
+      </div>
+    </div>`;
+  })();
+
+  return `
+  <div class="trade-setup ${hb}" style="border-color:${isLong?'var(--g-border)':'var(--r-border)'};">
+    <div class="trade-setup-head" style="background:${sideClr};">
+      <span class="trade-setup-head-title">${sideIcon} Trade Setup — ${sideLbl} ${sym}/USDT${setup.lev>1?` ${setup.lev}×`:''}</span>
+      <span class="trade-setup-rr">${rrLabel}</span>
+    </div>
     <div class="trade-setup-body">
-      <div class="setup-row"><span class="setup-row-label">Entry Zone</span><span class="setup-price">$${fmt(setup.entryLow,5)} – $${fmt(setup.entryHigh,5)}</span><span class="setup-note">${setup.breakout?.retesting?'🎯 Retest zone':setup.entryMid<d.price?'⬇ Wait pullback':'✅ Di zona sekarang'}</span></div>
-      <div class="setup-row"><span class="setup-row-label">Stop Loss</span><span class="setup-price">$${fmt(setup.sl,5)}</span><span class="setup-pct red">-${setup.slPct.toFixed(1)}%</span><span class="setup-note">Invalidasi setup</span></div>
-      <div><div class="setup-row" style="margin-bottom:8px;"><span class="setup-row-label">Take Profit</span><span style="font-size:0.7rem;color:var(--muted);">Saran: TP1 50% → TP2 30% → TP3 20%</span></div>
-        <div class="tp-levels">
-          <div class="tp-level"><span class="tp-level-tag">TP1</span><div class="tp-bar-wrap"><div class="tp-bar-fill" style="width:${t1w}%"></div></div><span class="tp-level-price">$${fmt(setup.tp1,5)}</span><span class="tp-level-pct">+${setup.tp1Pct.toFixed(1)}%</span></div>
-          <div class="tp-level"><span class="tp-level-tag">TP2</span><div class="tp-bar-wrap"><div class="tp-bar-fill tp2" style="width:${t2w}%"></div></div><span class="tp-level-price">$${fmt(setup.tp2,5)}</span><span class="tp-level-pct" style="color:var(--b)">+${setup.tp2Pct.toFixed(1)}%</span></div>
-          <div class="tp-level"><span class="tp-level-tag">TP3</span><div class="tp-bar-wrap"><div class="tp-bar-fill tp3" style="width:100%"></div></div><span class="tp-level-price">$${fmt(setup.tp3,5)}</span><span class="tp-level-pct" style="color:var(--a)">+${setup.tp3Pct.toFixed(1)}%</span></div>
+
+      ${currentPnlHtml}
+
+      <div class="setup-row">
+        <span class="setup-row-label">Entry</span>
+        <span class="setup-price">$${fmt(setup.em,6)}</span>
+        <span class="setup-note" style="color:${setup.hasRealEntry?'var(--g)':'var(--muted)'};">${setup.hasRealEntry?'✅ Dari posisi lo':'⚡ Estimasi market'}</span>
+      </div>
+
+      <div class="setup-row">
+        <span class="setup-row-label">Stop Loss</span>
+        <span class="setup-price" style="color:var(--r);">$${fmt(setup.sl,5)}</span>
+        <span class="setup-pct red">-${setup.slPct.toFixed(1)}%${setup.lev>1?` / -${(setup.slPct*setup.lev).toFixed(1)}% lev`:''}</span>
+        <span class="setup-note">❌ Invalidasi setup</span>
+      </div>
+
+      <div>
+        <div class="setup-row" style="margin-bottom:8px;">
+          <span class="setup-row-label">Take Profit</span>
+          <span style="font-size:0.7rem;color:var(--muted);">TP1 50% → TP2 30% → TP3 20%${setup.lev>1?` (${setup.lev}× leverage)`:''}</span>
+        </div>
+        <div class="tp-levels">${tpRows}</div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="metric" style="flex:1;min-width:90px;">
+          <div class="metric-l">Quality</div>
+          <div class="metric-v" style="color:${rc};text-transform:capitalize;">${setup.setupRating}</div>
+        </div>
+        <div class="metric" style="flex:1;min-width:90px;">
+          <div class="metric-l">Lev Saran</div>
+          <div class="metric-v amber">${setup.levSugg}</div>
+        </div>
+        <div class="metric" style="flex:1;min-width:90px;">
+          <div class="metric-l">Best RR</div>
+          <div class="metric-v ${setup.rr2>=2?'green':'red'}">1:${setup.rr2.toFixed(1)}</div>
+        </div>
+        <div class="metric" style="flex:1;min-width:90px;">
+          <div class="metric-l">Max Profit</div>
+          <div class="metric-v green">+${setup.pnlTP3.toFixed(1)}%</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <div class="metric" style="flex:1;min-width:100px;"><div class="metric-l">Quality</div><div class="metric-v" style="color:${rc};text-transform:capitalize;">${setup.setupRating}</div></div>
-        <div class="metric" style="flex:1;min-width:100px;"><div class="metric-l">Leverage</div><div class="metric-v amber">${setup.levRange}</div></div>
-        <div class="metric" style="flex:1;min-width:100px;"><div class="metric-l">Best RR</div><div class="metric-v ${setup.rr2>=2?'green':'red'}">1:${setup.rr2.toFixed(1)}</div></div>
-      </div>
+
+      ${keyLevelsHtml}
+
       <div class="possize-wrap">
         <div class="possize-title">💰 Position Size Calculator</div>
         <div class="possize-row">
           <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">Modal (USDT)</span>
-          <input class="possize-input" id="psCapital" type="number" placeholder="e.g. 100" oninput="calcPosSize('${sym}',${setup.entryMid},${setup.sl})">
+          <input class="possize-input" id="psCapital" type="number" placeholder="e.g. 100"
+            oninput="calcPosSize('${sym}',${setup.em},${setup.sl},'${setup.side}',${setup.lev})">
           <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;">Risk %</span>
-          <input class="possize-input" id="psRisk" type="number" placeholder="1–3" value="2" style="width:70px" oninput="calcPosSize('${sym}',${setup.entryMid},${setup.sl})">
+          <input class="possize-input" id="psRisk" type="number" placeholder="1–3" value="2" style="width:70px"
+            oninput="calcPosSize('${sym}',${setup.em},${setup.sl},'${setup.side}',${setup.lev})">
         </div>
         <div class="possize-result" id="psResult" style="display:none">
-          <div class="possize-stat"><div class="possize-stat-l">Position</div><div class="possize-stat-v" id="psSize">—</div></div>
+          <div class="possize-stat"><div class="possize-stat-l">Position Size</div><div class="possize-stat-v" id="psSize">—</div></div>
           <div class="possize-stat"><div class="possize-stat-l">Max Loss</div><div class="possize-stat-v" id="psLoss" style="color:var(--r)">—</div></div>
-          <div class="possize-stat"><div class="possize-stat-l">Profit@TP2</div><div class="possize-stat-v" id="psProfit" style="color:var(--g)">—</div></div>
+          <div class="possize-stat"><div class="possize-stat-l">Profit @ TP2</div><div class="possize-stat-v" id="psProfit" style="color:var(--g)">—</div></div>
         </div>
       </div>
-      ${!setup.isGoodSetup?`<div style="font-size:0.78rem;color:var(--a);background:var(--a-bg);border:1px solid var(--a-border);border-radius:var(--r8);padding:10px 14px;">⚠ Setup kurang ideal (RR ${setup.rr2.toFixed(1)}x)</div>`:''}
+
+      ${!setup.isGoodSetup ? `<div style="font-size:0.78rem;color:var(--a);background:var(--a-bg);border:1px solid var(--a-border);border-radius:var(--r8);padding:10px 14px;">⚠ Setup kurang ideal (RR ${setup.rr2.toFixed(1)}x) — pertimbangkan adjust entry lebih rendah</div>` : ''}
     </div>
   </div>`;
 }
 
-function calcPosSize(sym,em,sl){
-  const cap=parseFloat(document.getElementById('psCapital')?.value)||0;
-  const rp=parseFloat(document.getElementById('psRisk')?.value)||2;
-  if(cap<=0)return;
-  const ra=cap*rp/100,sd=Math.abs(em-sl)/em;
-  if(sd<=0)return;
-  const ps=ra/sd;
-  document.getElementById('psResult').style.display='grid';
-  document.getElementById('psSize').textContent=`$${ps.toFixed(2)}`;
-  document.getElementById('psLoss').textContent=`-$${ra.toFixed(2)}`;
-  document.getElementById('psProfit').textContent=`+$${(ra*3).toFixed(2)}`;
+function calcPosSize(sym, em, sl, side='long', lev=1) {
+  const cap = parseFloat(document.getElementById('psCapital')?.value) || 0;
+  const rp  = parseFloat(document.getElementById('psRisk')?.value) || 2;
+  if (cap <= 0) return;
+  const riskAmt = cap * rp / 100;
+  const slDist  = Math.abs(em - sl) / em;
+  if (slDist <= 0) return;
+  // With leverage: actual position = capital × leverage, but risk is still riskAmt
+  const posSize = riskAmt / slDist;
+  const tp2Pct  = side === 'long'
+    ? (em > 0 ? Math.abs(em - sl) / em * 100 * 2 : 0) // rough RR2
+    : (em > 0 ? Math.abs(em - sl) / em * 100 * 2 : 0);
+  document.getElementById('psResult').style.display = 'grid';
+  document.getElementById('psSize').textContent  = `$${posSize.toFixed(2)}`;
+  document.getElementById('psLoss').textContent  = `-$${riskAmt.toFixed(2)}`;
+  document.getElementById('psProfit').textContent = `+$${(riskAmt * 2).toFixed(2)}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // RENDER RESULT — v9.2 adds new precision panels
 // ═══════════════════════════════════════════════════════════════════
-function renderResult(sym, d, scoreData, smartSignals=[]) {
+function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side='long', leverage=1) {
   document.getElementById('rpSym').textContent=`${sym}/USDT`;
   document.getElementById('rpPrice').textContent=`$${fmt(d.price,6)}`;
   const chart=`https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
@@ -1336,7 +1595,7 @@ function renderResult(sym, d, scoreData, smartSignals=[]) {
 
   const scoreHtml=`<div class="score-section"><span class="score-label">Score</span><div class="score-track"><div class="score-fill ${scoreData.cls}" style="width:${scoreData.pct}%"></div></div><span class="score-val">${scoreData.score}/${scoreData.max}</span></div>`;
   const verdictHtml=`<div class="verdict ${scoreData.verdict.cls}">${scoreData.verdict.text}</div>`;
-  const tradeHtml=renderTradeSetupHtml(d,sym);
+  const tradeHtml=renderTradeSetupHtml(d,sym,entryPrice,side,leverage);
 
   document.getElementById('rpBody').innerHTML =
     metricsHtml +
@@ -1666,7 +1925,13 @@ function renderCards(){
   window._scanResults=all;
 }
 
-function showDetail(idx){const r=window._scanResults?.[idx];if(!r||!r.data||!r.scoreData)return;renderResult(r.sym,r.data,r.scoreData,r.signals||[]);window.scrollTo({top:0,behavior:'smooth'});}
+function showDetail(idx){
+  const r=window._scanResults?.[idx];
+  if(!r||!r.data||!r.scoreData)return;
+  const side=r._type==='SHORT'?'short':'long';
+  renderResult(r.sym,r.data,r.scoreData,r.signals||[],null,side,1);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function updateStats(){const t=results.accum.length+results.pump.length+results.short.length+results.top.length;document.getElementById('stTotal').textContent=t||'—';document.getElementById('stAccum').textContent=results.accum.length||'—';document.getElementById('stPump').textContent=results.pump.length||'—';document.getElementById('stShort').textContent=results.short.length||'—';}
 function showSkeletons(){document.getElementById('cardsGrid').innerHTML=[1,2,3].map(()=>`<div class="skel-card"><div class="skel" style="width:88px;height:40px;border-radius:6px;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:7px;"><div class="skel" style="height:14px;width:90px;"></div><div class="skel" style="height:11px;width:150px;"></div></div></div>`).join('');}
 
@@ -1805,7 +2070,7 @@ async function pfScanAll(mode='accum'){
           <span class="tag ${vc}" style="font-size:0.66rem;">${s.score}/${s.max}</span>
           ${pnlHtml}
           <div style="display:flex;gap:5px;margin-top:5px;">
-            <button class="btn-sm" onclick="pfShowDetail('${c.sym}','${side}')">Detail</button>
+            <button class="btn-sm" onclick="pfShowDetail('${c.sym}','${side}',${c.entry||0},${c.leverage||1})">Detail</button>
             <a class="btn-sm" href="${chart}" target="_blank">Chart ↗</a>
           </div>
         </div>
@@ -1824,14 +2089,23 @@ async function pfScanAll(mode='accum'){
   setDot('active');logMsg('✅ Portfolio scan selesai','ok');showToast(`✅ ${coins.length} positions updated`,'success');
 }
 
-async function pfShowDetail(sym,side='long'){
+async function pfShowDetail(sym, side='long', entryPrice=null, leverage=1) {
   setDot('loading');
-  try{
-    const d=await analyzeCoin(sym);
-    const s=side==='short'?scoreShort(d):scoreAccum(d);
-    const signals=side==='short'?detectPumpExhaustion(d,d.klines4h,d.klines1d).signals:detectSmartAccumulation(d,d.klines4h,d.klines1d).signals;
-    renderResult(sym,d,s,signals);window.scrollTo({top:0,behavior:'smooth'});setDot('active');
-  }catch(e){showToast(`Error: ${e.message}`,'error');setDot('error');}
+  try {
+    const d = await analyzeCoin(sym);
+    let s, signals;
+    if (side === 'short') {
+      s = scoreShort(d);
+      signals = detectPumpExhaustion(d, d.klines4h, d.klines1d).signals;
+    } else {
+      s = scoreAccum(d);
+      signals = detectSmartAccumulation(d, d.klines4h, d.klines1d).signals;
+    }
+    // Pass actual entry price, side, and leverage to renderResult
+    renderResult(sym, d, s, signals, entryPrice > 0 ? entryPrice : null, side, leverage);
+    window.scrollTo({ top:0, behavior:'smooth' });
+    setDot('active');
+  } catch(e) { showToast(`Error: ${e.message}`,'error'); setDot('error'); }
 }
 
 function pfExportCSV(){
