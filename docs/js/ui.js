@@ -178,13 +178,16 @@ function calcPosSize(sym, em, sl, side='long', lev=1) {
 }
 
 // ── RENDER RESULT PANEL ────────────────────────────────────────────
-function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side='long', leverage=1) {
+function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side='long', leverage=1, tradeSignal=null) {
   document.getElementById('rpSym').textContent=`${sym}/USDT`;
   document.getElementById('rpPrice').textContent=`$${fmt(d.price,6)}`;
   const chart=`https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
 
+  // Auto-detect side from tradeSignal if not explicitly set
+  if (tradeSignal && !entryPrice) side = tradeSignal.side;
+
   // ── v9.3 SPIKE RISK DASHBOARD (renders first) ──────────────────
-  const spikeRiskHtml = renderSpikeRiskDashboard(d, side);
+  const spikeRiskHtml = renderSpikeRiskDashboard(d, side, tradeSignal);
 
 
   const metricsHtml=`<div class="metrics">
@@ -374,6 +377,9 @@ function renderCards(){
     const hd=r.data&&r.scoreData;
     const th=(r.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('');
     const sl=r.scoreMax&&r.scoreMax<=18&&typeof r.score==='number'?`<span style="font-family:var(--mono);font-size:0.63rem;color:var(--muted)">${r.score}/${r.scoreMax}</span>`:'';
+    // Trade signal badge
+    const sig = r.tradeSignal;
+    const sigBadge = sig ? `<span class="signal-badge ${sig.side}${sig.confidence>=80?' high':''}">${sig.side==='long'?'📈 LONG':'📉 SHORT'} ${sig.confidence}% <span class="sig-grade">${sig.grade}</span></span>` : '';
     return `<div class="card" style="animation-delay:${Math.min(i*0.035,1)}s">
       <div class="card-type">
         <span class="pill ${pc}">${pl}</span>
@@ -381,7 +387,7 @@ function renderCards(){
         ${sl}
       </div>
       <div class="card-body">
-        <div class="card-sym">${r.sym}/USDT</div>
+        <div class="card-sym">${r.sym}/USDT ${sigBadge}</div>
         <div class="card-tags">${th}</div>
       </div>
       <div class="card-right">
@@ -402,7 +408,7 @@ function showDetail(idx){
   const r=window._scanResults?.[idx];
   if(!r||!r.data||!r.scoreData)return;
   const side=r._type==='SHORT'?'short':'long';
-  renderResult(r.sym,r.data,r.scoreData,r.signals||[],null,side,1);
+  renderResult(r.sym,r.data,r.scoreData,r.signals||[],null,side,1,r.tradeSignal||null);
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -412,7 +418,7 @@ function showDetail(idx){
 // Order: Decision → Risk Score → Spike Probs → Ladder → Warnings →
 //        Trend State → Sweep → MM Trap → S/R Map → raw metrics
 // ═══════════════════════════════════════════════════════════════════
-function renderSpikeRiskDashboard(d, side = 'short') {
+function renderSpikeRiskDashboard(d, side = 'short', tradeSignal = null) {
   const isShort = side === 'short';
 
   // ── Run all engines ──────────────────────────────────────────────
@@ -428,6 +434,57 @@ function renderSpikeRiskDashboard(d, side = 'short') {
   if (!spikeProbData) return '';
 
   const price = d.price;
+
+  // ── 0. TRADE SIGNAL SUMMARY (top of all) ────────────────────────
+  let signalSummaryHtml = '';
+  const sig = tradeSignal;
+  if (sig) {
+    const isLong = sig.side === 'long';
+    const sigClr  = isLong ? 'var(--g)' : 'var(--r)';
+    const sigBg   = isLong ? 'var(--g-bg)' : 'var(--r-bg)';
+    const sigBdr  = isLong ? 'var(--g-border)' : 'var(--r-border)';
+    const gradeClr = sig.grade === 'A' ? 'var(--g)' : sig.grade === 'B' ? 'var(--b)' : sig.grade === 'C' ? 'var(--a)' : 'var(--muted)';
+    signalSummaryHtml = `
+    <div style="background:${sigBg};border:2px solid ${sigBdr};border-radius:var(--r12);padding:14px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.3rem;">${isLong ? '📈' : '📉'}</span>
+          <div>
+            <div style="font-size:0.95rem;font-weight:800;color:${sigClr};">${isLong ? 'LONG SIGNAL' : 'SHORT SIGNAL'}</div>
+            <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);">Confidence: <strong style="color:${sigClr}">${sig.confidence}%</strong></div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:${gradeClr};line-height:1;">${sig.grade}</div>
+          <div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Grade</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r8);padding:7px 10px;">
+          <div style="font-size:0.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Entry</div>
+          <div style="font-family:var(--mono);font-size:0.78rem;font-weight:700;">$${fmt(sig.entry,5)}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r8);padding:7px 10px;">
+          <div style="font-size:0.6rem;color:var(--r);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Stop Loss</div>
+          <div style="font-family:var(--mono);font-size:0.78rem;font-weight:700;color:var(--r);">$${fmt(sig.sl,5)}</div>
+          <div style="font-size:0.6rem;color:var(--muted);">${sig.slPct}%</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r8);padding:7px 10px;">
+          <div style="font-size:0.6rem;color:var(--g);font-weight:700;text-transform:uppercase;margin-bottom:3px;">TP1</div>
+          <div style="font-family:var(--mono);font-size:0.78rem;font-weight:700;color:var(--g);">$${fmt(sig.tp1,5)}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r8);padding:7px 10px;">
+          <div style="font-size:0.6rem;color:var(--b);font-weight:700;text-transform:uppercase;margin-bottom:3px;">TP2 / RR</div>
+          <div style="font-family:var(--mono);font-size:0.78rem;font-weight:700;color:var(--b);">$${fmt(sig.tp2,5)}</div>
+          <div style="font-size:0.6rem;color:var(--muted);">1:${typeof sig.rr === 'number' ? sig.rr.toFixed(1) : sig.rr}</div>
+        </div>
+      </div>
+      <div style="font-size:0.7rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">Why this signal fired:</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        ${sig.reasons.map(r=>`<div style="font-size:0.76rem;color:var(--text);display:flex;gap:6px;align-items:flex-start;"><span style="color:${sigClr};flex-shrink:0;">◈</span><span>${r}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }
 
   // ── 1. DECISION PANEL ────────────────────────────────────────────
   const decisionHtml = `
@@ -673,6 +730,7 @@ function renderSpikeRiskDashboard(d, side = 'short') {
   // ── Assemble full dashboard ──────────────────────────────────────
   return `
   <div style="display:flex;flex-direction:column;gap:14px;padding-bottom:6px;border-bottom:2px solid var(--border);margin-bottom:6px;">
+    ${signalSummaryHtml}
     ${decisionHtml}
     ${riskScoreHtml}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -810,6 +868,9 @@ function applyFilter() {
       return '';
     })();
 
+    const sig = r.tradeSignal;
+    const sigBadge = sig ? `<span class="signal-badge ${sig.side}${sig.confidence>=80?' high':''}">${sig.side==='long'?'📈 LONG':'📉 SHORT'} ${sig.confidence}% <span class="sig-grade">${sig.grade}</span></span>` : '';
+
     return `<div class="card" style="animation-delay:${Math.min(i * 0.03, 0.6)}s">
       <div class="card-type">
         <span class="pill ${pc}">${pl}</span>
@@ -817,7 +878,7 @@ function applyFilter() {
         ${sl}
       </div>
       <div class="card-body">
-        <div class="card-sym">${r.sym}/USDT</div>
+        <div class="card-sym">${r.sym}/USDT ${sigBadge}</div>
         <div class="card-tags">${th}${sortBadge}</div>
       </div>
       <div class="card-right">
@@ -839,6 +900,6 @@ function showDetailFromFiltered(idx) {
   const r = window._filteredResults?.[idx];
   if (!r || !r.data || !r.scoreData) return;
   const side = r._type === 'SHORT' ? 'short' : 'long';
-  renderResult(r.sym, r.data, r.scoreData, r.signals || [], null, side, 1);
+  renderResult(r.sym, r.data, r.scoreData, r.signals || [], null, side, 1, r.tradeSignal || null);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

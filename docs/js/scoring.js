@@ -553,3 +553,229 @@ function calcTradeSetup(d, entryPrice = null, side = 'long', leverage = 1) {
     };
   }
 }
+// ═══════════════════════════════════════════════════════════════════
+// v9.3: TRADE SIGNAL ENGINE
+// Generates actionable LONG / SHORT signal from existing coin data.
+// Only fires at 65%+ confluence — no noise signals.
+// Returns: { side, confidence, entry, sl, tp1, tp2, reasons, grade }
+// or null if no valid signal.
+// ═══════════════════════════════════════════════════════════════════
+function calcTradeSignal(d) {
+  if (!d || !d.price) return null;
+
+  const price   = d.price;
+  const rsi     = d.rsi4h || 50;
+  const funding = d.funding || 0;
+  const fhAvg   = d.fundingHist?.avg3d || 0;
+  const negStreak = d.fundingHist?.currentNegStreak || 0;
+  const oiChange  = d.oiChange || 0;
+  const atr       = d.atr4h || price * 0.02;
+  const closes    = d.closes4h || [];
+  const ma20      = closes.length >= 20 ? calcMA(closes, 20) : price;
+  const ma7       = closes.length >= 7  ? calcMA(closes, 7)  : price;
+
+  // ── LONG SIGNAL SCORING ─────────────────────────────────────────
+  let longScore = 0;
+  const longReasons = [];
+
+  // Funding: negative = shorts paying = squeeze fuel
+  if (fhAvg < -0.03 && negStreak >= 4) {
+    longScore += 28;
+    longReasons.push({ w: 28, text: `Funding avg 3D ${fhAvg.toFixed(4)}% × ${negStreak} neg streak` });
+  } else if (fhAvg < -0.01) {
+    longScore += 18;
+    longReasons.push({ w: 18, text: `Funding negatif avg ${fhAvg.toFixed(4)}%` });
+  } else if (funding < -0.01) {
+    longScore += 12;
+    longReasons.push({ w: 12, text: `Funding snapshot ${funding.toFixed(4)}%` });
+  }
+
+  // OI rising = new money entering long side
+  if (oiChange > 10) {
+    longScore += 20;
+    longReasons.push({ w: 20, text: `OI +${oiChange.toFixed(1)}% — fresh longs entering` });
+  } else if (oiChange > 4) {
+    longScore += 12;
+    longReasons.push({ w: 12, text: `OI +${oiChange.toFixed(1)}%` });
+  }
+
+  // RSI not overbought
+  if (rsi < 45) {
+    longScore += 18;
+    longReasons.push({ w: 18, text: `RSI ${rsi} — oversold zone` });
+  } else if (rsi < 60) {
+    longScore += 10;
+    longReasons.push({ w: 10, text: `RSI ${rsi} — room to run` });
+  } else if (rsi > 72) {
+    longScore -= 20; // penalty — chasing
+  }
+
+  // BB squeeze = coiled spring
+  if (d.bbSqueeze?.squeezing && d.bbSqueeze?.extremeNarrow) {
+    longScore += 20;
+    longReasons.push({ w: 20, text: `BB extreme squeeze — breakout imminent` });
+  } else if (d.bbSqueeze?.squeezing) {
+    longScore += 12;
+    longReasons.push({ w: 12, text: `BB squeezing` });
+  }
+
+  // Bullish divergence
+  if (d.bullDiv) {
+    longScore += 16;
+    longReasons.push({ w: 16, text: `RSI bullish divergence (4H)` });
+  }
+
+  // Pre-pump silence
+  if (d.prePumpSilence?.detected) {
+    longScore += 16;
+    longReasons.push({ w: 16, text: `Pre-pump silence detected` });
+  }
+
+  // Price below MA20 = dip opportunity
+  if (price < ma20 * 0.97) {
+    longScore += 10;
+    longReasons.push({ w: 10, text: `Price ${((ma20-price)/ma20*100).toFixed(1)}% below MA20` });
+  }
+
+  // RVOL spike = momentum incoming
+  if (d.rvolData?.isSpike) {
+    longScore += 10;
+    longReasons.push({ w: 10, text: `RVOL ${d.rvolData.rvolVsAvg.toFixed(1)}× avg` });
+  }
+
+  // Wyckoff accumulation
+  if (d.wyckoff === 'accumulation') {
+    longScore += 14;
+    longReasons.push({ w: 14, text: `Wyckoff accumulation phase` });
+  }
+
+  // TF confluence
+  if (d.tfConfluence?.aligned) {
+    longScore += 16;
+    longReasons.push({ w: 16, text: `Triple TF confluence 1H+4H+1D bullish` });
+  } else if (d.tfConfluence?.score >= 4) {
+    longScore += 8;
+    longReasons.push({ w: 8, text: `TF confluence ${d.tfConfluence.score}/6` });
+  }
+
+  // ── SHORT SIGNAL SCORING ────────────────────────────────────────
+  let shortScore = 0;
+  const shortReasons = [];
+
+  // RSI overbought
+  if (rsi >= 78) {
+    shortScore += 26;
+    shortReasons.push({ w: 26, text: `RSI ${rsi} — extreme overbought` });
+  } else if (rsi >= 70) {
+    shortScore += 16;
+    shortReasons.push({ w: 16, text: `RSI ${rsi} — overbought` });
+  }
+
+  // Funding very positive = longs overloaded
+  if (fhAvg > 0.05) {
+    shortScore += 24;
+    shortReasons.push({ w: 24, text: `Funding avg 3D +${fhAvg.toFixed(4)}% — longs overloaded` });
+  } else if (funding > 0.05) {
+    shortScore += 18;
+    shortReasons.push({ w: 18, text: `Funding +${funding.toFixed(4)}%` });
+  } else if (funding > 0.02) {
+    shortScore += 10;
+    shortReasons.push({ w: 10, text: `Funding elevated +${funding.toFixed(4)}%` });
+  }
+
+  // OI falling = longs exiting
+  if (oiChange < -8) {
+    shortScore += 20;
+    shortReasons.push({ w: 20, text: `OI ${oiChange.toFixed(1)}% — longs unwinding` });
+  } else if (oiChange < -3) {
+    shortScore += 12;
+    shortReasons.push({ w: 12, text: `OI ${oiChange.toFixed(1)}%` });
+  }
+
+  // Bearish divergence
+  if (d.bearDiv) {
+    shortScore += 20;
+    shortReasons.push({ w: 20, text: `RSI bearish divergence (4H)` });
+  }
+
+  // Bearish candle patterns
+  const strongBearish = (d.candlePatterns || []).filter(p => p.contextValid && p.strength === 'strong');
+  if (strongBearish.length >= 2) {
+    shortScore += 20;
+    shortReasons.push({ w: 20, text: strongBearish.map(p => p.name).join(' + ') });
+  } else if (strongBearish.length === 1) {
+    shortScore += 12;
+    shortReasons.push({ w: 12, text: strongBearish[0].name });
+  }
+
+  // Price far above MA
+  const extMa20 = ma20 > 0 ? (price - ma20) / ma20 * 100 : 0;
+  if (extMa20 > 30) {
+    shortScore += 18;
+    shortReasons.push({ w: 18, text: `+${extMa20.toFixed(1)}% above MA20 — overextended` });
+  } else if (extMa20 > 15) {
+    shortScore += 10;
+    shortReasons.push({ w: 10, text: `+${extMa20.toFixed(1)}% above MA20` });
+  }
+
+  // BB expanding after pump
+  if (d.bbSqueeze?.expanding && d.gain24h > 20) {
+    shortScore += 14;
+    shortReasons.push({ w: 14, text: `BB expanding after ${d.gain24h.toFixed(1)}% pump` });
+  }
+
+  // 1D trend bearish
+  if (d.trend1d === 'bearish') {
+    shortScore += 10;
+    shortReasons.push({ w: 10, text: `1D trend bearish` });
+  }
+
+  // Big 24H gain = extended
+  if (d.gain24h > 50) {
+    shortScore += 16;
+    shortReasons.push({ w: 16, text: `+${d.gain24h.toFixed(1)}% gain — ripe for reversal` });
+  } else if (d.gain24h > 25) {
+    shortScore += 8;
+    shortReasons.push({ w: 8, text: `+${d.gain24h.toFixed(1)}% extended` });
+  }
+
+  // ── NORMALIZE to 0-100 ──────────────────────────────────────────
+  const longConf  = Math.min(Math.round(longScore  / 1.38), 97);
+  const shortConf = Math.min(Math.round(shortScore / 1.38), 97);
+
+  // ── DETERMINE WINNER — must be 65%+ to fire ─────────────────────
+  const threshold = 65;
+  const longValid  = longConf  >= threshold;
+  const shortValid = shortConf >= threshold;
+
+  // If both valid, pick stronger
+  if (!longValid && !shortValid) return null;
+
+  let side, confidence, reasons;
+  if (longValid && (!shortValid || longConf >= shortConf)) {
+    side = 'long'; confidence = longConf; reasons = longReasons;
+  } else {
+    side = 'short'; confidence = shortConf; reasons = shortReasons;
+  }
+
+  // Sort reasons by weight desc, top 4
+  reasons.sort((a,b) => b.w - a.w);
+  const topReasons = reasons.slice(0, 4).map(r => r.text);
+
+  // Grade
+  const grade = confidence >= 85 ? 'A' : confidence >= 75 ? 'B' : confidence >= 65 ? 'C' : 'D';
+
+  // Entry / SL / TP from existing calcTradeSetup
+  const setup = calcTradeSetup(d, null, side, 1);
+
+  return {
+    side, confidence, grade,
+    entry: setup?.em    || price,
+    sl:    setup?.sl    || (side === 'long' ? price - atr * 1.5 : price + atr * 1.5),
+    tp1:   setup?.tp1   || (side === 'long' ? price + atr * 2   : price - atr * 2),
+    tp2:   setup?.tp2   || (side === 'long' ? price + atr * 4   : price - atr * 4),
+    rr:    setup?.rr2   || 0,
+    slPct: setup?.slPct || 0,
+    reasons: topReasons,
+  };
+}

@@ -11,19 +11,19 @@ function sanitizeSym(raw){return(raw||'').trim().toUpperCase().replace(/[^A-Z0-9
 async function runQuickScan(){
   const sym=sanitizeSym(document.getElementById('symInput').value);if(!sym)return;
   setDot('loading');closeResult();
-  try{const d=await analyzeCoin(sym);const s=scoreAccum(d);const smart=detectSmartAccumulation(d,d.klines4h,d.klines1d);renderResult(sym,d,s,smart.signals);setDot('active');}
+  try{const d=await analyzeCoin(sym);const s=scoreAccum(d);const smart=detectSmartAccumulation(d,d.klines4h,d.klines1d);const tradeSignal=calcTradeSignal(d);renderResult(sym,d,s,smart.signals,null,'long',1,tradeSignal);setDot('active');}
   catch(e){showToast(`Error: ${e.message}`,'error');setDot('error');}
 }
 async function runShortCheck(){
   const sym=sanitizeSym(document.getElementById('symInput').value);if(!sym)return;
   setDot('loading');closeResult();
-  try{const d=await analyzeCoin(sym);const s=scoreShort(d);const pump=detectPumpExhaustion(d,d.klines4h,d.klines1d);renderResult(sym,d,s,pump.signals);setDot('active');}
+  try{const d=await analyzeCoin(sym);const s=scoreShort(d);const pump=detectPumpExhaustion(d,d.klines4h,d.klines1d);const tradeSignal=calcTradeSignal(d);renderResult(sym,d,s,pump.signals,null,'short',1,tradeSignal);setDot('active');}
   catch(e){showToast(`Error: ${e.message}`,'error');setDot('error');}
 }
 async function runAccumCheck(){
   const sym=sanitizeSym(document.getElementById('symInput').value);if(!sym)return;
   setDot('loading');closeResult();
-  try{const d=await analyzeCoin(sym);const s=scoreAccum(d);const smart=detectSmartAccumulation(d,d.klines4h,d.klines1d);renderResult(sym,d,s,smart.signals);setDot('active');}
+  try{const d=await analyzeCoin(sym);const s=scoreAccum(d);const smart=detectSmartAccumulation(d,d.klines4h,d.klines1d);const tradeSignal=calcTradeSignal(d);renderResult(sym,d,s,smart.signals,null,'long',1,tradeSignal);setDot('active');}
   catch(e){showToast(`Error: ${e.message}`,'error');setDot('error');}
 }
 
@@ -135,10 +135,11 @@ async function scanAccumulation(){
       const s=scoreAccum(d);
       if(s.score>=3){
         logMsg(`✅ ${item.sym}: ${s.score}/${s.max}`,'ok');
+        const tradeSignal = calcTradeSignal(d);
         results.accum.push({
           sym:item.sym,price:d.price,score:s.score,scoreMax:s.max,
           scorePct:Math.round(s.score/s.max*100),gain24h:d.gain24h,
-          type:'ACCUM',data:d,scoreData:s,signals:smart.signals,
+          type:'ACCUM',data:d,scoreData:s,signals:smart.signals,tradeSignal,
           tags:[
             {label:`Vol ${d.volRatio.toFixed(1)}x`,cls:d.volRatio>=2?'b':''},
             {label:`7D ${fmtPct(d.priceChg7d)}`,cls:''},
@@ -195,7 +196,8 @@ async function scanPumpShort(mode){
       if(mode==='pump'){
         const s=scorePump(d,pre);
         if(s.score>=4){
-          results.pump.push({sym:pre.sym,price:d.price,score:s.score,scoreMax:s.max,scorePct:Math.round(s.score/s.max*100),gain24h:d.gain24h,type:'PUMP',data:d,scoreData:s,signals:s.signals,
+          const tradeSignal = calcTradeSignal(d);
+          results.pump.push({sym:pre.sym,price:d.price,score:s.score,scoreMax:s.max,scorePct:Math.round(s.score/s.max*100),gain24h:d.gain24h,type:'PUMP',data:d,scoreData:s,signals:s.signals,tradeSignal,
             tags:[{label:fmtPct(d.gain24h),cls:'g'},{label:`Vol ${fmtVol(pre.vol)}`,cls:pre.vol>10e6?'g':''},
                   {label:`RSI ${d.rsi4h}`,cls:d.rsi4h>70?'r':d.rsi4h<40?'g':''},
                   d.funding!==null?{label:`F:${d.funding.toFixed(3)}%`,cls:d.funding<0?'b':d.funding>0.05?'r':''}:null,
@@ -209,8 +211,9 @@ async function scanPumpShort(mode){
         const s=scoreShort(d);
         const fs=Math.round((s.score+pe.score/pe.maxScore*s.max)/2);
         if(fs>=3){
+          const tradeSignal = calcTradeSignal(d);
           const ct=d.candlePatterns?.length>0?[{label:`🕯 ${d.candlePatterns[0].name.split(' ')[0]}`,cls:'r'}]:[];
-          results.short.push({sym:pre.sym,price:d.price,score:fs,scoreMax:s.max,scorePct:Math.round(fs/s.max*100),gain24h:d.gain24h,type:'SHORT',data:d,scoreData:s,signals:pe.signals,
+          results.short.push({sym:pre.sym,price:d.price,score:fs,scoreMax:s.max,scorePct:Math.round(fs/s.max*100),gain24h:d.gain24h,type:'SHORT',data:d,scoreData:s,signals:pe.signals,tradeSignal,
             tags:[{label:fmtPct(d.gain24h),cls:'r'},{label:`RSI ${d.rsi4h}`,cls:d.rsi4h>65?'r':''},
                   d.funding!==null?{label:`F:${d.funding.toFixed(3)}%`,cls:d.funding>THRESHOLDS.FUNDING_POS?'r':''}:null,
                   {label:`SL $${fmt(d.sl,4)}`,cls:''},...ct].filter(Boolean)});

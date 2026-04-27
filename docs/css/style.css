@@ -454,3 +454,13 @@ body { font-family:var(--sans); background:var(--bg); color:var(--text); min-hei
 .filter-input:focus { border-color:var(--text); }
 .filter-reset { font-family:var(--sans); font-size:0.72rem; font-weight:600; background:none; border:1px solid var(--border); border-radius:6px; padding:5px 11px; cursor:pointer; color:var(--muted); transition:all 0.15s; margin-left:auto; }
 .filter-reset:hover { color:var(--r); border-color:var(--r-border); background:var(--r-bg); }
+
+/* ═══════════════════════════════════════
+   TRADE SIGNAL BADGE
+   ═══════════════════════════════════════ */
+.signal-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:0.65rem; font-weight:700; padding:3px 8px; border-radius:5px; letter-spacing:0.03em; white-space:nowrap; }
+.signal-badge.long  { background:var(--g-bg); color:var(--g); border:1.5px solid var(--g-border); }
+.signal-badge.short { background:var(--r-bg); color:var(--r); border:1.5px solid var(--r-border); }
+.signal-badge.long.high  { background:var(--g); color:#fff; border-color:var(--g); }
+.signal-badge.short.high { background:var(--r); color:#fff; border-color:var(--r); }
+.signal-badge .sig-grade { font-size:0.6rem; opacity:0.8; background:rgba(0,0,0,0.12); padding:1px 4px; border-radius:3px; }
