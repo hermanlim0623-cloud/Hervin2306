@@ -358,9 +358,14 @@ function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side=
 function renderCards(){
   const all=[...results.accum.map(r=>({...r,_type:'ACCUM'})),...results.pump.map(r=>({...r,_type:'PUMP'})),...results.short.map(r=>({...r,_type:'SHORT'})),...results.top.map(r=>({...r,_type:'TOP'}))];
   const grid=document.getElementById('cardsGrid');
-  if(all.length===0&&!scanning){grid.innerHTML=`<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a scan mode above</div></div>`;document.getElementById('sectionCount').textContent='';return;}
+  if(all.length===0&&!scanning){grid.innerHTML=`<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a scan mode above</div></div>`;document.getElementById('sectionCount').textContent='';document.getElementById('filterBar').style.display='none';return;}
   all.sort((a,b)=>(b.scorePct||0)-(a.scorePct||0));
   document.getElementById('sectionCount').textContent=`${all.length} result${all.length!==1?'s':''}`;
+
+  // Show filter bar
+  const fb = document.getElementById('filterBar');
+  if (fb && all.length > 0) fb.style.display = 'flex';
+
   const pm={ACCUM:['pill-accum','Accum'],PUMP:['pill-pump','Pump 24H'],SHORT:['pill-short','Short'],TOP:['pill-top','Top']};
   const fc=pct=>pct>=70?'var(--g)':pct>=40?'var(--a)':'var(--r)';
   grid.innerHTML=all.map((r,i)=>{
@@ -390,6 +395,7 @@ function renderCards(){
     </div>`;
   }).join('');
   window._scanResults=all;
+  window._filteredResults=all;
 }
 
 function showDetail(idx){
@@ -683,4 +689,156 @@ function renderSpikeRiskDashboard(d, side = 'short') {
     ${srHtml}
     <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--faint);padding-top:4px;">▼ Raw Metrics & Indicators</div>
   </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FILTER / SORT ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let _filterType = 'all';
+let _sortKey    = 'score';
+let _sortDir    = 'desc'; // 'asc' | 'desc'
+
+function setFilterType(type) {
+  _filterType = type;
+  document.querySelectorAll('.filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  applyFilter();
+}
+
+function toggleSortDir() {
+  _sortDir = _sortDir === 'desc' ? 'asc' : 'desc';
+  const btn = document.getElementById('sortDirBtn');
+  if (btn) {
+    btn.textContent = _sortDir === 'desc' ? '↓ DESC' : '↑ ASC';
+    btn.classList.toggle('asc', _sortDir === 'asc');
+  }
+  applyFilter();
+}
+
+function resetFilter() {
+  _filterType = 'all';
+  _sortKey    = 'score';
+  _sortDir    = 'desc';
+  const sk = document.getElementById('sortKey');
+  const mv = document.getElementById('minVol');
+  const ms = document.getElementById('minScore');
+  const db = document.getElementById('sortDirBtn');
+  if (sk) sk.value = 'score';
+  if (mv) mv.value = '0';
+  if (ms) ms.value = '';
+  if (db) { db.textContent = '↓ DESC'; db.classList.remove('asc'); }
+  document.querySelectorAll('.filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === 'all');
+  });
+  applyFilter();
+}
+
+function applyFilter() {
+  if (!window._scanResults || window._scanResults.length === 0) return;
+
+  const sortKey  = document.getElementById('sortKey')?.value  || 'score';
+  const minVol   = parseFloat(document.getElementById('minVol')?.value)   || 0;
+  const minScore = parseFloat(document.getElementById('minScore')?.value) || 0;
+  _sortKey = sortKey;
+
+  // ── Filter ───────────────────────────────────────────────────────
+  let filtered = window._scanResults.filter(r => {
+    if (_filterType !== 'all' && r._type !== _filterType) return false;
+    if (minScore > 0 && (r.score || 0) < minScore) return false;
+    if (minVol   > 0 && (r.vol24h || r.data?.vol24h || 0) < minVol) return false;
+    return true;
+  });
+
+  // ── Sort ─────────────────────────────────────────────────────────
+  const getVal = r => {
+    switch (sortKey) {
+      case 'score':   return r.scorePct || 0;
+      case 'vol':     return r.vol24h || r.data?.vol24h || 0;
+      case 'gain':    return r.gain24h || 0;
+      case 'rsi':     return r.data?.rsi4h || 0;
+      case 'oi':      return r.data?.oiChange || 0;
+      case 'funding': return r.data?.funding || 0;
+      case 'price':   return r.price || 0;
+      default:        return 0;
+    }
+  };
+  filtered.sort((a, b) => _sortDir === 'desc' ? getVal(b) - getVal(a) : getVal(a) - getVal(b));
+
+  // ── Re-render filtered subset ────────────────────────────────────
+  const grid = document.getElementById('cardsGrid');
+  const count = document.getElementById('sectionCount');
+  if (!grid) return;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No results match filter</div><div class="empty-sub">Try adjusting the filters above</div></div>`;
+    if (count) count.textContent = '0 results';
+    return;
+  }
+
+  if (count) count.textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''}${filtered.length < window._scanResults.length ? ` (filtered from ${window._scanResults.length})` : ''}`;
+
+  const pm  = { ACCUM:['pill-accum','Accum'], PUMP:['pill-pump','Pump 24H'], SHORT:['pill-short','Short'], TOP:['pill-top','Top'] };
+  const fc  = pct => pct >= 70 ? 'var(--g)' : pct >= 40 ? 'var(--a)' : 'var(--r)';
+
+  grid.innerHTML = filtered.map((r, i) => {
+    const [pc, pl] = pm[r._type] || ['pill-top', r._type];
+    const pct   = r.scorePct || 0;
+    const chart = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.sym}USDT.P`;
+    const hd    = r.data && r.scoreData;
+    const th    = (r.tags || []).map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
+    const sl    = r.scoreMax && r.scoreMax <= 18 && typeof r.score === 'number'
+      ? `<span style="font-family:var(--mono);font-size:0.63rem;color:var(--muted)">${r.score}/${r.scoreMax}</span>` : '';
+
+    // Sort key highlight badge
+    const sortBadge = (() => {
+      if (sortKey === 'vol' && (r.vol24h || r.data?.vol24h)) {
+        return `<span class="tag b" style="font-size:0.6rem;">${fmtVol(r.vol24h || r.data?.vol24h)}</span>`;
+      }
+      if (sortKey === 'rsi' && r.data?.rsi4h) {
+        const rc = r.data.rsi4h > 70 ? 'r' : r.data.rsi4h < 35 ? 'g' : '';
+        return `<span class="tag ${rc}" style="font-size:0.6rem;">RSI ${r.data.rsi4h}</span>`;
+      }
+      if (sortKey === 'oi' && r.data?.oiChange !== undefined) {
+        const oc = r.data.oiChange;
+        return `<span class="tag ${oc > 5 ? 'g' : oc < -5 ? 'r' : ''}" style="font-size:0.6rem;">OI ${oc >= 0 ? '+' : ''}${oc.toFixed(1)}%</span>`;
+      }
+      if (sortKey === 'funding' && r.data?.funding !== null && r.data?.funding !== undefined) {
+        const fv = r.data.funding;
+        return `<span class="tag ${fv < -0.01 ? 'b' : fv > 0.05 ? 'r' : ''}" style="font-size:0.6rem;">F:${fv >= 0 ? '+' : ''}${fv.toFixed(3)}%</span>`;
+      }
+      return '';
+    })();
+
+    return `<div class="card" style="animation-delay:${Math.min(i * 0.03, 0.6)}s">
+      <div class="card-type">
+        <span class="pill ${pc}">${pl}</span>
+        <div class="card-mini-bar"><div class="card-mini-fill" style="width:${pct}%;background:${fc(pct)}"></div></div>
+        ${sl}
+      </div>
+      <div class="card-body">
+        <div class="card-sym">${r.sym}/USDT</div>
+        <div class="card-tags">${th}${sortBadge}</div>
+      </div>
+      <div class="card-right">
+        <span class="card-price">$${fmt(r.price, 5)}</span>
+        ${r.data?.oiChange !== undefined ? `<span class="card-oi">OI ${r.data.oiChange >= 0 ? '+' : ''}${r.data.oiChange.toFixed(1)}%</span>` : ''}
+        <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;justify-content:flex-end;">
+          ${hd ? `<button class="btn-sm" onclick="showDetailFromFiltered(${i})">Detail</button>` : ''}
+          <a class="btn-sm" href="${chart}" target="_blank">Chart ↗</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Store filtered results for detail lookup
+  window._filteredResults = filtered;
+}
+
+function showDetailFromFiltered(idx) {
+  const r = window._filteredResults?.[idx];
+  if (!r || !r.data || !r.scoreData) return;
+  const side = r._type === 'SHORT' ? 'short' : 'long';
+  renderResult(r.sym, r.data, r.scoreData, r.signals || [], null, side, 1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
