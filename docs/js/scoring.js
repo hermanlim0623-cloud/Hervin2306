@@ -779,3 +779,139 @@ function calcTradeSignal(d) {
     reasons: topReasons,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// v9.3: WHALE ACCUMULATION SCORE ENGINE
+// Detects silent institutional/whale accumulation using:
+// - OI building quietly (fresh large positions)
+// - Funding rate negative (shorts paying = whale long bias)
+// - Volume anomaly (unusual vs baseline = stealth buying)
+// - Price flat/sideways (not pumped yet = still accumulating)
+// - BB squeeze (compression = coiling before move)
+// - Large bid wall buildup
+// Returns score 0-100 + signal breakdown
+// ═══════════════════════════════════════════════════════════════════
+function scoreWhale(d, tickerData) {
+  const signals = [];
+  let score = 0;
+
+  const price    = d.price;
+  const funding  = d.funding || 0;
+  const fhAvg    = d.fundingHist?.avg3d || 0;
+  const negStreak = d.fundingHist?.currentNegStreak || 0;
+  const oiChange = d.oiChange || 0;
+  const vol24h   = d.vol24h || 0;
+  const gain24h  = d.gain24h || 0;
+  const gain7d   = d.priceChg7d || 0;
+
+  // ── SIGNAL 1: OI building quietly ──────────────────────────────
+  // Whale opening large positions = OI rises
+  if (oiChange > 20) {
+    score += 25;
+    signals.push({ strength: 'strong', icon: '📊', text: `OI +${oiChange.toFixed(1)}% — massive position buildup` });
+  } else if (oiChange > 10) {
+    score += 18;
+    signals.push({ strength: 'strong', icon: '📊', text: `OI +${oiChange.toFixed(1)}% — significant new positions` });
+  } else if (oiChange > 5) {
+    score += 10;
+    signals.push({ strength: 'medium', icon: '📊', text: `OI +${oiChange.toFixed(1)}% — positions building` });
+  }
+
+  // ── SIGNAL 2: Funding negative = whale accumulating long quietly ─
+  // If whales are long and price is flat = they're absorbing sell pressure
+  if (fhAvg < -0.04 && negStreak >= 5) {
+    score += 28;
+    signals.push({ strength: 'strong', icon: '💰', text: `Funding avg ${fhAvg.toFixed(4)}% × ${negStreak} periods — institutional longs paying shorts to hold` });
+  } else if (fhAvg < -0.02 && negStreak >= 3) {
+    score += 20;
+    signals.push({ strength: 'strong', icon: '💰', text: `Funding negatif ${negStreak} periods berturut — stealth long accumulation` });
+  } else if (funding < -0.01) {
+    score += 12;
+    signals.push({ strength: 'medium', icon: '💰', text: `Funding ${funding.toFixed(4)}% negatif — long bias aktif` });
+  }
+
+  // ── SIGNAL 3: Price flat while OI/Vol rising = accumulation ────
+  // Classic whale pattern: price goes nowhere but volume increasing
+  const priceFlat = Math.abs(gain24h) < 8 && Math.abs(gain7d) < 20;
+  const volBuildUp = d.volRatio >= 1.5;
+  if (priceFlat && volBuildUp && oiChange > 3) {
+    score += 22;
+    signals.push({ strength: 'strong', icon: '🤫', text: `Price flat ${fmtPct(gain24h)} + Vol ${d.volRatio.toFixed(1)}× avg + OI naik = classic whale stealth accumulation` });
+  } else if (priceFlat && oiChange > 5) {
+    score += 14;
+    signals.push({ strength: 'medium', icon: '🤫', text: `Price sideways + OI building — absorbing supply` });
+  }
+
+  // ── SIGNAL 4: Volume anomaly (relative vol spike on flat price) ─
+  if (d.rvolData?.isSpike && priceFlat) {
+    score += 18;
+    signals.push({ strength: 'strong', icon: '⚡', text: `RVOL ${d.rvolData.rvolVsAvg.toFixed(1)}× avg saat harga flat — large orders being filled quietly` });
+  } else if (d.rvolData?.isRising && priceFlat) {
+    score += 10;
+    signals.push({ strength: 'medium', icon: '⚡', text: `Volume rising ${d.rvolData.rvolVsAvg.toFixed(1)}× baseline` });
+  }
+
+  // ── SIGNAL 5: BB extreme squeeze = whale loading before explosion ─
+  if (d.bbSqueeze?.squeezing && d.bbSqueeze?.extremeNarrow) {
+    score += 20;
+    signals.push({ strength: 'strong', icon: '🔲', text: `BB width ${d.bbSqueeze.widthNow.toFixed(1)}% — extreme compression, energy stored for breakout` });
+  } else if (d.bbSqueeze?.squeezing) {
+    score += 12;
+    signals.push({ strength: 'medium', icon: '🔲', text: `BB squeezing (${d.bbSqueeze.widthNow.toFixed(1)}% → ${d.bbSqueeze.width10d.toFixed(1)}%)` });
+  }
+
+  // ── SIGNAL 6: Large bid wall = whale defending support ──────────
+  if (d.bids >= 500000) {
+    score += 15;
+    signals.push({ strength: 'strong', icon: '🧱', text: `Bid wall $${(d.bids/1000).toFixed(0)}K — whale defending price floor` });
+  } else if (d.bids >= 150000) {
+    score += 8;
+    signals.push({ strength: 'medium', icon: '🧱', text: `Bid depth $${(d.bids/1000).toFixed(0)}K` });
+  }
+
+  // ── SIGNAL 7: Wyckoff accumulation phase ───────────────────────
+  if (d.wyckoff === 'accumulation') {
+    score += 16;
+    signals.push({ strength: 'strong', icon: '🔄', text: `Wyckoff Accumulation phase — institutional buying pattern detected` });
+  }
+
+  // ── SIGNAL 8: Bullish divergence on low RSI ────────────────────
+  if (d.bullDiv && d.rsi4h < 50) {
+    score += 14;
+    signals.push({ strength: 'strong', icon: '📈', text: `Bullish RSI divergence (4H) — hidden buying pressure` });
+  }
+
+  // ── SIGNAL 9: Pre-pump silence ─────────────────────────────────
+  if (d.prePumpSilence?.detected) {
+    score += 16;
+    signals.push({ strength: 'strong', icon: '🕯', text: `Pre-pump silence: ${d.prePumpSilence.signals[0]?.text || 'consolidation detected'}` });
+  }
+
+  // ── PENALTY: price already pumped = not accumulation anymore ───
+  if (gain24h > 20) { score -= 20; }
+  else if (gain24h > 10) { score -= 10; }
+  if (d.rsi4h > 72) { score -= 15; }
+  if (d.bbSqueeze?.expanding && gain24h > 15) { score -= 12; }
+
+  score = Math.max(0, Math.min(score, 100));
+
+  // Whale conviction tier
+  const tier = score >= 75 ? 'STRONG'
+    : score >= 55 ? 'MODERATE'
+    : score >= 40 ? 'EARLY'
+    : 'WEAK';
+
+  const tierCls = score >= 75 ? 'strong'
+    : score >= 55 ? 'medium'
+    : 'weak';
+
+  // Phase estimate
+  let phase = 'Unknown';
+  if (d.prePumpSilence?.detected && d.bbSqueeze?.squeezing) phase = 'Phase C — Spring (imminent breakout)';
+  else if (oiChange > 10 && priceFlat) phase = 'Phase B — Accumulation Active';
+  else if (d.wyckoff === 'accumulation') phase = 'Phase A/B — Markup preparing';
+  else if (d.bbSqueeze?.squeezing) phase = 'Phase B — Compression';
+  else phase = 'Phase A — Absorption';
+
+  return { score, tier, tierCls, signals, phase };
+}

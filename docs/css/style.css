@@ -464,3 +464,10 @@ body { font-family:var(--sans); background:var(--bg); color:var(--text); min-hei
 .signal-badge.long.high  { background:var(--g); color:#fff; border-color:var(--g); }
 .signal-badge.short.high { background:var(--r); color:#fff; border-color:var(--r); }
 .signal-badge .sig-grade { font-size:0.6rem; opacity:0.8; background:rgba(0,0,0,0.12); padding:1px 4px; border-radius:3px; }
+
+/* WHALE PILL */
+.pill-whale { background:#f0f4ff; color:#3b5bdb; border:1px solid #bac8ff; }
+
+/* WHALE SCORE BAR */
+.whale-score-bar { height:4px; border-radius:2px; background:var(--border); overflow:hidden; margin-top:4px; }
+.whale-score-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#3b5bdb,#4c6ef5); }

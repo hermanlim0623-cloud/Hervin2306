@@ -28,7 +28,7 @@ function setProgress(pct){const fill=document.getElementById('progressFill'),tex
 function hideProgress(){document.getElementById('progressWrap').classList.remove('show');}
 
 // ── STATS ──────────────────────────────────────────────────────────────
-function updateStats(){const t=results.accum.length+results.pump.length+results.short.length+results.top.length;document.getElementById('stTotal').textContent=t||'—';document.getElementById('stAccum').textContent=results.accum.length||'—';document.getElementById('stPump').textContent=results.pump.length||'—';document.getElementById('stShort').textContent=results.short.length||'—';}
+function updateStats(){const t=results.accum.length+results.pump.length+results.short.length+results.top.length+results.whale.length;document.getElementById('stTotal').textContent=t||'—';document.getElementById('stAccum').textContent=results.accum.length||'—';document.getElementById('stPump').textContent=results.pump.length||'—';document.getElementById('stShort').textContent=results.short.length||'—';}
 
 // ── SKELETONS ──────────────────────────────────────────────────────────
 function showSkeletons(){document.getElementById('cardsGrid').innerHTML=[1,2,3].map(()=>`<div class="skel-card"><div class="skel" style="width:88px;height:40px;border-radius:6px;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:7px;"><div class="skel" style="height:14px;width:90px;"></div><div class="skel" style="height:11px;width:150px;"></div></div></div>`).join('');}
@@ -178,7 +178,7 @@ function calcPosSize(sym, em, sl, side='long', lev=1) {
 }
 
 // ── RENDER RESULT PANEL ────────────────────────────────────────────
-function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side='long', leverage=1, tradeSignal=null) {
+function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side='long', leverage=1, tradeSignal=null, whaleData=null) {
   document.getElementById('rpSym').textContent=`${sym}/USDT`;
   document.getElementById('rpPrice').textContent=`$${fmt(d.price,6)}`;
   const chart=`https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
@@ -187,7 +187,7 @@ function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side=
   if (tradeSignal && !entryPrice) side = tradeSignal.side;
 
   // ── v9.3 SPIKE RISK DASHBOARD (renders first) ──────────────────
-  const spikeRiskHtml = renderSpikeRiskDashboard(d, side, tradeSignal);
+  const spikeRiskHtml = renderSpikeRiskDashboard(d, side, tradeSignal, whaleData);
 
 
   const metricsHtml=`<div class="metrics">
@@ -359,7 +359,7 @@ function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side=
 
 // ── RENDER CARDS ────────────────────────────────────────────────────
 function renderCards(){
-  const all=[...results.accum.map(r=>({...r,_type:'ACCUM'})),...results.pump.map(r=>({...r,_type:'PUMP'})),...results.short.map(r=>({...r,_type:'SHORT'})),...results.top.map(r=>({...r,_type:'TOP'}))];
+  const all=[...results.accum.map(r=>({...r,_type:'ACCUM'})),...results.pump.map(r=>({...r,_type:'PUMP'})),...results.short.map(r=>({...r,_type:'SHORT'})),...results.top.map(r=>({...r,_type:'TOP'})),...results.whale.map(r=>({...r,_type:'WHALE'}))];
   const grid=document.getElementById('cardsGrid');
   if(all.length===0&&!scanning){grid.innerHTML=`<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a scan mode above</div></div>`;document.getElementById('sectionCount').textContent='';document.getElementById('filterBar').style.display='none';return;}
   all.sort((a,b)=>(b.scorePct||0)-(a.scorePct||0));
@@ -369,7 +369,7 @@ function renderCards(){
   const fb = document.getElementById('filterBar');
   if (fb && all.length > 0) fb.style.display = 'flex';
 
-  const pm={ACCUM:['pill-accum','Accum'],PUMP:['pill-pump','Pump 24H'],SHORT:['pill-short','Short'],TOP:['pill-top','Top']};
+  const pm={ACCUM:['pill-accum','Accum'],PUMP:['pill-pump','Pump 24H'],SHORT:['pill-short','Short'],TOP:['pill-top','Top'],WHALE:['pill-whale','🐋 Whale']};
   const fc=pct=>pct>=70?'var(--g)':pct>=40?'var(--a)':'var(--r)';
   grid.innerHTML=all.map((r,i)=>{
     const[pc,pl]=pm[r._type]||['pill-top',r._type];
@@ -408,7 +408,7 @@ function showDetail(idx){
   const r=window._scanResults?.[idx];
   if(!r||!r.data||!r.scoreData)return;
   const side=r._type==='SHORT'?'short':'long';
-  renderResult(r.sym,r.data,r.scoreData,r.signals||[],null,side,1,r.tradeSignal||null);
+  renderResult(r.sym,r.data,r.scoreData,r.signals||[],null,side,1,r.tradeSignal||null,r.whaleData||null);
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -418,7 +418,7 @@ function showDetail(idx){
 // Order: Decision → Risk Score → Spike Probs → Ladder → Warnings →
 //        Trend State → Sweep → MM Trap → S/R Map → raw metrics
 // ═══════════════════════════════════════════════════════════════════
-function renderSpikeRiskDashboard(d, side = 'short', tradeSignal = null) {
+function renderSpikeRiskDashboard(d, side = 'short', tradeSignal = null, whaleData = null) {
   const isShort = side === 'short';
 
   // ── Run all engines ──────────────────────────────────────────────
@@ -728,8 +728,10 @@ function renderSpikeRiskDashboard(d, side = 'short', tradeSignal = null) {
   }
 
   // ── Assemble full dashboard ──────────────────────────────────────
+  const whaleDetailHtml = renderWhaleDetail(whaleData);
   return `
   <div style="display:flex;flex-direction:column;gap:14px;padding-bottom:6px;border-bottom:2px solid var(--border);margin-bottom:6px;">
+    ${whaleDetailHtml}
     ${signalSummaryHtml}
     ${decisionHtml}
     ${riskScoreHtml}
@@ -836,7 +838,7 @@ function applyFilter() {
 
   if (count) count.textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''}${filtered.length < window._scanResults.length ? ` (filtered from ${window._scanResults.length})` : ''}`;
 
-  const pm  = { ACCUM:['pill-accum','Accum'], PUMP:['pill-pump','Pump 24H'], SHORT:['pill-short','Short'], TOP:['pill-top','Top'] };
+  const pm  = { ACCUM:['pill-accum','Accum'], PUMP:['pill-pump','Pump 24H'], SHORT:['pill-short','Short'], TOP:['pill-top','Top'], WHALE:['pill-whale','🐋 Whale'] };
   const fc  = pct => pct >= 70 ? 'var(--g)' : pct >= 40 ? 'var(--a)' : 'var(--r)';
 
   grid.innerHTML = filtered.map((r, i) => {
@@ -900,6 +902,48 @@ function showDetailFromFiltered(idx) {
   const r = window._filteredResults?.[idx];
   if (!r || !r.data || !r.scoreData) return;
   const side = r._type === 'SHORT' ? 'short' : 'long';
-  renderResult(r.sym, r.data, r.scoreData, r.signals || [], null, side, 1, r.tradeSignal || null);
+  renderResult(r.sym, r.data, r.scoreData, r.signals || [], null, side, 1, r.tradeSignal || null, r.whaleData || null);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WHALE ACCUMULATION DETAIL CARD (injected top of result panel)
+// ═══════════════════════════════════════════════════════════════════
+function renderWhaleDetail(whaleData) {
+  if (!whaleData) return '';
+  const ws = whaleData;
+  const scoreW = Math.round(ws.score);
+  const barColor = scoreW >= 75 ? 'linear-gradient(90deg,#3b5bdb,#4c6ef5)'
+    : scoreW >= 55 ? 'linear-gradient(90deg,var(--g),#2d9b5a)'
+    : 'linear-gradient(90deg,var(--a),#c47a00)';
+
+  const sigRows = ws.signals.map(s => `
+    <div style="display:flex;align-items:flex-start;gap:9px;padding:7px 12px;border-radius:var(--r8);background:${s.strength==='strong'?'var(--b-bg)':'var(--bg)'};border:1px solid ${s.strength==='strong'?'var(--b-border)':'var(--border)'};font-size:0.78rem;color:${s.strength==='strong'?'var(--b)':'var(--text)'};">
+      <span style="flex-shrink:0;font-size:0.9rem;">${s.icon}</span>
+      <span>${s.text}</span>
+    </div>`).join('');
+
+  return `
+  <div style="background:#f0f4ff;border:2px solid #bac8ff;border-radius:var(--r12);padding:14px 18px;margin-bottom:4px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.5rem;">🐋</span>
+        <div>
+          <div style="font-size:0.92rem;font-weight:800;color:#3b5bdb;">WHALE ACCUMULATION DETECTED</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">${ws.phase}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;color:#3b5bdb;line-height:1;">${scoreW}</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">/100</div>
+      </div>
+    </div>
+    <div style="background:var(--border);height:8px;border-radius:4px;overflow:hidden;margin-bottom:12px;">
+      <div style="height:100%;border-radius:4px;width:${scoreW}%;background:${barColor};transition:width 0.7s ease;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Whale Signals Detected</div>
+      ${sigRows}
+    </div>
+  </div>`;
 }

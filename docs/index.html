@@ -92,10 +92,11 @@
   </div>
 
   <div class="market-row">
-    <button class="mode-btn" id="btnAccumScan" onclick="runMarketScan('accum')"><span class="mode-icon">◉</span> Accumulation Scan</button>
-    <button class="mode-btn" id="btnPumpScan"  onclick="runMarketScan('pump')"><span class="mode-icon">🚀</span> Pump Scan (24H)</button>
-    <button class="mode-btn" id="btnShortScan" onclick="runMarketScan('short')"><span class="mode-icon">▼</span> Short Scan</button>
-    <button class="mode-btn" id="btnTopScan"   onclick="runMarketScan('top')"><span class="mode-icon">⚡</span> Top Movers</button>
+    <button class="mode-btn" id="btnAccumScan"  onclick="runMarketScan('accum')"><span class="mode-icon">◉</span> Accumulation Scan</button>
+    <button class="mode-btn" id="btnPumpScan"   onclick="runMarketScan('pump')"><span class="mode-icon">🚀</span> Pump Scan (24H)</button>
+    <button class="mode-btn" id="btnShortScan"  onclick="runMarketScan('short')"><span class="mode-icon">▼</span> Short Scan</button>
+    <button class="mode-btn" id="btnTopScan"    onclick="runMarketScan('top')"><span class="mode-icon">⚡</span> Top Movers</button>
+    <button class="mode-btn" id="btnWhaleScan"  onclick="runMarketScan('whale')"><span class="mode-icon">🐋</span> Whale Accumulation</button>
   </div>
 
   <div class="progress-wrap" id="progressWrap">
@@ -132,6 +133,7 @@
         <button class="filter-pill" data-type="PUMP"   onclick="setFilterType('PUMP')">Pump</button>
         <button class="filter-pill" data-type="SHORT"  onclick="setFilterType('SHORT')">Short</button>
         <button class="filter-pill" data-type="TOP"    onclick="setFilterType('TOP')">Top</button>
+        <button class="filter-pill" data-type="WHALE"  onclick="setFilterType('WHALE')">🐋 Whale</button>
       </div>
     </div>
     <div class="filter-group">

@@ -73,16 +73,17 @@ async function preFilterCoins(mode){
 // ── MARKET SCAN ORCHESTRATOR ─────────────────────────────────────────
 async function runMarketScan(mode){
   if(scanning)return;scanning=true;CancelToken.reset();
-  const bm={accum:'btnAccumScan',pump:'btnPumpScan',short:'btnShortScan',top:'btnTopScan'};
+  const bm={accum:'btnAccumScan',pump:'btnPumpScan',short:'btnShortScan',top:'btnTopScan',whale:'btnWhaleScan'};
   const btn=document.getElementById(bm[mode]);btn.classList.add('running');
   Object.values(bm).forEach(id=>{document.getElementById(id).disabled=true;});
   document.getElementById('btnCancel').style.display='';
   showLog();clearLog();setDot('loading');showSkeletons();results[mode]=[];updateStats();
-  const tm={accum:'Accumulation Scan',pump:'Pump Scan (24H)',short:'Short Scan',top:'Top Movers'};
+  const tm={accum:'Accumulation Scan',pump:'Pump Scan (24H)',short:'Short Scan',top:'Top Movers',whale:'🐋 Whale Accumulation'};
   document.getElementById('sectionTitle').textContent=tm[mode];
   try{
     if(mode==='top')await scanTopMovers();
     else if(mode==='accum')await scanAccumulation();
+    else if(mode==='whale')await scanWhaleAccumulation();
     else await scanPumpShort(mode);
   }catch(e){if(e.message!=='Cancelled'){logMsg(`Fatal: ${e.message}`,'bad');showToast(`Error: ${e.message}`,'error');}setDot('error');}
   scanning=false;
@@ -252,4 +253,125 @@ function exportResults(mode){
   const a=document.createElement('a');a.href=url;a.download=`hervin_v92_${mode}_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast(`📥 ${data.length} rows exported`,'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WHALE ACCUMULATION SCANNER
+// Stage 1: pre-filter by OI anomaly + funding + vol pattern
+// Stage 2: deep score each candidate with scoreWhale()
+// ═══════════════════════════════════════════════════════════════════
+async function scanWhaleAccumulation() {
+  logMsg('🐋 Whale scan — fetching tickers + OI baseline...', 'info');
+
+  const tickers = await binance('ticker/24hr', {}, 1);
+  if (CancelToken.cancelled) return;
+
+  const STABLES = new Set(['BUSD','USDC','DAI','TUSD','FDUSD','USDP','USDD']);
+
+  // Stage 1: Pre-filter
+  // Looking for: decent vol, price NOT already pumped, some OI activity
+  const candidates = tickers.filter(t => {
+    if (!t.symbol.endsWith('USDT')) return false;
+    const base = t.symbol.replace('USDT','');
+    if ([...STABLES].some(s => base.includes(s))) return false;
+    const vol    = parseFloat(t.quoteVolume);
+    const change = parseFloat(t.priceChangePercent);
+    const price  = parseFloat(t.lastPrice);
+    if (price < 0.000001 || price > 100000) return false;
+    if (vol < 200000) return false;                   // min liquidity
+    if (change > 25 || change < -30) return false;    // already pumped/dumped
+    return true;
+  });
+
+  // Pre-score using ticker data only (fast pass)
+  const preScored = candidates.map(t => {
+    const vol    = parseFloat(t.quoteVolume);
+    const change = parseFloat(t.priceChangePercent);
+    const high   = parseFloat(t.highPrice);
+    const low    = parseFloat(t.lowPrice);
+    const price  = parseFloat(t.lastPrice);
+    const range  = high > 0 ? (high - low) / high * 100 : 99;
+    const funding= parseFloat(t.lastFundingRate || 0) * 100;
+
+    let ps = 0;
+    // Flat price = potential accumulation
+    if (Math.abs(change) < 3) ps += 4;
+    else if (Math.abs(change) < 8) ps += 2;
+
+    // Tight range = compression
+    if (range < 5) ps += 3;
+    else if (range < 10) ps += 2;
+
+    // Negative funding = short bias = whale long opportunity
+    if (funding < -0.03) ps += 4;
+    else if (funding < -0.01) ps += 3;
+    else if (funding < 0) ps += 1;
+
+    // Good volume (liquid enough for whale)
+    if (vol > 50e6) ps += 3;
+    else if (vol > 10e6) ps += 2;
+    else if (vol > 2e6) ps += 1;
+
+    return { sym: t.symbol.replace('USDT',''), preScore: ps, vol, change, funding, price };
+  })
+  .filter(t => t.preScore >= 5)
+  .sort((a, b) => b.preScore - a.preScore)
+  .slice(0, 100);
+
+  if (preScored.length === 0) { logMsg('No whale candidates found', 'warn'); return; }
+  logMsg(`✅ ${preScored.length} candidates — deep analysis...`, 'info');
+  showProgress('🐋 Whale Accumulation Scan');
+  let done = 0;
+
+  await runChunked(preScored, async (pre) => {
+    if (CancelToken.cancelled) return;
+    logMsg(`[${done+1}/${preScored.length}] 🔬 ${pre.sym}...`);
+    try {
+      const d = await analyzeCoin(pre.sym);
+      if (CancelToken.cancelled) return;
+
+      const ws = scoreWhale(d, pre);
+      if (ws.score >= 40) {
+        logMsg(`🐋 ${pre.sym}: whale score ${ws.score} — ${ws.tier}`, 'ok');
+        const tradeSignal = calcTradeSignal(d);
+
+        // Build display tags
+        const tags = [
+          { label: `🐋 ${ws.tier}`, cls: ws.tierCls === 'strong' ? 'b' : ws.tierCls === 'medium' ? 'g' : '' },
+          { label: `OI ${d.oiChange >= 0 ? '+' : ''}${d.oiChange.toFixed(1)}%`, cls: d.oiChange > 5 ? 'b' : '' },
+          d.funding !== null ? { label: `F:${d.funding.toFixed(3)}%`, cls: d.funding < -0.01 ? 'b' : '' } : null,
+          { label: `Vol ${d.volRatio.toFixed(1)}×`, cls: d.volRatio >= 1.5 ? 'g' : '' },
+          { label: `RSI ${d.rsi4h}`, cls: d.rsi4h < 40 ? 'g' : d.rsi4h > 68 ? 'r' : '' },
+          d.bbSqueeze?.squeezing ? { label: '🔲 BBsq', cls: 'b' } : null,
+          d.prePumpSilence?.detected ? { label: '🤫 Silence', cls: 'b' } : null,
+          d.fundingHist?.currentNegStreak >= 4 ? { label: `🔥 F×${d.fundingHist.currentNegStreak}`, cls: 'b' } : null,
+          { label: ws.phase.split('—')[0].trim(), cls: '' },
+        ].filter(Boolean);
+
+        results.whale.push({
+          sym: pre.sym,
+          price: d.price,
+          score: ws.score,
+          scoreMax: 100,
+          scorePct: ws.score,
+          gain24h: d.gain24h,
+          type: 'WHALE',
+          vol24h: d.vol24h,
+          data: d,
+          scoreData: { score: ws.score, max: 100, pct: ws.score, cls: ws.tierCls === 'strong' ? 'high' : 'mid',
+            checks: ws.signals.map(s => ({ pass: true, text: s.text })),
+            verdict: { cls: ws.tierCls === 'strong' ? 'strong' : 'medium',
+              text: `🐋 ${ws.tier} WHALE ACCUMULATION — ${ws.phase}` }
+          },
+          signals: ws.signals,
+          whaleData: ws,
+          tradeSignal,
+          tags,
+        });
+        renderCards(); updateStats();
+      }
+    } catch(e) { logMsg(`✗ ${pre.sym}: ${e.message}`, 'bad'); }
+  }, (doneCnt, total) => { done = doneCnt; setProgress(done / total * 100); });
+
+  document.getElementById('stScanned').textContent = preScored.length;
 }

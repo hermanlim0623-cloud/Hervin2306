@@ -22,5 +22,5 @@ const CancelToken = { cancelled:false, cancel(){this.cancelled=true;}, reset(){t
 const CONCURRENCY = 3;
 
 // Shared scan results
-const results = { accum:[], pump:[], short:[], top:[] };
+const results = { accum:[], pump:[], short:[], top:[], whale:[] };
 let scanning = false;
