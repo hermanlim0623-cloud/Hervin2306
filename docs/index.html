@@ -32,7 +32,94 @@
     <button class="btn" onclick="runAccumCheck()">Accum Check</button>
     <div class="scan-divider"></div>
     <button class="btn" onclick="exportResults('all')">📥 Export CSV</button>
+    <button class="btn" onclick="toggleSpikeCalc()" id="btnSpikeCalc">⚡ Spike Calc</button>
     <button class="btn danger" id="btnCancel" onclick="cancelScan()" style="display:none">✕ Cancel</button>
+  </div>
+
+  <!-- SPIKE CALCULATOR PANEL -->
+  <div class="spike-calc-panel" id="spikeCalcPanel" style="display:none">
+    <div class="spike-calc-head">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.1rem;">⚡</span>
+        <span class="spike-calc-title">Spike Projection Calculator</span>
+        <span class="spike-calc-sub">Fibonacci · ATR · Round Numbers · MA Extension · Funding Momentum</span>
+      </div>
+      <button class="btn-close" onclick="toggleSpikeCalc()">✕</button>
+    </div>
+    <div class="spike-calc-body">
+      <!-- INPUTS -->
+      <div class="spike-input-grid">
+        <div class="spike-input-group">
+          <label class="spike-input-label">Price (USDT)</label>
+          <input class="spike-input-field" id="scPrice" type="number" step="any" placeholder="0.05491">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">Funding Rate (%)</label>
+          <input class="spike-input-field" id="scFunding" type="number" step="any" placeholder="0.667">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">High 24H</label>
+          <input class="spike-input-field" id="scHigh" type="number" step="any" placeholder="0.08179">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">Low 24H</label>
+          <input class="spike-input-field" id="scLow" type="number" step="any" placeholder="0.03246">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">MA7</label>
+          <input class="spike-input-field" id="scMa7" type="number" step="any" placeholder="0.03934">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">MA25</label>
+          <input class="spike-input-field" id="scMa25" type="number" step="any" placeholder="0.02735">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">MA99</label>
+          <input class="spike-input-field" id="scMa99" type="number" step="any" placeholder="0.04115">
+        </div>
+        <div class="spike-input-group">
+          <label class="spike-input-label">Gain 24H (%)</label>
+          <input class="spike-input-field" id="scGain" type="number" step="any" placeholder="144.58">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn primary" onclick="runSpikeCalc()" style="flex:1;">⚡ Calculate</button>
+        <button class="btn" onclick="autoFillFromScan()" title="Auto-fill dari hasil scan terakhir">↙ Auto-fill dari Scan</button>
+        <button class="btn" onclick="clearSpikeCalc()">↺ Reset</button>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="scResults" style="display:none;margin-top:16px;">
+
+        <!-- VERDICT -->
+        <div id="scVerdict" style="margin-bottom:12px;"></div>
+
+        <!-- SPIKE TARGETS + SHORT SETUP side by side -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <div class="sc-section-label">🎯 Spike Targets</div>
+            <div id="scSpikeTargets" style="display:flex;flex-direction:column;gap:5px;"></div>
+          </div>
+          <div>
+            <div class="sc-section-label">📉 Short Setup</div>
+            <div id="scShortSetup" style="display:flex;flex-direction:column;gap:5px;"></div>
+          </div>
+        </div>
+
+        <!-- MA EXTENSION -->
+        <div style="margin-bottom:12px;">
+          <div class="sc-section-label">📐 MA Extension</div>
+          <div id="scMaMetrics" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"></div>
+        </div>
+
+        <!-- FUNDING COST -->
+        <div>
+          <div class="sc-section-label">💸 Funding Cost (jika Long)</div>
+          <div id="scFundingTable"></div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <!-- PORTFOLIO -->

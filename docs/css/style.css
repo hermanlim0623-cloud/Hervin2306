@@ -471,3 +471,70 @@ body { font-family:var(--sans); background:var(--bg); color:var(--text); min-hei
 /* WHALE SCORE BAR */
 .whale-score-bar { height:4px; border-radius:2px; background:var(--border); overflow:hidden; margin-top:4px; }
 .whale-score-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#3b5bdb,#4c6ef5); }
+
+/* ═══════════════════════════════════════════════════════════
+   SPIKE CALCULATOR PANEL
+   ═══════════════════════════════════════════════════════════ */
+.spike-calc-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--r12); margin-bottom:14px; overflow:hidden; box-shadow:var(--shadow-md); animation:slideIn 0.2s ease; }
+.spike-calc-head { padding:12px 18px; background:var(--bg); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.spike-calc-title { font-size:0.85rem; font-weight:800; letter-spacing:-0.01em; }
+.spike-calc-sub { font-size:0.65rem; color:var(--faint); }
+.spike-calc-body { padding:16px 18px; }
+
+/* INPUTS */
+.spike-input-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.spike-input-group { display:flex; flex-direction:column; gap:4px; }
+.spike-input-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); }
+.spike-input-field { font-family:var(--mono); font-size:0.82rem; background:var(--bg); border:1px solid var(--border); border-radius:var(--r8); padding:7px 10px; color:var(--text); outline:none; transition:border-color 0.15s; width:100%; }
+.spike-input-field:focus { border-color:var(--text); }
+
+/* SECTION LABEL */
+.sc-section-label { font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.09em; color:var(--muted); margin-bottom:7px; }
+
+/* SPIKE TARGET ROWS */
+.sc-spike-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--r8); border:1px solid var(--border); background:var(--bg); }
+.sc-spike-row.hot  { border-color:var(--r-border); background:var(--r-bg); }
+.sc-spike-row.warn { border-color:var(--a-border); background:var(--a-bg); }
+.sc-spike-row.mild { border-color:var(--g-border); background:var(--g-bg); }
+.sc-spike-label { font-size:0.62rem; font-weight:800; text-transform:uppercase; min-width:58px; }
+.sc-spike-label.hot  { color:var(--r); } .sc-spike-label.warn { color:var(--a); } .sc-spike-label.mild { color:var(--g); }
+.sc-spike-price { font-family:var(--mono); font-size:0.82rem; font-weight:700; flex:1; }
+.sc-spike-pct { font-family:var(--mono); font-size:0.68rem; font-weight:700; padding:2px 7px; border-radius:4px; white-space:nowrap; }
+.sc-spike-pct.hot  { background:var(--r); color:#fff; }
+.sc-spike-pct.warn { background:var(--a); color:#000; }
+.sc-spike-pct.mild { background:var(--g); color:#000; }
+
+/* SHORT SETUP ROWS */
+.sc-setup-row { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; border-radius:var(--r8); background:var(--bg); border:1px solid var(--border); }
+.sc-setup-label { font-size:0.62rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+.sc-setup-val { font-family:var(--mono); font-size:0.8rem; font-weight:700; }
+
+/* MA METRIC */
+.sc-metric { background:var(--bg); border:1px solid var(--border); border-radius:var(--r8); padding:8px 10px; }
+.sc-metric-l { font-size:0.6rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; }
+.sc-metric-v { font-family:var(--mono); font-size:0.82rem; font-weight:600; }
+
+/* FUNDING TABLE */
+.sc-funding-table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:0.72rem; }
+.sc-funding-table th { text-align:left; padding:6px 10px; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--muted); border-bottom:1px solid var(--border); }
+.sc-funding-table td { padding:6px 10px; border-bottom:1px solid var(--border); }
+.sc-funding-table tr:last-child td { border-bottom:none; }
+.sc-funding-table .red   { color:var(--r); font-weight:700; }
+.sc-funding-table .amber { color:var(--a); font-weight:700; }
+.sc-funding-table .green { color:var(--g); }
+
+/* VERDICT */
+.sc-verdict { border-radius:var(--r8); padding:12px 14px; }
+.sc-verdict.danger { background:var(--r-bg); border:1.5px solid var(--r-border); }
+.sc-verdict.warn   { background:var(--a-bg); border:1.5px solid var(--a-border); }
+.sc-verdict.ok     { background:var(--g-bg); border:1.5px solid var(--g-border); }
+.sc-verdict-title { font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+.sc-verdict-title.danger { color:var(--r); } .sc-verdict-title.warn { color:var(--a); } .sc-verdict-title.ok { color:var(--g); }
+.sc-verdict-text { font-size:0.78rem; line-height:1.55; color:var(--text); }
+
+/* Active state for spike calc button */
+.btn.spike-active { background:var(--a-bg); border-color:var(--a-border); color:var(--a); }
+
+@media(max-width:640px) {
+  .spike-input-grid { grid-template-columns:repeat(2,1fr); }
+}

@@ -183,8 +183,8 @@ function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side=
   document.getElementById('rpPrice').textContent=`$${fmt(d.price,6)}`;
   const chart=`https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
 
-  // Auto-detect side from tradeSignal if not explicitly set
-  if (tradeSignal && !entryPrice) side = tradeSignal.side;
+  // Store for spike calc auto-fill
+  window._lastViewedData = d;
 
   // ── v9.3 SPIKE RISK DASHBOARD (renders first) ──────────────────
   const spikeRiskHtml = renderSpikeRiskDashboard(d, side, tradeSignal, whaleData);
@@ -946,4 +946,223 @@ function renderWhaleDetail(whaleData) {
       ${sigRows}
     </div>
   </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SPIKE PROJECTION CALCULATOR
+// ═══════════════════════════════════════════════════════════════════
+function toggleSpikeCalc() {
+  const panel = document.getElementById('spikeCalcPanel');
+  const btn   = document.getElementById('btnSpikeCalc');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.classList.toggle('spike-active', !isOpen);
+  if (!isOpen) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function clearSpikeCalc() {
+  ['scPrice','scFunding','scHigh','scLow','scMa7','scMa25','scMa99','scGain'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('scResults').style.display = 'none';
+}
+
+// Auto-fill from last scanned coin data
+function autoFillFromScan() {
+  // Try last detail-viewed coin data
+  const last = window._lastViewedData;
+  if (!last) { showToast('Scan dulu satu coin via Quick Scan','warn'); return; }
+  const d = last;
+  document.getElementById('scPrice').value   = d.price   || '';
+  document.getElementById('scFunding').value = d.funding != null ? d.funding : '';
+  document.getElementById('scHigh').value    = d.high24h  || '';
+  document.getElementById('scGain').value    = d.gain24h  || '';
+
+  // MA from closes
+  if (d.closes4h && d.closes4h.length >= 25) {
+    const ma7v  = calcMA(d.closes4h, 7);
+    const ma25v = calcMA(d.closes4h, 25);
+    const ma99v = calcMA(d.closes4h, Math.min(99, d.closes4h.length));
+    document.getElementById('scMa7').value  = ma7v.toFixed(6);
+    document.getElementById('scMa25').value = ma25v.toFixed(6);
+    document.getElementById('scMa99').value = ma99v.toFixed(6);
+  }
+  // Low from closes
+  if (d.closes4h) {
+    const low = Math.min(...d.closes4h.slice(-6));
+    document.getElementById('scLow').value = low.toFixed(6);
+  }
+  showToast(`✅ Auto-filled dari ${last.symbol}`, 'success');
+  runSpikeCalc();
+}
+
+function scFmt(n) {
+  if (!n || isNaN(n)) return '—';
+  if (n >= 1) return Number(n).toFixed(4);
+  return Number(n).toPrecision(5);
+}
+function scFmtPct(n) { return `${n >= 0 ? '+' : ''}${Number(n).toFixed(2)}%`; }
+
+function runSpikeCalc() {
+  const price   = parseFloat(document.getElementById('scPrice').value)   || 0;
+  const funding = parseFloat(document.getElementById('scFunding').value) || 0;
+  const high24  = parseFloat(document.getElementById('scHigh').value)    || 0;
+  const low24   = parseFloat(document.getElementById('scLow').value)     || 0;
+  const ma7     = parseFloat(document.getElementById('scMa7').value)     || 0;
+  const ma25    = parseFloat(document.getElementById('scMa25').value)    || 0;
+  const ma99    = parseFloat(document.getElementById('scMa99').value)    || 0;
+  const gain24  = parseFloat(document.getElementById('scGain').value)    || 0;
+
+  if (!price) { showToast('Masukkan harga dulu', 'warn'); return; }
+
+  const range24  = high24 - low24;
+  const atr_est  = range24 > 0 ? range24 * 0.25 : price * 0.03;
+
+  // ── SPIKE TARGETS ──────────────────────────────────────────────
+  // Fibonacci extensions dari Low → High
+  const fib_1618 = low24 > 0 ? low24 + range24 * 1.618 : 0;
+  const fib_2618 = low24 > 0 ? low24 + range24 * 2.618 : 0;
+  const fib_4236 = low24 > 0 ? low24 + range24 * 4.236 : 0;
+
+  // ATR projections dari harga sekarang
+  const atr1 = price + atr_est * 1.0;
+  const atr2 = price + atr_est * 2.0;
+  const atr3 = price + atr_est * 3.0;
+
+  // Round number magnets
+  const magnitude = Math.pow(10, Math.floor(Math.log10(price)));
+  const roundTargets = [];
+  for (let m = 0.5; m <= 4; m += 0.5) {
+    const level = Math.ceil(price / (magnitude * m)) * (magnitude * m);
+    if (level > price * 1.005 && level < price * 4) roundTargets.push(level);
+  }
+
+  // MA over-extension zones
+  const ma7_25x = ma7 > 0 ? ma7 * 2.5 : 0;
+  const ma7_3x  = ma7 > 0 ? ma7 * 3.0 : 0;
+
+  // Funding momentum residual
+  const funding_push_pct = funding * 4 * 2;
+  const funding_spike    = price * (1 + funding_push_pct / 100);
+
+  const allTargets = [
+    { price: roundTargets[0], label: 'Round #1',  type: 'mild', note: 'Nearest round number' },
+    { price: roundTargets[1], label: 'Round #2',  type: 'mild', note: 'Round number magnet' },
+    { price: fib_1618,        label: 'Fib 1.618', type: 'warn', note: 'Fib ext dari low' },
+    { price: atr1,            label: 'ATR ×1',    type: 'mild', note: '1× ATR projection' },
+    { price: atr2,            label: 'ATR ×2',    type: 'warn', note: '2× ATR projection' },
+    { price: high24 > price ? high24 : 0, label: 'High 24H', type: 'warn', note: 'Previous peak' },
+    { price: funding_spike > price * 1.01 ? funding_spike : 0, label: 'Fund Push', type: 'warn', note: `Funding ${funding_push_pct.toFixed(1)}% residual` },
+    { price: ma7_25x > price ? ma7_25x : 0, label: 'MA7 ×2.5', type: 'hot', note: 'Parabolic zone' },
+    { price: fib_2618 > price ? fib_2618 : 0, label: 'Fib 2.618', type: 'hot', note: 'Extreme extension' },
+    { price: ma7_3x > price ? ma7_3x : 0, label: 'MA7 ×3', type: 'hot', note: 'Max parabolic' },
+  ].filter(t => t.price && t.price > price * 1.005).sort((a,b) => a.price - b.price);
+
+  // Deduplicate within 3%
+  const deduped = [];
+  for (const t of allTargets) {
+    if (!deduped.some(d => Math.abs(d.price - t.price) / t.price < 0.03)) deduped.push(t);
+  }
+  const topTargets = deduped.slice(0, 7);
+
+  document.getElementById('scSpikeTargets').innerHTML = topTargets.map(t => {
+    const pct = (t.price - price) / price * 100;
+    return `<div class="sc-spike-row ${t.type}">
+      <span class="sc-spike-label ${t.type}">${t.label}</span>
+      <span class="sc-spike-price">$${scFmt(t.price)}</span>
+      <span class="sc-spike-pct ${t.type}">${scFmtPct(pct)}</span>
+    </div>`;
+  }).join('');
+
+  // ── SHORT SETUP ────────────────────────────────────────────────
+  const e1 = topTargets[0]?.price || price * 1.05;
+  const e2 = topTargets[1]?.price || price * 1.10;
+  const e3 = topTargets[2]?.price || price * 1.18;
+  const avgEntry = e1 * 0.5 + e2 * 0.3 + e3 * 0.2;
+  const shortSL  = (topTargets[topTargets.length - 1]?.price || high24) * 1.025;
+  const tp1 = price * 0.85;
+  const tp2 = ma7  > 0 ? ma7  : price * 0.72;
+  const tp3 = ma25 > 0 ? ma25 : price * 0.55;
+  const slPct  = avgEntry > 0 ? (shortSL - avgEntry) / avgEntry * 100 : 0;
+  const rr2    = slPct > 0 ? (avgEntry - tp2) / avgEntry * 100 / slPct : 0;
+
+  document.getElementById('scShortSetup').innerHTML = [
+    { l: 'Entry 1 (50%)',  v: `$${scFmt(e1)}`,       cls: 'var(--r)' },
+    { l: 'Entry 2 (30%)',  v: `$${scFmt(e2)}`,       cls: 'var(--r)' },
+    { l: 'Entry 3 (20%)',  v: `$${scFmt(e3)}`,       cls: 'var(--r)' },
+    { l: 'Avg Entry',      v: `$${scFmt(avgEntry)}`,  cls: 'var(--a)' },
+    { l: 'Stop Loss',      v: `$${scFmt(shortSL)} (+${slPct.toFixed(1)}%)`, cls: 'var(--r)' },
+    { l: 'TP1 (−15%)',     v: `$${scFmt(tp1)}`,       cls: 'var(--g)' },
+    { l: 'TP2 (MA7)',      v: `$${scFmt(tp2)}`,       cls: 'var(--g)' },
+    { l: 'TP3 (MA25)',     v: `$${scFmt(tp3)}`,       cls: 'var(--g)' },
+    { l: 'RR (TP2)',       v: `1 : ${rr2.toFixed(2)}`, cls: rr2 >= 2 ? 'var(--g)' : 'var(--a)' },
+  ].map(r => `<div class="sc-setup-row">
+    <span class="sc-setup-label">${r.l}</span>
+    <span class="sc-setup-val" style="color:${r.cls}">${r.v}</span>
+  </div>`).join('');
+
+  // ── MA EXTENSION ───────────────────────────────────────────────
+  const extMa7  = ma7  > 0 ? (price - ma7)  / ma7  * 100 : null;
+  const extMa25 = ma25 > 0 ? (price - ma25) / ma25 * 100 : null;
+  const extMa99 = ma99 > 0 ? (price - ma99) / ma99 * 100 : null;
+  const extHigh = high24 > 0 ? (price - high24) / high24 * 100 : null;
+  const clsExt  = v => v === null ? '' : v > 30 ? 'red' : v > 15 ? 'amber' : 'green';
+
+  document.getElementById('scMaMetrics').innerHTML = [
+    { l: 'vs MA7',    v: extMa7,  suffix: '%' },
+    { l: 'vs MA25',   v: extMa25, suffix: '%' },
+    { l: 'vs MA99',   v: extMa99, suffix: '%' },
+    { l: 'vs High24H',v: extHigh, suffix: '%' },
+    { l: 'ATR Est',   v: null, raw: `$${scFmt(atr_est)}`, cls: 'blue' },
+    { l: 'Range 24H', v: null, raw: low24 > 0 ? `${((range24/low24)*100).toFixed(1)}%` : '—', cls: 'amber' },
+  ].map(m => {
+    const val = m.raw || (m.v !== null ? `${scFmtPct(m.v)}` : '—');
+    const cls = m.cls || clsExt(m.v);
+    return `<div class="sc-metric"><div class="sc-metric-l">${m.l}</div><div class="sc-metric-v ${cls}">${val}</div></div>`;
+  }).join('');
+
+  // ── FUNDING COST TABLE ─────────────────────────────────────────
+  const periods = [8, 16, 24, 48, 72];
+  document.getElementById('scFundingTable').innerHTML = `
+    <table class="sc-funding-table">
+      <thead><tr><th>Hold</th><th>Periods</th><th>Cost</th><th>Breakeven harga</th><th>Status</th></tr></thead>
+      <tbody>
+        ${periods.map(h => {
+          const pc   = Math.floor(h / 8);
+          const cost = funding * pc;
+          const be   = price * (1 + cost / 100);
+          const cls  = cost > 1.5 ? 'red' : cost > 0.5 ? 'amber' : 'green';
+          const status = cost > 1.5 ? '🔴 Danger' : cost > 0.5 ? '🟡 High' : '🟢 OK';
+          return `<tr>
+            <td>${h}H</td><td>${pc}×</td>
+            <td class="${cls}">${cost > 0 ? '-' : ''}${cost.toFixed(4)}%</td>
+            <td class="${cls}">${cost > 0 ? '$' + scFmt(be) : '—'}</td>
+            <td>${status}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+  // ── VERDICT ────────────────────────────────────────────────────
+  let vCls, vTitle, vText;
+  const nearestTarget = topTargets[0];
+  const nearestPct    = nearestTarget ? ((nearestTarget.price - price) / price * 100).toFixed(1) : '?';
+  if (funding > 0.5 && gain24 > 80) {
+    vCls = 'danger'; vTitle = '🚨 EXTREME — DO NOT LONG';
+    vText = `Funding ${funding.toFixed(4)}% per 8 jam = EKSTREM. Hold 24 jam = bayar ~${(funding * 3).toFixed(2)}% hanya funding. Spike lanjutan masih mungkin ke $${scFmt(e1)}–$${scFmt(e2)} (+${nearestPct}%), tapi risk/reward untuk long sangat buruk. Tunggu spike → short di resistance.`;
+  } else if (funding > 0.1 || gain24 > 30) {
+    vCls = 'warn'; vTitle = '⚠️ HIGH RISK — Hati-hati';
+    vText = `Funding tinggi, longs sedang overloaded. Spike ke $${scFmt(e1)} (+${nearestPct}%) masih ada peluang, tapi distribusi bisa mulai. Prioritaskan short setup di atas.`;
+  } else {
+    vCls = 'ok'; vTitle = '✅ Kondisi Normal';
+    vText = `Funding wajar. Spike ke $${scFmt(e1)} (+${nearestPct}%) memungkinkan dengan momentum yang sehat.`;
+  }
+  document.getElementById('scVerdict').innerHTML = `
+    <div class="sc-verdict ${vCls}">
+      <div class="sc-verdict-title ${vCls}">${vTitle}</div>
+      <div class="sc-verdict-text">${vText}</div>
+    </div>`;
+
+  document.getElementById('scResults').style.display = 'block';
 }
