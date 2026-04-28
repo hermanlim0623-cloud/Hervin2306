@@ -10,13 +10,75 @@ function calcStochRSI(closes,rsiPeriod=14,stochPeriod=14){if(closes.length<rsiPe
 function calcATR(klines,period=14){if(klines.length<period+1)return 0;const trs=[];for(let i=1;i<klines.length;i++){const h=parseFloat(klines[i][2]),l=parseFloat(klines[i][3]),pc=parseFloat(klines[i-1][4]);trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));}return trs.slice(-period).reduce((a,b)=>a+b,0)/period;}
 function calcMA(arr,period){if(arr.length<period)return arr[arr.length-1]||0;return arr.slice(-period).reduce((a,b)=>a+b,0)/period;}
 function calcEMA(arr,period){if(arr.length<period)return arr[arr.length-1]||0;const k=2/(period+1);let ema=arr.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<arr.length;i++)ema=arr[i]*k+ema*(1-k);return ema;}
-function calcMACD(closes){if(closes.length<26)return{macd:0,signal:0,hist:0};const e12=calcEMA(closes,12),e26=calcEMA(closes,26);const macd=e12-e26;const ma=[];for(let i=26;i<=closes.length;i++){const a=calcEMA(closes.slice(0,i),12),b=calcEMA(closes.slice(0,i),26);ma.push(a-b);}const signal=calcEMA(ma,9);return{macd,signal,hist:macd-signal};}
+function calcMACD(closes){
+  // Proper rolling EMA — O(n), tidak O(n²) seperti versi lama
+  // Butuh minimal 26+9=35 candle untuk sinyal yang reliable
+  if(closes.length<35)return{macd:0,signal:0,hist:0,macdLine:[],signalLine:[],histLine:[]};
+  const k12=2/13,k26=2/27,k9=2/10;
+  // Seed EMA dengan SMA dari candle pertama
+  let ema12=closes.slice(0,12).reduce((a,b)=>a+b,0)/12;
+  let ema26=closes.slice(0,26).reduce((a,b)=>a+b,0)/26;
+  const macdLine=[];
+  // Build rolling MACD line dari candle ke-26 sampai akhir
+  for(let i=12;i<26;i++) ema12=closes[i]*k12+ema12*(1-k12);
+  for(let i=26;i<closes.length;i++){
+    ema12=closes[i]*k12+ema12*(1-k12);
+    ema26=closes[i]*k26+ema26*(1-k26);
+    macdLine.push(ema12-ema26);
+  }
+  if(macdLine.length<9)return{macd:0,signal:0,hist:0,macdLine:[],signalLine:[],histLine:[]};
+  // Signal line = EMA(9) dari MACD line
+  let sig=macdLine.slice(0,9).reduce((a,b)=>a+b,0)/9;
+  const signalLine=[sig];
+  for(let i=9;i<macdLine.length;i++){sig=macdLine[i]*k9+sig*(1-k9);signalLine.push(sig);}
+  const histLine=macdLine.slice(9).map((v,i)=>v-signalLine[i]);
+  const macd=macdLine[macdLine.length-1];
+  const signal=signalLine[signalLine.length-1];
+  return{macd,signal,hist:macd-signal,macdLine,signalLine,histLine};
+}
 function calcBollingerBands(closes,period=20,mult=2){if(closes.length<period)return{upper:0,mid:0,lower:0,width:0};const slice=closes.slice(-period);const mid=slice.reduce((a,b)=>a+b,0)/period;const std=Math.sqrt(slice.reduce((a,b)=>a+(b-mid)**2,0)/period);const upper=mid+mult*std,lower=mid-mult*std;return{upper,mid,lower,width:mid>0?(upper-lower)/mid*100:0};}
 function calculateTrend(arr){if(arr.length<5)return 0;const n=arr.length,sumX=n*(n-1)/2,sumY=arr.reduce((a,b)=>a+b,0),sumXY=arr.reduce((s,v,i)=>s+i*v,0),sumX2=n*(n-1)*(2*n-1)/6;const denom=n*sumX2-sumX*sumX;if(denom===0)return 0;const slope=(n*sumXY-sumX*sumY)/denom,avg=sumY/n;return avg===0?0:Math.max(-1,Math.min(1,slope/(avg*0.1)));}
 
 // ── DIVERGENCE ──────────────────────────────────────────────────────
-function detectBullishDivergence(klines){if(klines.length<25)return false;const c=klines.map(k=>parseFloat(k[4])),l=klines.map(k=>parseFloat(k[3]));const c1=c.slice(-20,-10),c2=c.slice(-10),l1=l.slice(-20,-10),l2=l.slice(-10);return Math.min(...l2)<Math.min(...l1)&&calcRSI(c2)>calcRSI(c1);}
-function detectBearishDivergence(klines){if(klines.length<25)return false;const c=klines.map(k=>parseFloat(k[4])),h=klines.map(k=>parseFloat(k[2]));const c1=c.slice(-20,-10),c2=c.slice(-10),h1=h.slice(-20,-10),h2=h.slice(-10);return Math.max(...h2)>Math.max(...h1)&&calcRSI(c2)<calcRSI(c1);}
+function detectBullishDivergence(klines){
+  // Cari swing lows yang proper, bukan cuma bandingkan 2 window flat
+  // Regular bullish div: price lower low, RSI higher low
+  if(klines.length<30)return false;
+  const closes=klines.map(k=>parseFloat(k[4]));
+  const lows=klines.map(k=>parseFloat(k[3]));
+  // Cari swing low: titik terendah lokal dalam window 3 candle
+  const swings=[];
+  for(let i=2;i<lows.length-2;i++){
+    if(lows[i]<lows[i-1]&&lows[i]<lows[i-2]&&lows[i]<lows[i+1]&&lows[i]<lows[i+2]){
+      swings.push({idx:i,price:lows[i],rsi:calcRSI(closes.slice(0,i+1))});
+    }
+  }
+  if(swings.length<2)return false;
+  // Ambil 2 swing low terakhir
+  const s1=swings[swings.length-2],s2=swings[swings.length-1];
+  // Jarak minimal 5 candle antar swing agar tidak terlalu dekat
+  if(s2.idx-s1.idx<5)return false;
+  // Bullish div: price buat lower low TAPI RSI higher low
+  return s2.price<s1.price&&s2.rsi>s1.rsi+2;
+}
+function detectBearishDivergence(klines){
+  // Regular bearish div: price higher high, RSI lower high
+  if(klines.length<30)return false;
+  const closes=klines.map(k=>parseFloat(k[4]));
+  const highs=klines.map(k=>parseFloat(k[2]));
+  // Cari swing high: titik tertinggi lokal dalam window 3 candle
+  const swings=[];
+  for(let i=2;i<highs.length-2;i++){
+    if(highs[i]>highs[i-1]&&highs[i]>highs[i-2]&&highs[i]>highs[i+1]&&highs[i]>highs[i+2]){
+      swings.push({idx:i,price:highs[i],rsi:calcRSI(closes.slice(0,i+1))});
+    }
+  }
+  if(swings.length<2)return false;
+  const s1=swings[swings.length-2],s2=swings[swings.length-1];
+  if(s2.idx-s1.idx<5)return false;
+  // Bearish div: price buat higher high TAPI RSI lower high
+  return s2.price>s1.price&&s2.rsi<s1.rsi-2;
+}
 function detectOBVDivergence(closes,vols){if(closes.length<20)return null;let obv=[0];for(let i=1;i<closes.length;i++){if(closes[i]>closes[i-1])obv.push(obv[i-1]+vols[i]);else if(closes[i]<closes[i-1])obv.push(obv[i-1]-vols[i]);else obv.push(obv[i-1]);}const n=10;const pe=closes[closes.length-1],ps=Math.min(...closes.slice(-n));const os=Math.min(...obv.slice(-n)),oe=obv[obv.length-1];if(pe<=ps&&oe>os*1.05)return 'bullish';if(pe>=ps&&oe<os*0.95)return 'bearish';return null;}
 
 // ── WYCKOFF & CLUSTERS ──────────────────────────────────────────────

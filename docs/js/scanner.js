@@ -135,6 +135,8 @@ async function scanAccumulation(){
       const smart=detectSmartAccumulation(d,d.klines4h,d.klines1d);
       const s=scoreAccum(d);
       if(s.score>=3){
+        // Dedup: skip kalau symbol sudah ada di results.accum
+        if(results.accum.some(r=>r.sym===item.sym))return;
         logMsg(`✅ ${item.sym}: ${s.score}/${s.max}`,'ok');
         const tradeSignal = calcTradeSignal(d);
         results.accum.push({
@@ -155,7 +157,10 @@ async function scanAccumulation(){
         });
         renderCards();updateStats();
       }
-    }catch(e){logMsg(`❌ ${item.sym}: ${e.message}`,'bad');}
+    }catch(e){
+      // Progress counter tetap jalan meski error — tidak stuck
+      logMsg(`❌ ${item.sym}: ${e.message}`,'bad');
+    }
   },(doneCnt,total)=>{done=doneCnt;setProgress(done/total*100);});
   document.getElementById('stScanned').textContent=preScored.length;
 }
@@ -197,6 +202,8 @@ async function scanPumpShort(mode){
       if(mode==='pump'){
         const s=scorePump(d,pre);
         if(s.score>=4){
+          // Dedup
+          if(results.pump.some(r=>r.sym===pre.sym))return;
           const tradeSignal = calcTradeSignal(d);
           results.pump.push({sym:pre.sym,price:d.price,score:s.score,scoreMax:s.max,scorePct:Math.round(s.score/s.max*100),gain24h:d.gain24h,type:'PUMP',data:d,scoreData:s,signals:s.signals,tradeSignal,
             tags:[{label:fmtPct(d.gain24h),cls:'g'},{label:`Vol ${fmtVol(pre.vol)}`,cls:pre.vol>10e6?'g':''},
@@ -212,6 +219,8 @@ async function scanPumpShort(mode){
         const s=scoreShort(d);
         const fs=Math.round((s.score+pe.score/pe.maxScore*s.max)/2);
         if(fs>=3){
+          // Dedup
+          if(results.short.some(r=>r.sym===pre.sym))return;
           const tradeSignal = calcTradeSignal(d);
           const ct=d.candlePatterns?.length>0?[{label:`🕯 ${d.candlePatterns[0].name.split(' ')[0]}`,cls:'r'}]:[];
           results.short.push({sym:pre.sym,price:d.price,score:fs,scoreMax:s.max,scorePct:Math.round(fs/s.max*100),gain24h:d.gain24h,type:'SHORT',data:d,scoreData:s,signals:pe.signals,tradeSignal,

@@ -76,11 +76,16 @@ function scoreAccum(d){
   if(d.prePumpSilence&&d.prePumpSilence.detected){score+=2;checks.push({pass:true,text:`🤫 Pre-pump silence: konsolidasi${d.prePumpSilence.consolidationDays?' '+d.prePumpSilence.consolidationDays+'D':''} + vol compression`});}
   else if(d.prePumpSilence&&d.prePumpSilence.score>=2){score++;checks.push({warn:true,text:`🤫 Tanda pre-pump silence (${d.prePumpSilence.score}/9)`});}
 
-  const max=18;
-  const pct=Math.round(score/max*100);
-  const cls=score>=12?'high':score>=7?'mid':'low';
-  const verdict=score>=12?{cls:'strong',text:'🟢 PUMP SETUP KUAT — High probability, siap entry'}:score>=7?{cls:'medium',text:'🟡 AKUMULASI TERDETEKSI — Monitor, tunggu konfirmasi'}:{cls:'weak',text:'⚪ Signal lemah — Skip'};
-  return{score,max,pct,cls,checks,verdict};
+  // Max yang benar: hitung dari semua kemungkinan score tertinggi per check
+  // Vol(1) + Price7d(1) + BullDiv(1) + RSI(1) + Funding(max 3) + Bids(1) + MACD(1) + OI(1)
+  // + RVOL(max 2) + BB(max 2) + Breakout(max 2) + TFC(max 2) + PrePump(max 2) = 21 max theoretical
+  // Kita set 20 sebagai max yang realistis dan cap score ke max
+  const max=20;
+  const cappedScore=Math.min(score,max);
+  const pct=Math.round(cappedScore/max*100);
+  const cls=cappedScore>=13?'high':cappedScore>=8?'mid':'low';
+  const verdict=cappedScore>=13?{cls:'strong',text:'🟢 PUMP SETUP KUAT — High probability, siap entry'}:cappedScore>=8?{cls:'medium',text:'🟡 AKUMULASI TERDETEKSI — Monitor, tunggu konfirmasi'}:{cls:'weak',text:'⚪ Signal lemah — Skip'};
+  return{score:cappedScore,max,pct,cls,checks,verdict};
 }
 
 function scoreShort(d){
