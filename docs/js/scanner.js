@@ -110,7 +110,7 @@ async function runMarketScan(mode){
   document.getElementById('btnCancel').style.display='';
   showLog();clearLog();setDot('loading');showSkeletons();results[mode]=[];updateStats();
   const tm={accum:'Accumulation Scan',pump:'Pump Scan (24H)',short:'Short Scan',top:'Top Movers',whale:'🐋 Whale Accumulation'};
-  document.getElementById('sectionTitle').textContent=tm[mode];
+  const _st=document.getElementById('sectionTitle');if(_st)_st.textContent=tm[mode];
   try{
     if(mode==='top')await scanTopMovers();
     else if(mode==='accum')await scanAccumulation();
@@ -204,7 +204,7 @@ async function scanAccumulation(){
       logMsg(`❌ ${item.sym}: ${e.message}`,'bad');
     }
   },(doneCnt,total)=>{done=doneCnt;setProgress(done/total*100);});
-  document.getElementById('stScanned').textContent=preScored.length;
+  const _sc1=document.getElementById('stScanned');if(_sc1)_sc1.textContent=preScored.length;
 }
 
 async function scanPumpShort(mode){
@@ -275,7 +275,7 @@ async function scanPumpShort(mode){
       renderCards();updateStats();
     }catch(e){logMsg(`✗ ${pre.sym}: ${e.message}`,'bad');}
   },(doneCnt,total)=>{done=doneCnt;setProgress(done/total*100);});
-  document.getElementById('stScanned').textContent=prescored.length;
+  const _sc2=document.getElementById('stScanned');if(_sc2)_sc2.textContent=prescored.length;
 }
 
 // ── EXPORT CSV ───────────────────────────────────────────────────────
@@ -424,5 +424,5 @@ async function scanWhaleAccumulation() {
     } catch(e) { logMsg(`✗ ${pre.sym}: ${e.message}`, 'bad'); }
   }, (doneCnt, total) => { done = doneCnt; setProgress(done / total * 100); });
 
-  document.getElementById('stScanned').textContent = preScored.length;
+  const _sc3=document.getElementById('stScanned');if(_sc3)_sc3.textContent=preScored.length;
 }

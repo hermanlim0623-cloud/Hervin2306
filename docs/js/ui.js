@@ -28,7 +28,12 @@ function setProgress(pct){const fill=document.getElementById('progressFill'),tex
 function hideProgress(){document.getElementById('progressWrap').classList.remove('show');}
 
 // ── STATS ──────────────────────────────────────────────────────────────
-function updateStats(){const t=results.accum.length+results.pump.length+results.short.length+results.top.length+results.whale.length;document.getElementById('stTotal').textContent=t||'—';document.getElementById('stAccum').textContent=results.accum.length||'—';document.getElementById('stPump').textContent=results.pump.length||'—';document.getElementById('stShort').textContent=results.short.length||'—';}
+function updateStats(){
+  const t=results.accum.length+results.pump.length+results.short.length+results.top.length+results.whale.length;
+  const se=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  se('stTotal',t||'—');se('stAccum',results.accum.length||'—');
+  se('stPump',results.pump.length||'—');se('stShort',results.short.length||'—');
+}
 
 // ── SKELETONS ──────────────────────────────────────────────────────────
 function showSkeletons(){document.getElementById('cardsGrid').innerHTML=[1,2,3].map(()=>`<div class="skel-card"><div class="skel" style="width:88px;height:40px;border-radius:6px;flex-shrink:0;"></div><div style="flex:1;display:flex;flex-direction:column;gap:7px;"><div class="skel" style="height:14px;width:90px;"></div><div class="skel" style="height:11px;width:150px;"></div></div></div>`).join('');}
@@ -194,13 +199,12 @@ function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side=
   const isShort       = side === 'short';
 
   // ── HEAD: sym + price + score + verdict ────────────────────────
-  document.getElementById('rpSym').textContent   = '';
-  document.getElementById('rpPrice').textContent = '';
   const scoreClsMap = {high:'high',mid:'mid',low:'low'};
   const scoreCls = scoreClsMap[scoreData.cls] || 'low';
 
-  // Build header
-  const rpHead = document.querySelector('.rp-head');
+  // Build header — use getElementById to avoid null
+  const rpHead = document.getElementById('resultPanel')?.querySelector('.rp-head');
+  if(!rpHead) { console.error('rp-head not found'); return; }
   rpHead.innerHTML = `
     <div class="rp-head-left">
       <span class="rp-sym">${sym}/USDT</span>
@@ -591,9 +595,11 @@ function toggleAnSection(head) {
 function renderCards(){
   const all=[...results.accum.map(r=>({...r,_type:'ACCUM'})),...results.pump.map(r=>({...r,_type:'PUMP'})),...results.short.map(r=>({...r,_type:'SHORT'})),...results.top.map(r=>({...r,_type:'TOP'})),...results.whale.map(r=>({...r,_type:'WHALE'}))];
   const grid=document.getElementById('cardsGrid');
-  if(all.length===0&&!scanning){grid.innerHTML=`<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a scan mode above</div></div>`;document.getElementById('sectionCount').textContent='';document.getElementById('filterBar').style.display='none';return;}
+  if(all.length===0&&!scanning){grid.innerHTML=`<div class="empty"><div class="empty-icon">◎</div><div class="empty-msg">No signals found</div><div class="empty-sub">Try a scan mode above</div></div>`;
+  const scEl=document.getElementById('sectionCount');if(scEl)scEl.textContent='';
+  const fbEl=document.getElementById('filterBar');if(fbEl)fbEl.style.display='none';return;}
   all.sort((a,b)=>(b.scorePct||0)-(a.scorePct||0));
-  document.getElementById('sectionCount').textContent=`${all.length} result${all.length!==1?'s':''}`;
+  const scEl2=document.getElementById('sectionCount');if(scEl2)scEl2.textContent=`${all.length} result${all.length!==1?'s':''}${all.length<(window._scanResults?.length||0)?' (filtered)':''}`;
 
   // Show filter bar
   const fb = document.getElementById('filterBar');
