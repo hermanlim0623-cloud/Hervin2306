@@ -70,9 +70,40 @@ async function preFilterCoins(mode){
   return sorted.map(t=>t.symbol.replace('USDT',''));
 }
 
+// ── BROWSER NOTIFICATION SYSTEM ─────────────────────────────────────
+const Notif = {
+  async requestPermission() {
+    if(!('Notification' in window)) return false;
+    if(Notification.permission === 'granted') return true;
+    if(Notification.permission !== 'denied') {
+      const perm = await Notification.requestPermission();
+      return perm === 'granted';
+    }
+    return false;
+  },
+  send(title, body, icon='📊') {
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+      const n = new Notification(`${icon} ${title}`, {
+        body, tag:'hervin-scanner', requireInteraction:false, silent:false,
+      });
+      n.onclick = () => { window.focus(); n.close(); };
+      setTimeout(() => n.close(), 8000);
+    } catch(e) {}
+  },
+  sendScanSummary(mode, found, topCoins) {
+    if(found === 0) return;
+    const modeLabel={accum:'Accumulation',pump:'Pump',short:'Short',top:'Top Movers',whale:'Whale'};
+    const topStr = topCoins.slice(0,3).map(c=>`${c.sym}(${c.score}/${c.scoreMax||20})`).join(', ');
+    const icon = mode==='short'?'📉':mode==='whale'?'🐋':'📈';
+    this.send(`${found} ${modeLabel[mode]||mode} Signal`,topStr||`${found} coins ready`,icon);
+  },
+};
+
 // ── MARKET SCAN ORCHESTRATOR ─────────────────────────────────────────
 async function runMarketScan(mode){
   if(scanning)return;scanning=true;CancelToken.reset();
+  Notif.requestPermission(); // non-blocking, request sekali
   const bm={accum:'btnAccumScan',pump:'btnPumpScan',short:'btnShortScan',top:'btnTopScan',whale:'btnWhaleScan'};
   const btn=document.getElementById(bm[mode]);btn.classList.add('running');
   Object.values(bm).forEach(id=>{document.getElementById(id).disabled=true;});
@@ -89,7 +120,15 @@ async function runMarketScan(mode){
   scanning=false;
   Object.values(bm).forEach(id=>{const b=document.getElementById(id);b.disabled=false;b.classList.remove('running');});
   document.getElementById('btnCancel').style.display='none';
-  if(!CancelToken.cancelled){btn.classList.add('done');setTimeout(()=>btn.classList.remove('done'),3000);setDot('active');showToast(`✅ ${results[mode].length} signal ditemukan`,'success');}
+  if(!CancelToken.cancelled){
+    btn.classList.add('done');setTimeout(()=>btn.classList.remove('done'),3000);
+    setDot('active');showToast(`✅ ${results[mode].length} signal ditemukan`,'success');
+    // Notif hanya kalau tab tidak aktif/fokus
+    if(document.hidden||!document.hasFocus()){
+      const sorted=[...(results[mode]||[])].sort((a,b)=>(b.score||0)-(a.score||0));
+      Notif.sendScanSummary(mode,results[mode].length,sorted);
+    }
+  }
   renderCards();updateStats();hideProgress();logMsg('─ Scan complete ─','ok');
 }
 
@@ -138,6 +177,9 @@ async function scanAccumulation(){
         // Dedup: skip kalau symbol sudah ada di results.accum
         if(results.accum.some(r=>r.sym===item.sym))return;
         logMsg(`✅ ${item.sym}: ${s.score}/${s.max}`,'ok');
+        // Notif kalau score ≥75% dan tab tidak fokus
+        if((document.hidden||!document.hasFocus())&&s.pct>=75)
+          Notif.send(`🔥 ${item.sym} — Score ${s.score}/${s.max}`,`Accumulation signal kuat (${s.pct}%)`);
         const tradeSignal = calcTradeSignal(d);
         results.accum.push({
           sym:item.sym,price:d.price,score:s.score,scoreMax:s.max,

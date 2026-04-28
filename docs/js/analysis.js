@@ -82,7 +82,113 @@ function detectBearishDivergence(klines){
 function detectOBVDivergence(closes,vols){if(closes.length<20)return null;let obv=[0];for(let i=1;i<closes.length;i++){if(closes[i]>closes[i-1])obv.push(obv[i-1]+vols[i]);else if(closes[i]<closes[i-1])obv.push(obv[i-1]-vols[i]);else obv.push(obv[i-1]);}const n=10;const pe=closes[closes.length-1],ps=Math.min(...closes.slice(-n));const os=Math.min(...obv.slice(-n)),oe=obv[obv.length-1];if(pe<=ps&&oe>os*1.05)return 'bullish';if(pe>=ps&&oe<os*0.95)return 'bearish';return null;}
 
 // ── WYCKOFF & CLUSTERS ──────────────────────────────────────────────
-function detectWyckoffPhase(closes,vols){if(closes.length<30)return null;const recent=closes.slice(-30),minP=Math.min(...recent),maxP=Math.max(...recent);const range=maxP-minP,curr=range===0?0.5:(recent[recent.length-1]-minP)/range;const av=vols.slice(-10).reduce((a,b)=>a+b,0)/10,pv=vols.slice(-20,-10).reduce((a,b)=>a+b,0)/10;if(curr<0.3&&av<pv*0.9)return 'accumulation';if(curr>0.7&&av>pv*1.2)return 'distribution';return null;}
+function detectWyckoffPhase(closes,vols){
+  // ── Wyckoff v2: Phase A/B/C/D detection ─────────────────────────
+  if(!closes||closes.length<45||!vols||vols.length<45) return null;
+
+  const n=closes.length;
+  const price=closes[n-1];
+  const avg=(arr)=>arr.reduce((a,b)=>a+b,0)/arr.length;
+
+  const findSwingLows=(arr,win=3)=>{
+    const s=[];
+    for(let i=win;i<arr.length-win;i++){
+      let isLow=true;
+      for(let j=1;j<=win;j++) if(arr[i]>=arr[i-j]||arr[i]>=arr[i+j]){isLow=false;break;}
+      if(isLow) s.push({idx:i,val:arr[i]});
+    }
+    return s;
+  };
+  const findSwingHighs=(arr,win=3)=>{
+    const s=[];
+    for(let i=win;i<arr.length-win;i++){
+      let isHigh=true;
+      for(let j=1;j<=win;j++) if(arr[i]<=arr[i-j]||arr[i]<=arr[i+j]){isHigh=false;break;}
+      if(isHigh) s.push({idx:i,val:arr[i]});
+    }
+    return s;
+  };
+
+  const window=Math.min(60,n);
+  const recent=closes.slice(-window);
+  const recentVols=vols.slice(-window);
+  const rangeHigh=Math.max(...recent);
+  const rangeLow=Math.min(...recent);
+  const rangeSize=rangeHigh-rangeLow;
+  const posInRange=rangeSize>0?(price-rangeLow)/rangeSize:0.5;
+
+  const half=Math.floor(window/2);
+  const volEarly=avg(recentVols.slice(0,half));
+  const volRecent=avg(recentVols.slice(half));
+  const volTrend=volEarly>0?volRecent/volEarly:1;
+
+  const swingLows=findSwingLows(recent);
+  const swingHighs=findSwingHighs(recent);
+
+  // Spring detection (Phase C accumulation)
+  // Harga briefly spike di bawah support tapi langsung recover
+  let springDetected=false;
+  if(swingLows.length>=2){
+    const lastLow=swingLows[swingLows.length-1];
+    const prevLow=swingLows[swingLows.length-2];
+    const lowerLowPct=prevLow.val>0?(prevLow.val-lastLow.val)/prevLow.val*100:0;
+    const recovery=rangeSize>0?(price-lastLow.val)/rangeSize*100:0;
+    if(lowerLowPct>1&&lowerLowPct<15&&recovery>15&&posInRange>0.3) springDetected=true;
+  }
+
+  // UTAD detection (Phase C distribution)
+  let utadDetected=false;
+  if(swingHighs.length>=2){
+    const lastHigh=swingHighs[swingHighs.length-1];
+    const prevHigh=swingHighs[swingHighs.length-2];
+    const higherHighPct=prevHigh.val>0?(lastHigh.val-prevHigh.val)/prevHigh.val*100:0;
+    const rejection=rangeSize>0?(lastHigh.val-price)/rangeSize*100:0;
+    if(higherHighPct>1&&higherHighPct<15&&rejection>15&&posInRange<0.6) utadDetected=true;
+  }
+
+  // Higher Lows / Lower Highs pattern
+  let higherLows=false,lowerHighs=false;
+  if(swingLows.length>=3){
+    const sl=swingLows.slice(-3);
+    higherLows=sl[1].val>sl[0].val&&sl[2].val>sl[1].val;
+  }
+  if(swingHighs.length>=3){
+    const sh=swingHighs.slice(-3);
+    lowerHighs=sh[1].val<sh[0].val&&sh[2].val<sh[1].val;
+  }
+
+  // Phase C Accumulation: Spring + price recovering
+  if(springDetected&&posInRange>0.3&&posInRange<0.7)
+    return{phase:'C',label:'accumulation',detail:'Spring detected — Phase C, imminent markup'};
+
+  // Phase D Accumulation: Higher lows + price above mid + vol rising
+  if(higherLows&&posInRange>0.6&&volTrend>=1.1)
+    return{phase:'D',label:'accumulation',detail:'Phase D — Higher lows + price above mid + vol rising'};
+
+  // Phase B Accumulation: flat near support, vol declining, tight range
+  if(posInRange<0.35&&volTrend<0.9&&rangeSize/rangeHigh*100<20)
+    return{phase:'B',label:'accumulation',detail:'Phase B — Absorption, vol declining, price near support'};
+
+  // Phase A Accumulation: at range low after downtrend, vol spike on low
+  const volOnLow=swingLows.length>0?recentVols[swingLows[swingLows.length-1].idx]||0:0;
+  const avgVol=avg(recentVols);
+  if(posInRange<0.25&&volOnLow>avgVol*1.5)
+    return{phase:'A',label:'accumulation',detail:'Phase A — Selling climax, potential bottom'};
+
+  // Phase C Distribution: UTAD + rejection + dropping
+  if(utadDetected&&posInRange<0.5)
+    return{phase:'C',label:'distribution',detail:'UTAD detected — Phase C distribution, markdown incoming'};
+
+  // Phase B Distribution: flat near high, vol rising = insider selling
+  if(posInRange>0.65&&volTrend>=1.15&&rangeSize/rangeHigh*100<20)
+    return{phase:'B',label:'distribution',detail:'Phase B — Distribution, vol rising near high'};
+
+  // Phase D Distribution: lower highs + price below mid
+  if(lowerHighs&&posInRange<0.4&&volTrend>=1.0)
+    return{phase:'D',label:'distribution',detail:'Phase D — Lower highs, markdown accelerating'};
+
+  return null;
+}
 function detectSupportCluster(klines,price){const lows=klines.map(k=>parseFloat(k[3]));const seen=[];for(const low of lows){if(!seen.some(c=>Math.abs(c-low)/(c||1)<0.02)){const count=lows.filter(l=>Math.abs(l-low)/(low||1)<0.02).length;if(count>=3)seen.push(low);}}return seen.filter(c=>Math.abs(c-price)/(price||1)<0.05).length;}
 function detectResistanceCluster(klines,price){const highs=klines.map(k=>parseFloat(k[2]));const seen=[];for(const h of highs){if(!seen.some(c=>Math.abs(c-h)/(c||1)<0.015)){const count=highs.filter(h2=>Math.abs(h2-h)/(h||1)<0.015).length;if(count>=3)seen.push(h);}}return seen.filter(c=>c>price&&(c-price)/(price||1)<0.1).length;}
 
@@ -201,7 +307,11 @@ function detectSmartAccumulation(d,klines4h,klines1d){
   const od=detectOBVDivergence(d.closes4h,v4);
   if(od==='bullish'){score+=2;signals.push({strength:'strong',text:'📈 OBV bullish divergence = hidden buying pressure'});}
   const wy=detectWyckoffPhase(d.closes1d,d.vols1d);
-  if(wy==='accumulation'){score+=2;signals.push({strength:'strong',text:'🔄 Wyckoff Accumulation phase'});}
+  if(wy&&wy.label==='accumulation'){
+    if(wy.phase==='C'){score+=3;signals.push({strength:'strong',text:`🔄 Wyckoff Phase C — Spring detected, markup imminent`});}
+    else if(wy.phase==='D'){score+=2;signals.push({strength:'strong',text:`🔄 Wyckoff Phase D — ${wy.detail}`});}
+    else{score+=1;signals.push({strength:'medium',text:`🔄 Wyckoff ${wy.phase}: ${wy.detail}`});}
+  }
   if(d.funding!==null&&d.funding<THRESHOLDS.FUNDING_NEG&&d.oiChange>5){score+=2;signals.push({strength:'strong',text:'💥 Funding negatif + OI ↑ = short squeeze brewing'});}
   const sup=detectSupportCluster(klines4h,d.price);
   if(sup>=3){score+=1;signals.push({strength:'medium',text:`🧱 ${sup} support clusters terkonfirmasi`});}

@@ -648,10 +648,11 @@ function calcTradeSignal(d) {
     longReasons.push({ w: 10, text: `RVOL ${d.rvolData.rvolVsAvg.toFixed(1)}× avg` });
   }
 
-  // Wyckoff accumulation
-  if (d.wyckoff === 'accumulation') {
-    longScore += 14;
-    longReasons.push({ w: 14, text: `Wyckoff accumulation phase` });
+  // Wyckoff accumulation — score based on phase
+  if(d.wyckoff&&d.wyckoff.label==='accumulation'){
+    const wScore=d.wyckoff.phase==='C'?18:d.wyckoff.phase==='D'?14:10;
+    longScore+=wScore;
+    longReasons.push({w:wScore,text:`Wyckoff Phase ${d.wyckoff.phase}: ${d.wyckoff.detail}`});
   }
 
   // TF confluence
@@ -875,9 +876,10 @@ function scoreWhale(d, tickerData) {
   }
 
   // ── SIGNAL 7: Wyckoff accumulation phase ───────────────────────
-  if (d.wyckoff === 'accumulation') {
-    score += 16;
-    signals.push({ strength: 'strong', icon: '🔄', text: `Wyckoff Accumulation phase — institutional buying pattern detected` });
+  if(d.wyckoff&&d.wyckoff.label==='accumulation'){
+    const wScore=d.wyckoff.phase==='C'?20:d.wyckoff.phase==='D'?16:10;
+    score+=wScore;
+    signals.push({strength:'strong',icon:'🔄',text:`Wyckoff Phase ${d.wyckoff.phase} — ${d.wyckoff.detail}`});
   }
 
   // ── SIGNAL 8: Bullish divergence on low RSI ────────────────────
@@ -914,7 +916,7 @@ function scoreWhale(d, tickerData) {
   let phase = 'Unknown';
   if (d.prePumpSilence?.detected && d.bbSqueeze?.squeezing) phase = 'Phase C — Spring (imminent breakout)';
   else if (oiChange > 10 && priceFlat) phase = 'Phase B — Accumulation Active';
-  else if (d.wyckoff === 'accumulation') phase = 'Phase A/B — Markup preparing';
+  else if (d.wyckoff?.label === 'accumulation') phase = `Phase ${d.wyckoff.phase} — ${d.wyckoff.detail}`;
   else if (d.bbSqueeze?.squeezing) phase = 'Phase B — Compression';
   else phase = 'Phase A — Absorption';
 

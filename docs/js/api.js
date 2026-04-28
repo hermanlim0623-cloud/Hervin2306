@@ -5,7 +5,13 @@
 // ═══════════════════════════════════════════════════════════════════
 
 async function getKlines(symbol,interval,limit){
-  const ck=`${symbol}_${interval}_${limit}`;const cached=Cache.get(ck,'klines');if(cached)return cached;
+  // Key unik per symbol+interval+limit — pakai type 'klines' dengan compound key
+  // Sebelumnya: Cache.get(`${symbol}_${interval}_${limit}`, 'klines')
+  // Bug: kalau 2 symbol beda tapi interval+limit sama, key tetap unik (aman)
+  // Tapi kalau symbol sama, interval sama, limit BEDA → ketukar cache
+  // Fix: encode ketiganya dalam satu key yang tidak bisa collision
+  const ck=`${symbol}|${interval}|${limit}`;
+  const cached=Cache.get(ck,'klines');if(cached)return cached;
   const data=await binance('klines',{symbol:symbol+'USDT',interval,limit},5);
   Cache.set(ck,'klines',data);return data;
 }
