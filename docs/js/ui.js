@@ -177,185 +177,415 @@ function calcPosSize(sym, em, sl, side='long', lev=1) {
   document.getElementById('psProfit').textContent = `+$${(riskAmt * 2).toFixed(2)}`;
 }
 
-// ── RENDER RESULT PANEL ────────────────────────────────────────────
+// ── RENDER RESULT PANEL — TABBED REDESIGN ─────────────────────────
 function renderResult(sym, d, scoreData, smartSignals=[], entryPrice=null, side='long', leverage=1, tradeSignal=null, whaleData=null) {
-  document.getElementById('rpSym').textContent=`${sym}/USDT`;
-  document.getElementById('rpPrice').textContent=`$${fmt(d.price,6)}`;
-  const chart=`https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
-
-  // Store for spike calc auto-fill
   window._lastViewedData = d;
+  const chart = `https://www.tradingview.com/chart/?symbol=BINANCE:${sym}USDT.P`;
 
-  // ── v9.3 SPIKE RISK DASHBOARD (renders first) ──────────────────
-  const spikeRiskHtml = renderSpikeRiskDashboard(d, side, tradeSignal, whaleData);
+  // ── Pre-compute all engines ─────────────────────────────────────
+  const spikeProbData = calcSpikeProbability(d);
+  const trendState    = detectTrendState(d);
+  const sweepData     = detectLiquiditySweep(d);
+  const mmTrap        = detectMMTrap(d);
+  const srMap         = buildSRMap(d);
+  const warnings      = detectSqueezeWarnings(d);
+  const ladder        = calcAccumulationLadder(d, side);
+  const decision      = spikeProbData ? buildDecisionVerdict(d, spikeProbData, trendState, warnings, side) : null;
+  const isShort       = side === 'short';
 
+  // ── HEAD: sym + price + score + verdict ────────────────────────
+  document.getElementById('rpSym').textContent   = '';
+  document.getElementById('rpPrice').textContent = '';
+  const scoreClsMap = {high:'high',mid:'mid',low:'low'};
+  const scoreCls = scoreClsMap[scoreData.cls] || 'low';
 
-  const metricsHtml=`<div class="metrics">
-    <div class="metric"><div class="metric-l">Price 24H</div><div class="metric-v ${d.gain24h>=0?'green':'red'}">${fmtPct(d.gain24h)}</div></div>
-    <div class="metric"><div class="metric-l">RSI 4H</div><div class="metric-v ${d.rsi4h>70?'red':d.rsi4h<35?'green':''}">${d.rsi4h}</div></div>
-    <div class="metric"><div class="metric-l">Vol 14D/30D</div><div class="metric-v ${d.volRatio>=2?'green':''}">${d.volRatio.toFixed(2)}x</div></div>
-    <div class="metric"><div class="metric-l">Price 7D</div><div class="metric-v ${d.priceChg7d>=0?'green':'red'}">${fmtPct(d.priceChg7d)}</div></div>
-    <div class="metric">
-      <div class="metric-l">Funding (now)</div>
-      <div class="metric-v ${d.funding!==null&&d.funding<THRESHOLDS.FUNDING_NEG?'blue':d.funding!==null&&d.funding>THRESHOLDS.FUNDING_POS?'red':''}">${d.funding!==null?(d.funding>=0?'+':'')+d.funding.toFixed(4)+'%':'N/A'}</div>
-      ${d.fundingHist?`<div class="metric-sub">3D avg: ${d.fundingHist.avg3d.toFixed(4)}% (${d.fundingHist.negCount}/9 neg)</div>`:''}
+  // Build header
+  const rpHead = document.querySelector('.rp-head');
+  rpHead.innerHTML = `
+    <div class="rp-head-left">
+      <span class="rp-sym">${sym}/USDT</span>
+      <span class="rp-price">$${fmt(d.price,6)}</span>
     </div>
-    <div class="metric"><div class="metric-l">OI Change</div><div class="metric-v ${d.oiChange>5?'green':d.oiChange<-5?'red':''}">${d.oiChange>=0?'+':''}${d.oiChange.toFixed(1)}%</div></div>
-    <div class="metric"><div class="metric-l">Bid Depth</div><div class="metric-v ${d.bids>=THRESHOLDS.BID_DEPTH_STRONG?'green':d.bids<THRESHOLDS.BID_DEPTH_OK?'red':''}">$${(d.bids/1000).toFixed(0)}K</div></div>
-    <div class="metric"><div class="metric-l">MACD Hist</div><div class="metric-v ${d.macd&&d.macd.hist>0?'green':'red'}">${d.macd?(d.macd.hist>=0?'+':'')+d.macd.hist.toFixed(4):'N/A'}</div></div>
-    <div class="metric">
-      <div class="metric-l">BB Width</div>
-      <div class="metric-v ${d.bbSqueeze?.squeezing?'blue':d.bbSqueeze?.expanding?'amber':''}">${d.bb?d.bb.width.toFixed(1)+'%':'N/A'}</div>
-      ${d.bbSqueeze?`<div class="metric-sub">${d.bbSqueeze.squeezing?'🔲 SQUEEZING':d.bbSqueeze.expanding?'📈 EXPANDING':'stable'} (p${d.bbSqueeze.percentile})</div>`:''}
+    <span class="rp-score-pill ${scoreCls}">${scoreData.score}/${scoreData.max}</span>
+    <span class="rp-verdict-pill ${scoreData.verdict.cls}">${scoreData.verdict.cls==='strong'?'STRONG':scoreData.verdict.cls==='medium'?'WATCH':'SKIP'}</span>
+    <button class="btn-close" onclick="closeResult()">✕</button>`;
+
+  // ── TAB 1: OVERVIEW ─────────────────────────────────────────────
+  // Hero metrics: 4 most important numbers
+  const heroHtml = `<div class="ov-hero">
+    <div class="ov-metric">
+      <div class="ov-label">RSI 4H</div>
+      <div class="ov-value ${d.rsi4h>70?'red':d.rsi4h<35?'green':''}">${d.rsi4h}</div>
+      <div class="ov-sub">${d.rsi4h>70?'Overbought':d.rsi4h<35?'Oversold':'Neutral'}</div>
+    </div>
+    <div class="ov-metric">
+      <div class="ov-label">Gain 24H</div>
+      <div class="ov-value ${d.gain24h>=0?'green':'red'}">${fmtPct(d.gain24h)}</div>
+      <div class="ov-sub">7D: ${fmtPct(d.priceChg7d)}</div>
+    </div>
+    <div class="ov-metric">
+      <div class="ov-label">Funding</div>
+      <div class="ov-value ${d.funding!==null&&d.funding<-0.01?'blue':d.funding!==null&&d.funding>0.05?'red':''}">${d.funding!==null?(d.funding>=0?'+':'')+d.funding.toFixed(4)+'%':'N/A'}</div>
+      ${d.fundingHist?`<div class="ov-sub">avg3D: ${d.fundingHist.avg3d.toFixed(4)}%</div>`:'<div class="ov-sub">—</div>'}
+    </div>
+    <div class="ov-metric">
+      <div class="ov-label">OI Change</div>
+      <div class="ov-value ${d.oiChange>5?'green':d.oiChange<-5?'red':''}">${d.oiChange>=0?'+':''}${d.oiChange.toFixed(1)}%</div>
+      <div class="ov-sub">Vol ${d.volRatio.toFixed(1)}×</div>
     </div>
   </div>`;
 
-  let fundingTrendHtml = '';
-  if(d.fundingHist && d.fundingHist.rates.length>0) {
-    const rates = d.fundingHist.rates;
-    const maxAbs = Math.max(...rates.map(r=>Math.abs(r)),0.01);
-    const bars = rates.map(r=>{
-      const h = Math.max(4,Math.round(Math.abs(r)/maxAbs*20));
-      const cls = r<0?'neg':r>0?'pos':'zero';
-      return `<div class="ft-bar ${cls}" style="height:${h}px;" title="${r>=0?'+':''}${r.toFixed(4)}%"></div>`;
-    }).join('');
-    const streakTxt = d.fundingHist.currentNegStreak>0 ? `<span style="color:var(--b);font-weight:700;">${d.fundingHist.currentNegStreak} periods neg berturut</span>` : `<span style="color:var(--r);">funding positif — shorts berkurang</span>`;
-    const trendArr = d.fundingHist.trend < -0.005 ? '↘ makin negatif' : d.fundingHist.trend > 0.005 ? '↗ makin positif' : '→ stabil';
-    fundingTrendHtml = `<div>
-      <div class="sec-label">📊 Funding Rate Trend (3 Hari)</div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:12px 14px;">
-        <div style="display:flex;align-items:flex-end;gap:3px;margin-bottom:8px;">
-          <div class="funding-trend">${bars}</div>
-          <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-left:8px;line-height:1.4;">
-            <div style="color:var(--b);">■ negatif = squeeze fuel</div>
-            <div style="color:var(--r);">■ positif = longs paying</div>
-          </div>
+  // Score bar
+  const scoreHtml = `<div class="ov-score-row">
+    <div class="ov-score-num ${scoreCls}">${scoreData.score}</div>
+    <div class="ov-score-right">
+      <div class="ov-score-bar"><div class="ov-score-fill ${scoreCls}" style="width:${scoreData.pct}%"></div></div>
+      <div class="ov-verdict-text" style="color:var(--${scoreCls==='high'?'g':scoreCls==='mid'?'a':'r'})">${scoreData.verdict.text}</div>
+    </div>
+    <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);white-space:nowrap;">${scoreData.score}/${scoreData.max}</div>
+  </div>`;
+
+  // Decision panel
+  let decisionHtml = '';
+  if(decision) {
+    decisionHtml = `<div class="ov-decision">
+      <div class="ov-decision-head ${decision.biasCls}">
+        <span class="ov-bias">Current Bias: ${decision.bias}</span>
+        <span class="ov-risk">Risk: ${decision.risk}</span>
+      </div>
+      <div class="ov-decision-body">
+        <div class="ov-action">${decision.action}</div>
+        <div class="ov-meta">
+          <span class="ov-meta-item">Trend: <strong>${trendState?.state||'—'}</strong></span>
+          <span class="ov-meta-item">Spike: <strong style="color:var(--r)">${decision.chanceSpike}</strong></span>
+          <span class="ov-meta-item">Side: <strong>${side.toUpperCase()}</strong></span>
         </div>
-        <div style="font-size:0.75rem;display:flex;gap:12px;flex-wrap:wrap;">
-          <span>Trend: <strong>${trendArr}</strong></span>
-          <span>${streakTxt}</span>
-          <span>Avg 3D: <strong style="color:${d.fundingHist.avg3d<0?'var(--b)':'var(--r)'}">${d.fundingHist.avg3d>=0?'+':''}${d.fundingHist.avg3d.toFixed(4)}%</strong></span>
-        </div>
-        ${d.fundingHist.currentNegStreak>=5?`<div class="signal-row info" style="margin-top:8px;font-size:0.78rem;"><span>🔥</span><span>Funding negatif ${d.fundingHist.currentNegStreak} periode berturut — SHORT SQUEEZE PRESSURE TINGGI, mirip setup HYPER sebelum pump</span></div>`:''}
       </div>
     </div>`;
   }
 
+  // Trade signal card
+  let signalHtml = '';
+  const sig = tradeSignal;
+  if(sig) {
+    const isLong = sig.side==='long';
+    const gradeClr = sig.grade==='A'?'var(--g)':sig.grade==='B'?'var(--b)':sig.grade==='C'?'var(--a)':'var(--muted)';
+    signalHtml = `<div class="ov-signal-card">
+      <div class="ov-signal-head ${sig.side}">
+        <span class="ov-signal-title ${sig.side}">${isLong?'📈 LONG SIGNAL':'📉 SHORT SIGNAL'} — ${sig.confidence}% confidence</span>
+        <span class="ov-signal-grade" style="color:${gradeClr}">${sig.grade}</span>
+      </div>
+      <div class="ov-signal-body">
+        <div class="ov-signal-grid">
+          <div class="ov-signal-cell"><div class="ov-signal-cell-label">Entry</div><div class="ov-signal-cell-val">$${fmt(sig.entry,5)}</div></div>
+          <div class="ov-signal-cell"><div class="ov-signal-cell-label">Stop Loss</div><div class="ov-signal-cell-val" style="color:var(--r)">$${fmt(sig.sl,5)}</div></div>
+          <div class="ov-signal-cell"><div class="ov-signal-cell-label">TP1</div><div class="ov-signal-cell-val" style="color:var(--g)">$${fmt(sig.tp1,5)}</div></div>
+          <div class="ov-signal-cell"><div class="ov-signal-cell-label">RR</div><div class="ov-signal-cell-val" style="color:var(--b)">1:${typeof sig.rr==='number'?sig.rr.toFixed(1):sig.rr}</div></div>
+        </div>
+        ${sig.reasons.length>0?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px;">
+          ${sig.reasons.slice(0,3).map(r=>`<div style="font-size:0.72rem;color:var(--muted);display:flex;gap:6px;"><span style="color:${isLong?'var(--g)':'var(--r)'};flex-shrink:0;">◈</span><span>${r}</span></div>`).join('')}
+        </div>`:''}
+      </div>
+    </div>`;
+  }
+
+  // Warnings compact
+  let warningsHtml = '';
+  if(warnings.length>0) {
+    warningsHtml = `<div class="ov-warnings">
+      ${warnings.map(w=>`<div class="ov-warn-row ${w.cls}">
+        <span class="ov-warn-icon">${w.icon}</span>
+        <div class="ov-warn-body">
+          <div class="ov-warn-type">${w.type}</div>
+          <div class="ov-warn-desc">${w.desc}</div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  const tab1 = heroHtml + scoreHtml + decisionHtml + signalHtml + warningsHtml +
+    `<a class="chart-link" href="${chart}" target="_blank">↗ Open in TradingView</a>`;
+
+  // ── TAB 2: ANALYSIS ─────────────────────────────────────────────
+  const metricsHtml = `<div class="metrics">
+    <div class="metric"><div class="metric-l">Price 24H</div><div class="metric-v ${d.gain24h>=0?'green':'red'}">${fmtPct(d.gain24h)}</div></div>
+    <div class="metric"><div class="metric-l">RSI 4H</div><div class="metric-v ${d.rsi4h>70?'red':d.rsi4h<35?'green':''}">${d.rsi4h}</div></div>
+    <div class="metric"><div class="metric-l">Vol 14D/30D</div><div class="metric-v ${d.volRatio>=2?'green':''}">${d.volRatio.toFixed(2)}×</div></div>
+    <div class="metric"><div class="metric-l">Price 7D</div><div class="metric-v ${d.priceChg7d>=0?'green':'red'}">${fmtPct(d.priceChg7d)}</div></div>
+    <div class="metric">
+      <div class="metric-l">Funding (now)</div>
+      <div class="metric-v ${d.funding!==null&&d.funding<-0.01?'blue':d.funding!==null&&d.funding>0.05?'red':''}">${d.funding!==null?(d.funding>=0?'+':'')+d.funding.toFixed(4)+'%':'N/A'}</div>
+      ${d.fundingHist?`<div class="metric-sub">3D avg: ${d.fundingHist.avg3d.toFixed(4)}% (${d.fundingHist.negCount}/9 neg)</div>`:''}
+    </div>
+    <div class="metric"><div class="metric-l">OI Change</div><div class="metric-v ${d.oiChange>5?'green':d.oiChange<-5?'red':''}">${d.oiChange>=0?'+':''}${d.oiChange.toFixed(1)}%</div></div>
+    <div class="metric"><div class="metric-l">Bid Depth</div><div class="metric-v ${d.bids>=150000?'green':d.bids<50000?'red':''}">$${(d.bids/1000).toFixed(0)}K</div></div>
+    <div class="metric"><div class="metric-l">MACD Hist</div><div class="metric-v ${d.macd&&d.macd.hist>0?'green':'red'}">${d.macd?(d.macd.hist>=0?'+':'')+d.macd.hist.toFixed(4):'N/A'}</div></div>
+    <div class="metric">
+      <div class="metric-l">BB Width</div>
+      <div class="metric-v ${d.bbSqueeze?.squeezing?'blue':d.bbSqueeze?.expanding?'amber':''}">${d.bb?d.bb.width.toFixed(1)+'%':'N/A'}</div>
+      ${d.bbSqueeze?`<div class="metric-sub">${d.bbSqueeze.squeezing?'SQUEEZING':d.bbSqueeze.expanding?'EXPANDING':'stable'} (p${d.bbSqueeze.percentile})</div>`:''}
+    </div>
+  </div>`;
+
+  // Funding trend
+  let fundingTrendHtml = '';
+  if(d.fundingHist&&d.fundingHist.rates) {
+    const rates=d.fundingHist.rates;
+    const maxR=Math.max(...rates.map(Math.abs),0.01);
+    const bars=rates.map(r=>{const h=Math.max(2,Math.round(Math.abs(r)/maxR*16));const cls=r<0?'neg':r>0?'pos':'zero';return`<div class="ft-bar ${cls}" style="height:${h}px"></div>`;}).join('');
+    const negS=d.fundingHist.currentNegStreak;
+    fundingTrendHtml = `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:9px 11px;">
+      <div class="sec-label">Funding Rate Trend (3 hari)</div>
+      <div style="display:flex;align-items:flex-end;gap:12px;">
+        <div class="funding-trend">${bars}</div>
+        <div style="font-size:0.68rem;color:var(--muted);flex:1;">
+          <span style="color:var(--b);font-weight:700">■</span> negatif = squeeze fuel &nbsp;
+          <span style="color:var(--r);font-weight:700">■</span> positif = longs paying
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-top:5px;">
+        Trend: <strong>${d.fundingHist.avg3d<0?'↗ makin positif':'↘ makin negatif'}</strong>
+        ${negS>=3?`&nbsp;· <span style="color:var(--b)">${negS} periods neg berturut</span>`:''}
+        &nbsp;· Avg 3D: <strong>${d.fundingHist.avg3d.toFixed(4)}%</strong>
+      </div>
+      ${negS>=4?`<div style="margin-top:6px;padding:6px 9px;background:var(--b-bg);border:1px solid var(--b-border);border-radius:5px;font-size:0.7rem;color:var(--b);">🔥 Funding negatif ${negS} periode berturut — SHORT SQUEEZE PRESSURE TINGGI</div>`:''}
+    </div>`;
+  }
+
+  // RVOL
   let rvolHtml = '';
   if(d.rvolData) {
-    const rv = d.rvolData;
-    const barMax = rv.chartMax || 1;
-    const bars24 = rv.chart24h.map((v,i)=>{
-      const h = Math.max(2,Math.round(v/barMax*36));
-      const isCurrent = i===rv.chart24h.length-1;
-      const color = isCurrent
-        ? (rv.isSpike?'var(--r)':rv.isRising?'var(--g)':'var(--muted)')
-        : (v>rv.avg7HourVol*2?'var(--a)':v>rv.avg7HourVol*1.3?'var(--g-border)':'var(--border2)');
-      return `<div class="rvol-bar ${isCurrent?'current':'historical'}" style="height:${h}px;background:${color};" title="${isCurrent?'Current hour':''}${fmtVol(v)}"></div>`;
-    }).join('');
-    const rvolCls = rv.rvolVsAvg>=3?'red':rv.rvolVsAvg>=1.5?'green':'';
+    const rv=d.rvolData;const barMax=rv.chartMax||1;
+    const bars=rv.chart24h.map((v,i)=>{const h=Math.max(2,Math.round(v/barMax*28));const isCur=i===rv.chart24h.length-1;const color=isCur?(rv.isSpike?'var(--r)':rv.isRising?'var(--g)':'var(--muted)'):(v>rv.avg7HourVol*2?'var(--a)':v>rv.avg7HourVol*1.3?'var(--g-border)':'var(--border2)');return`<div class="rvol-bar ${isCur?'current':'historical'}" style="height:${h}px;background:${color};"></div>`;}).join('');
     rvolHtml = `<div class="rvol-wrap">
       <div class="rvol-title">⏱ Relative Volume / Hour (vs 7-Day Avg)</div>
-      <div class="rvol-bars">${bars24}</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
-        <div class="metric-v ${rvolCls}" style="font-size:0.85rem;">${rv.rvolVsAvg.toFixed(1)}× avg</div>
-        <div style="font-size:0.75rem;color:var(--muted);">vs yesterday: ${rv.rvolVsYest.toFixed(1)}× | accel: ${rv.volAccel.toFixed(1)}×</div>
+      <div class="rvol-bars">${bars}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+        <span class="metric-v ${rv.rvolVsAvg>=3?'red':rv.rvolVsAvg>=1.5?'green':''}" style="font-size:0.82rem;">${rv.rvolVsAvg.toFixed(1)}× avg</span>
+        <span style="font-size:0.7rem;color:var(--muted);">vs yesterday: ${rv.rvolVsYest.toFixed(1)}× · accel: ${rv.volAccel.toFixed(1)}×</span>
         ${rv.isSpike?`<span class="tag r">🔥 VOLUME SPIKE</span>`:''}
         ${rv.isAccelerating&&!rv.isSpike?`<span class="tag g">↑ Accelerating</span>`:''}
       </div>
     </div>`;
   }
 
-  let squeezeHtml = '';
-  if(d.squeezeMap && d.squeezeMap.oiUSD > 0) {
-    const sm = d.squeezeMap;
-    const levels = sm.levels.map(l=>{
-      const barW = sm.maxUsd>0?Math.round(l.usd/sm.maxUsd*100):0;
-      const barColor = l.pct<=10?'var(--a)':'var(--r)';
-      return `<div class="squeeze-level">
-        <span class="squeeze-pct-label">${l.label}</span>
-        <div class="squeeze-bar-wrap"><div class="squeeze-bar-fill" style="width:${barW}%;background:${barColor}"></div></div>
-        <span class="squeeze-usd" style="color:${barColor}">${fmtK(l.usd)}</span>
-      </div>`;
-    }).join('');
-    squeezeHtml = `<div class="squeeze-meter">
-      <div class="squeeze-title">💣 Short Squeeze Pressure Map</div>
-      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-bottom:8px;">OI: ${fmtVol(sm.oiUSD)} | Est. short exposure: ${fmtVol(sm.estimatedShortUSD)} (${Math.round(sm.shortBias*100)}%)</div>
-      <div class="squeeze-levels">${levels}</div>
-      ${sm.estimatedShortUSD>1e6?`<div style="font-size:0.72rem;color:var(--muted);margin-top:8px;">Estimasi berdasarkan OI + funding bias.</div>`:''}
-    </div>`;
-  }
-
-  let bbSqueezeHtml = '';
+  // BB squeeze
+  let bbHtml = '';
   if(d.bbSqueeze) {
-    const bs=d.bbSqueeze;
-    const cls = bs.squeezing?'coiling':bs.expanding?'expanding':'';
-    const gaugeW = Math.round((100-bs.percentile));
-    const gaugeColor = bs.squeezing?'var(--b)':bs.expanding?'var(--r)':'var(--muted)';
-    const statusText = bs.squeezing&&bs.extremeNarrow ? '🔲 EXTREME SQUEEZE — meledak segera' : bs.squeezing ? '🔲 Squeezing — akumulasi energi' : bs.expanding ? '📈 Expanding — pump/dump sudah berjalan' : '→ Normal';
-    bbSqueezeHtml = `<div class="bb-squeeze ${cls}">
-      <div class="bb-gauge"><div class="bb-gauge-fill" style="width:${gaugeW}%;background:${gaugeColor}"></div></div>
-      <div class="bb-squeeze-text">
-        <div style="font-weight:600;font-size:0.78rem;">${statusText}</div>
-        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">Width: ${bs.widthNow.toFixed(1)}% (hist. percentile: ${bs.percentile}%)</div>
+    const bs=d.bbSqueeze;const cls=bs.squeezing?'coiling':bs.expanding?'expanding':'';
+    const gW=Math.round(100-bs.percentile);const gC=bs.squeezing?'var(--b)':bs.expanding?'var(--r)':'var(--muted)';
+    const stxt=bs.squeezing&&bs.extremeNarrow?'🔲 EXTREME SQUEEZE — meledak segera':bs.squeezing?'🔲 Squeezing — akumulasi energi':bs.expanding?'📈 Expanding — pump/dump sudah berjalan':'→ Normal';
+    bbHtml = `<div class="bb-squeeze ${cls}">
+      <div class="bb-gauge"><div class="bb-gauge-fill" style="width:${gW}%;background:${gC}"></div></div>
+      <div class="bb-squeeze-text"><strong>${stxt}</strong><div style="font-size:0.64rem;color:var(--muted);margin-top:1px;">Width: ${bs.widthNow.toFixed(1)}% (hist. p${bs.percentile})</div></div>
+    </div>`;
+  }
+
+  // Checklist in collapsible
+  const checkHtml = `<div class="an-section">
+    <div class="an-section-head" onclick="toggleAnSection(this)">
+      <span class="an-section-title">Score Checklist</span>
+      <span class="an-section-arrow">▼</span>
+    </div>
+    <div class="an-section-body">
+      <div class="checklist">${scoreData.checks.map(c=>`<div class="check-row ${c.pass?'pass':c.fail?'fail':'warn'}"><span class="check-icon">${c.pass?'✓':c.fail?'✗':'⚠'}</span><span>${c.text}</span></div>`).join('')}</div>
+    </div>
+  </div>`;
+
+  // Smart signals collapsible
+  let smartHtml = '';
+  if(smartSignals.length>0) {
+    smartHtml = `<div class="an-section">
+      <div class="an-section-head open" onclick="toggleAnSection(this)">
+        <span class="an-section-title">Smart Signals</span>
+        <span class="an-section-arrow open">▼</span>
+      </div>
+      <div class="an-section-body open">
+        <div class="signals-list">${smartSignals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''} ${s.isBear?'bear':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
       </div>
     </div>`;
   }
 
-  const silenceHtml = d.prePumpSilence&&d.prePumpSilence.score>=2?`<div>
-    <div class="sec-label">🤫 Pre-Pump Silence Analysis</div>
-    <div class="signals-list">${d.prePumpSilence.signals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
-  </div>`:'';
+  // Candle patterns + silence
+  let patternsHtml = '';
+  const hasPatterns = (d.candlePatterns&&d.candlePatterns.length>0)||(d.prePumpSilence&&d.prePumpSilence.score>=2);
+  if(hasPatterns) {
+    patternsHtml = `<div class="an-section">
+      <div class="an-section-head" onclick="toggleAnSection(this)">
+        <span class="an-section-title">Patterns & Silence</span>
+        <span class="an-section-arrow">▼</span>
+      </div>
+      <div class="an-section-body">
+        ${d.candlePatterns&&d.candlePatterns.length>0?`<div class="signals-list">${d.candlePatterns.map(p=>`<div class="signal-row ${p.contextValid?'bear':'warn'}"><span style="flex-shrink:0">◈</span><span>${p.text}</span></div>`).join('')}</div>`:''}
+        ${d.prePumpSilence&&d.prePumpSilence.score>=2?`<div class="signals-list">${d.prePumpSilence.signals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }
 
-  const candleHtml = d.candlePatterns&&d.candlePatterns.length>0?`<div>
-    <div class="sec-label">🕯 Candlestick Patterns (1D)</div>
-    <div class="signals-list">${d.candlePatterns.map(p=>`<div class="signal-row ${p.contextValid?'bear':'warn'}"><span style="flex-shrink:0">◈</span><span>${p.text}</span></div>`).join('')}</div>
-  </div>`:'';
-
-  const checkHtml=`<div class="checklist">${scoreData.checks.map(c=>`<div class="check-row ${c.pass?'pass':c.fail?'fail':'warn'}"><span class="check-icon">${c.pass?'✓':c.fail?'✗':'⚠'}</span><span>${c.text}</span></div>`).join('')}</div>`;
-
-  const smartHtml = smartSignals.length>0?`<div>
-    <div class="sec-label">Smart Signals</div>
-    <div class="signals-list">${smartSignals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''} ${s.isBear?'bear':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
-  </div>`:'';
-
+  // Breakout + TFC collapsible
   const bo=d.breakout,tfc=d.tfConfluence;
-  const pumpSetupHtml = (bo||tfc)?`<div>
-    <div class="sec-label">🚀 Pump Setup Analysis</div>
-    ${bo?`<div style="margin-bottom:10px;">
-      <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Breakout Detection</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
-        <div class="metric"><div class="metric-l">Status</div><div class="metric-v ${bo.broke?'green':bo.consolidating?'amber':''}">${bo.broke?(bo.retesting?'RETEST':'BROKE'):bo.consolidating?'COILING':'RANGING'}</div></div>
-        <div class="metric"><div class="metric-l">Key Level</div><div class="metric-v">$${fmt(bo.level,5)}</div></div>
-        <div class="metric"><div class="metric-l">Dist</div><div class="metric-v ${bo.breakoutPct>0?'green':'red'}">${bo.breakoutPct>=0?'+':''}${bo.breakoutPct.toFixed(1)}%</div></div>
+  let brkHtml = '';
+  if(bo||tfc) {
+    brkHtml = `<div class="an-section">
+      <div class="an-section-head" onclick="toggleAnSection(this)">
+        <span class="an-section-title">Breakout & TF Confluence</span>
+        <span class="an-section-arrow">▼</span>
       </div>
-      <div class="signals-list">${bo.signals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
-    </div>`:''}
-    ${tfc?`<div>
-      <div style="font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--faint);margin-bottom:6px;">Timeframe Confluence</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
-        <div class="metric"><div class="metric-l">1H</div><div class="metric-v ${tfc.tf.h1?.trend==='bullish'?'green':'red'}">${tfc.tf.h1?.trend?.toUpperCase()||'N/A'}</div></div>
-        <div class="metric"><div class="metric-l">4H</div><div class="metric-v ${tfc.tf.h4?.trend==='bullish'?'green':'red'}">${tfc.tf.h4?.trend?.toUpperCase()||'N/A'}</div></div>
-        <div class="metric"><div class="metric-l">1D</div><div class="metric-v ${tfc.tf.d1?.trend==='bullish'?'green':'red'}">${tfc.tf.d1?.trend?.toUpperCase()||'N/A'}</div></div>
+      <div class="an-section-body">
+        ${bo?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">
+          <div class="metric"><div class="metric-l">Status</div><div class="metric-v ${bo.broke?'green':bo.consolidating?'amber':''}">${bo.broke?(bo.retesting?'RETEST':'BROKE'):bo.consolidating?'COILING':'RANGING'}</div></div>
+          <div class="metric"><div class="metric-l">Key Level</div><div class="metric-v">$${fmt(bo.level,5)}</div></div>
+          <div class="metric"><div class="metric-l">Dist</div><div class="metric-v ${bo.breakoutPct>0?'green':'red'}">${bo.breakoutPct>=0?'+':''}${bo.breakoutPct.toFixed(1)}%</div></div>
+        </div>`:''}
+        ${tfc?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+          <div class="metric"><div class="metric-l">1H</div><div class="metric-v ${tfc.tf.h1?.trend==='bullish'?'green':'red'}">${tfc.tf.h1?.trend?.toUpperCase()||'N/A'}</div></div>
+          <div class="metric"><div class="metric-l">4H</div><div class="metric-v ${tfc.tf.h4?.trend==='bullish'?'green':'red'}">${tfc.tf.h4?.trend?.toUpperCase()||'N/A'}</div></div>
+          <div class="metric"><div class="metric-l">1D</div><div class="metric-v ${tfc.tf.d1?.trend==='bullish'?'green':'red'}">${tfc.tf.d1?.trend?.toUpperCase()||'N/A'}</div></div>
+        </div>`:''}
       </div>
-      <div style="margin-bottom:8px;"><div class="score-section"><span class="score-label" style="font-size:0.72rem;">Confluence</span><div class="score-track"><div class="score-fill ${tfc.score>=5?'high':tfc.score>=3?'mid':'low'}" style="width:${Math.round(tfc.score/6*100)}%"></div></div><span class="score-val">${tfc.score}/6${tfc.aligned?' 🎯':''}</span></div></div>
-      <div class="signals-list">${tfc.signals.map(s=>`<div class="signal-row ${s.strength!=='strong'?'warn':''}"><span style="flex-shrink:0">◈</span><span>${s.text}</span></div>`).join('')}</div>
-    </div>`:''}
-  </div>`:'';
+    </div>`;
+  }
 
-  const scoreHtml=`<div class="score-section"><span class="score-label">Score</span><div class="score-track"><div class="score-fill ${scoreData.cls}" style="width:${scoreData.pct}%"></div></div><span class="score-val">${scoreData.score}/${scoreData.max}</span></div>`;
-  const verdictHtml=`<div class="verdict ${scoreData.verdict.cls}">${scoreData.verdict.text}</div>`;
-  const tradeHtml=renderTradeSetupHtml(d,sym,entryPrice,side,leverage);
+  // SR Map
+  let srHtml = '';
+  if(srMap) {
+    const price=d.price;
+    const resRows=srMap.resistances.slice(0,4).map(r=>`<div class="srd-sr-level"><span class="srd-sr-price" style="color:var(--r)">$${fmt(r.price,5)}</span><span class="srd-sr-dist">+${((r.price-price)/price*100).toFixed(1)}%</span><span class="srd-sr-cnt">${r.count}×</span></div>`).join('')||'<div style="font-size:0.7rem;color:var(--faint)">None</div>';
+    const supRows=srMap.supports.slice(0,4).map(s=>`<div class="srd-sr-level"><span class="srd-sr-price" style="color:var(--g)">$${fmt(s.price,5)}</span><span class="srd-sr-dist">-${((price-s.price)/price*100).toFixed(1)}%</span><span class="srd-sr-cnt">${s.count}×</span></div>`).join('')||'<div style="font-size:0.7rem;color:var(--faint)">None</div>';
+    srHtml = `<div class="srd-sr-map">${['<div class="srd-sr-col"><div class="srd-sr-col-title res">↑ Resistance</div>'+resRows+'</div>','<div class="srd-sr-col"><div class="srd-sr-col-title sup">↓ Support</div>'+supRows+'</div>'].join('')}</div>`;
+  }
 
-  document.getElementById('rpBody').innerHTML =
-    spikeRiskHtml +
-    metricsHtml + fundingTrendHtml + rvolHtml + squeezeHtml + bbSqueezeHtml +
-    silenceHtml + candleHtml + checkHtml + smartHtml + pumpSetupHtml +
-    scoreHtml + verdictHtml + tradeHtml +
-    `<a class="chart-link" href="${chart}" target="_blank">↗ Open in TradingView</a>`;
+  const tab2 = metricsHtml + fundingTrendHtml + rvolHtml + bbHtml + srHtml + smartHtml + patternsHtml + brkHtml + checkHtml;
+
+  // ── TAB 3: TRADE ────────────────────────────────────────────────
+  const tradeSetupHtml = renderTradeSetupHtml(d, sym, entryPrice, side, leverage);
+
+  // Ladder
+  let ladderHtml = '';
+  if(ladder) {
+    const entryRows=ladder.entries.map(e=>`<div class="srd-entry-row ${side}"><span class="srd-entry-label">${e.label}</span><span class="srd-entry-price">$${fmt(e.price,5)}</span><span class="srd-entry-pct ${side}">${isShort?'+':'-'}${e.pct}%</span><span class="srd-entry-weight">${e.weight}%</span><span class="srd-entry-note">${e.note}</span></div>`).join('');
+    ladderHtml = `<div class="srd-ladder">
+      <div class="srd-ladder-head"><span class="srd-ladder-title">${isShort?'📉 Short':'📈 Long'} Accumulation Ladder</span><span class="srd-ladder-avg">Weighted Avg: $${fmt(ladder.weightedAvg,5)}</span></div>
+      <div class="srd-ladder-body">${entryRows}</div>
+      <div class="srd-ladder-footer">
+        <div class="srd-ladder-stat"><div class="srd-ladder-stat-l">Stop Loss</div><div class="srd-ladder-stat-v" style="color:var(--r)">$${fmt(ladder.sl,5)}</div></div>
+        <div class="srd-ladder-stat"><div class="srd-ladder-stat-l">SL Dist</div><div class="srd-ladder-stat-v" style="color:var(--r)">${ladder.slPct}%</div></div>
+        <div class="srd-ladder-stat"><div class="srd-ladder-stat-l">TP1 / RR</div><div class="srd-ladder-stat-v" style="color:var(--g)">$${fmt(ladder.tp1,5)} <span style="font-size:0.6rem;color:var(--muted)">1:${ladder.rr1}</span></div></div>
+        <div class="srd-ladder-stat"><div class="srd-ladder-stat-l">TP2 / RR</div><div class="srd-ladder-stat-v" style="color:var(--g)">$${fmt(ladder.tp2,5)} <span style="font-size:0.6rem;color:var(--muted)">1:${ladder.rr2}</span></div></div>
+        <div class="srd-ladder-stat"><div class="srd-ladder-stat-l">Invalidation</div><div class="srd-ladder-stat-v" style="color:var(--a)">$${fmt(ladder.invalidation,5)}</div></div>
+      </div>
+    </div>`;
+  }
+
+  const tab3 = tradeSetupHtml + ladderHtml;
+
+  // ── TAB 4: ADVANCED ─────────────────────────────────────────────
+  // Whale detail
+  let whaleHtml = '';
+  if(whaleData) {
+    const ws=whaleData;const sw=Math.round(ws.score);
+    const barC=sw>=75?'linear-gradient(90deg,#3b5bdb,#4c6ef5)':sw>=55?'linear-gradient(90deg,var(--g),#2d9b5a)':'linear-gradient(90deg,var(--a),#c47a00)';
+    whaleHtml = `<div class="whale-header">
+      <div class="whale-top">
+        <div><div class="whale-title">🐋 Whale Accumulation</div><div class="whale-phase">${ws.phase}</div></div>
+        <div class="whale-score">${sw}<span style="font-size:0.6rem;color:var(--muted);font-weight:400;">/100</span></div>
+      </div>
+      <div class="whale-score-bar"><div class="whale-score-fill" style="width:${sw}%;background:${barC}"></div></div>
+      <div class="whale-signals">${ws.signals.map(s=>`<div class="whale-sig-row ${s.strength}"><span style="flex-shrink:0">${s.icon}</span><span>${s.text}</span></div>`).join('')}</div>
+    </div>`;
+  }
+
+  // Short risk score
+  let riskScoreHtml = '';
+  if(spikeProbData) {
+    const rs=spikeProbData.shortRiskScore;const rsC=rs>=65?'high':rs>=40?'medium':'low';
+    const rsT=rs>=65?'High Squeeze Risk — Dangerous for Shorts':rs>=40?'Moderate Risk — Trade with Caution':'Low Risk — Conditions Acceptable';
+    riskScoreHtml = `<div class="srd-risk-score">
+      <div>
+        <div class="srd-score-num ${rsC}">${rs}</div>
+        <div style="font-size:0.6rem;color:var(--muted)">/100</div>
+      </div>
+      <div class="srd-score-right">
+        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Short Risk Score</div>
+        <div class="srd-score-track"><div class="srd-score-fill ${rsC}" style="width:${rs}%"></div></div>
+        <div class="srd-score-status">${rsT}</div>
+      </div>
+    </div>`;
+  }
+
+  // Spike/dump prob
+  let probHtml = '';
+  if(spikeProbData) {
+    const sp=spikeProbData;const sH=Math.max(8,Math.round(sp.spikePct*0.36));const dH=Math.max(8,Math.round(sp.dumpPct*0.36));
+    probHtml = `<div class="srd-prob">
+      <div class="srd-prob-header">
+        <div><div class="srd-prob-pct spike">${sp.spikePct}%</div><div class="srd-prob-name">Further Spike</div></div>
+        <div style="text-align:right"><div class="srd-prob-pct dump">${sp.dumpPct}%</div><div class="srd-prob-name" style="text-align:right">Dump/Reversal</div></div>
+      </div>
+      <div class="srd-prob-bars">
+        <div class="srd-prob-bar-wrap"><div class="srd-prob-bar-fill spike" style="height:${sH}px"></div></div>
+        <div class="srd-prob-bar-wrap"><div class="srd-prob-bar-fill dump" style="height:${dH}px"></div></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <span class="srd-status-pill ${sp.statusCls}">${sp.status}</span>
+        <span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">MA ext: 7D ${sp.extMa7}% | 25D ${sp.extMa25}% | 99D ${sp.extMa99}%</span>
+      </div>
+    </div>`;
+  }
+
+  // Trend + MM + Sweep in compact row
+  let advRowHtml = '';
+  if(trendState||mmTrap||sweepData?.sweepZoneLow) {
+    const tCard=trendState?`<div class="adv-card"><div class="adv-card-title">Market State</div><div class="adv-card-main" style="color:var(--${trendState.color==='red'?'r':trendState.color==='amber'?'a':trendState.color==='blue'?'b':'g'})">${trendState.state}</div><div class="adv-card-sub">${trendState.description} (conf: ${trendState.confidence}%)</div></div>`:'';
+    const mmCard=mmTrap?`<div class="adv-card"><div class="adv-card-title">MM Trap</div><div class="adv-card-main">${mmTrap.trapType}</div><div class="adv-card-sub">${mmTrap.trapDesc}</div></div>`:'';
+    const swCard=sweepData?.sweepZoneLow?`<div class="adv-card"><div class="adv-card-title">Liquidity Sweep</div><div class="adv-card-main" style="color:var(--b)">$${fmt(sweepData.sweepZoneLow,5)} – $${fmt(sweepData.sweepZoneHigh,5)}</div><div class="adv-card-sub">${sweepData.sweepProb}% prob · ${sweepData.imbalanceSide}</div></div>`:'';
+    advRowHtml = `<div class="adv-row">${tCard}${mmCard}${swCard}</div>`;
+  }
+
+  // Squeeze pressure map
+  let sqMapHtml = '';
+  if(d.squeezeMap&&d.squeezeMap.oiUSD>0) {
+    const sm=d.squeezeMap;
+    const levels=sm.levels.map(l=>{const bW=sm.maxUsd>0?Math.round(l.usd/sm.maxUsd*100):0;const bC=l.pct<=10?'var(--a)':'var(--r)';return`<div class="squeeze-level"><span class="squeeze-pct-label">${l.label}</span><div class="squeeze-bar-wrap"><div class="squeeze-bar-fill" style="width:${bW}%;background:${bC}"></div></div><span class="squeeze-usd" style="color:${bC}">${fmtK(l.usd)}</span></div>`;}).join('');
+    sqMapHtml = `<div class="squeeze-meter"><div class="squeeze-title">💣 Short Squeeze Pressure — OI: ${fmtVol(sm.oiUSD)} | Est. short: ${fmtVol(sm.estimatedShortUSD)}</div><div class="squeeze-levels">${levels}</div></div>`;
+  }
+
+  const tab4 = whaleHtml + riskScoreHtml + probHtml + advRowHtml + sqMapHtml;
+
+  // ── ASSEMBLE ─────────────────────────────────────────────────────
+  document.getElementById('rpBody').innerHTML = `
+    <div class="rp-tabs">
+      <button class="rp-tab active" onclick="switchTab(this,'tab-overview')">Overview</button>
+      <button class="rp-tab" onclick="switchTab(this,'tab-analysis')">Analysis</button>
+      <button class="rp-tab" onclick="switchTab(this,'tab-trade')">Trade Setup</button>
+      <button class="rp-tab" onclick="switchTab(this,'tab-advanced')">Advanced</button>
+    </div>
+    <div id="tab-overview" class="rp-tab-pane active">${tab1}</div>
+    <div id="tab-analysis" class="rp-tab-pane">${tab2}</div>
+    <div id="tab-trade"    class="rp-tab-pane">${tab3}</div>
+    <div id="tab-advanced" class="rp-tab-pane">${tab4}</div>`;
 
   document.getElementById('resultPanel').classList.add('show');
 }
+
+// Tab switcher
+function switchTab(btn, paneId) {
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.rp-tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(paneId)?.classList.add('active');
+}
+
+// Collapsible section toggle
+function toggleAnSection(head) {
+  const arrow = head.querySelector('.an-section-arrow');
+  const body  = head.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+  head.classList.toggle('open', !isOpen);
+}
+
 
 // ── RENDER CARDS ────────────────────────────────────────────────────
 function renderCards(){
